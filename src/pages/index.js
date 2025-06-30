@@ -1,0 +1,15 @@
+export { default as Public } from "./Public";
+export { default as Home } from "./Home";
+export { default as DanhSachSanPham } from "./DanhSachSanPham";
+export { default as DsDanhMuc } from "./DsDanhMuc";
+export { default as DanhSachKhachhang } from "./DanhSachKhachhang";
+export { default as CouponManagement } from "./CouponManagement";
+export { default as SlideList } from "./SlideList";
+export { default as FooterList } from "./FooterList";
+export { default as EmployeePage } from "./EmployeePage";
+export { default as Login } from "./Login";
+export { default as Unauthorized } from "./Unauthorized";
+export { default as OrderList } from "./OrderList";
+export { default as ReportPage } from "./ReportPage";
+export { default as AdminProfile } from "./AdminProfile";
+export { default as ChamCongAdmin } from "./ChamCongAdmin";

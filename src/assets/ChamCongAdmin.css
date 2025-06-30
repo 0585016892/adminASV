@@ -1,0 +1,57 @@
+/* Dark mode cho modal lương */
+.salary-modal.dark .modal-content {
+  background-color: #1e1e2f;
+  color: #f1f1f1;
+}
+
+.salary-modal.dark .modal-title {
+  color: #58a6ff;
+}
+
+.salary-modal.dark li {
+  border-bottom: 1px solid #333;
+}
+
+.salary-modal.dark li strong:last-child {
+  color: #0dcaf0;
+}
+
+.salary-modal.dark li:last-child {
+  color: #20c997;
+}
+/* ChamCongAdmin.css */
+
+.salary-modal ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.salary-modal li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.salary-modal li strong:last-child {
+  color: #0d6efd; /* màu xanh Bootstrap */
+}
+
+.salary-modal li:last-child {
+  border-bottom: none;
+  font-weight: bold;
+  font-size: 18px;
+  color: #198754; /* màu xanh thành công */
+}
+
+.salary-modal .modal-title {
+  color: #0d6efd;
+  font-weight: bold;
+}
+
+.salary-modal .modal-body {
+  background: #f9f9f9;
+  border-radius: 4px;
+}

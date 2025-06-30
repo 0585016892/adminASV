@@ -1,0 +1,7 @@
+.login_bg {
+  background-image: url(../img/bgLogin.png);
+  background-size: cover; /* Hoặc contain */
+  background-position: center;
+  background-repeat: no-repeat;
+  padding-left: 250px;
+}
