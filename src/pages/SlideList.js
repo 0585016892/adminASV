@@ -17,6 +17,7 @@ import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import * as XLSX from "xlsx";
 import { FiEye } from "react-icons/fi";
 import { getSlides, deleteSlideById, updateSlideStatus } from "../api/slideApi"; // giả định API
+const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
 const SlideList = () => {
   const [slides, setSlides] = useState([]);
@@ -98,7 +99,7 @@ const SlideList = () => {
       slides.map((s) => ({
         ID: s.id,
         Tiêu_đề: s.title,
-        "Hình ảnh": `http://localhost:5000/uploads/${s.image}`,
+        "Hình ảnh": `${URL_WEB}/uploads/${s.image}`,
         "Đường dẫn": s.link,
         "Khu vực hiển thị": s.display_area,
         "Trạng thái": s.status ? "Hiện" : "Ẩn",
@@ -126,7 +127,7 @@ const SlideList = () => {
     }
   };
   return (
-    <div className="container-fluid " style={{ paddingLeft: "35px" }}>
+    <div className="container-fluid mt-md-4" style={{ paddingLeft: "35px" }}>
       <Row className="align-items-center mb-3">
         <Col>
           <h4>🖼️ Danh sách slide</h4>
@@ -214,7 +215,9 @@ const SlideList = () => {
             {loading ? (
               <tr>
                 <td colSpan="8">
-                  <Spinner animation="border" />
+                  <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+                           <Spinner animation="border" variant="primary" />
+                         </div>
                 </td>
               </tr>
             ) : slides?.length === 0 ? (
@@ -228,7 +231,7 @@ const SlideList = () => {
                   <td>{s.title}</td>
                   <td>
                     <img
-                      src={`http://localhost:5000/uploads/${s.image}`}
+                      src={`${URL_WEB}/uploads/${s.image}`}
                       alt={s.title}
                       height={50}
                     />

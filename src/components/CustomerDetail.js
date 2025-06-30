@@ -10,6 +10,7 @@ import {
   Col,
   Image,
 } from "react-bootstrap"; // Import React-Bootstrap components for styling
+const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
 const CustomerDetails = () => {
   const { id } = useParams(); // Use the useParams hook to get the 'id' from the URL
@@ -35,12 +36,8 @@ const CustomerDetails = () => {
 
   if (loading) {
     return (
-      <div
-        className="d-flex justify-content-center align-items-center"
-        style={{ height: "100vh" }}
-      >
-        <Spinner animation="border" variant="primary" />
-        <span className="ms-3">Đang tải dữ liệu...</span>
+     <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+       <Spinner animation="border" variant="primary" />
       </div>
     );
   }
@@ -130,7 +127,7 @@ const CustomerDetails = () => {
                             className="d-flex justify-content-center align-items-center"
                           >
                             <Image
-                              src={`http://localhost:5000/uploads/${order.image}`}
+                              src={`${URL_WEB}/uploads/${order.image}`}
                               alt={order.name}
                               fluid
                               rounded

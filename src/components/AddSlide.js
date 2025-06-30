@@ -7,7 +7,7 @@ import { FaImage } from "react-icons/fa";
 
 const AddSlide = () => {
   const navigate = useNavigate();
-  const API_URL = "http://localhost:5000/api"; // Cập nhật URL nếu khác
+  const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
 
   const [slideData, setSlideData] = useState({
     title: "",

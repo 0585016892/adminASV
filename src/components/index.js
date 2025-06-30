@@ -17,5 +17,6 @@ export { default as Spinner } from "./Spinner";
 export { default as Size } from "./Size";
 export { default as Color } from "./Color";
 export { default as SanphamDetail } from "./SanphamDetail";
+export { default as AutoReplyManager } from "./AutoReplyManager";
 
 export { default as TopSeller } from "../api/TopSeller";

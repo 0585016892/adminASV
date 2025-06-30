@@ -7,6 +7,7 @@ import {
   Col,
   Pagination,
   Modal,
+  Spinner,
   Card,
 } from "react-bootstrap";
 import { getAllDanhMuc, filterDanhmuc, deleteDanhMuc } from "../api/danhmucApi";
@@ -170,7 +171,9 @@ const DsDanhMuc = () => {
       {/* Danh sách danh mục */}
       <div className="row row-cols-1 row-cols-md-3 g-4">
         {loading ? (
-          <div className="col-12 text-center">Đang tải dữ liệu...</div>
+            <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
+            <Spinner animation="border" variant="primary" />
+          </div>
         ) : (
           danhmuc?.map((prod) => (
             <div className="col" key={prod.id}>

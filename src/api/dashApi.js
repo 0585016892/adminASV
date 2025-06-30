@@ -1,6 +1,6 @@
 // dashApi.js
 
-const API_BASE = "http://localhost:5000/api"; // đổi theo địa chỉ backend của bạn
+const API_BASE = process.env.REACT_APP_API_URL; // đổi theo địa chỉ backend của bạn
 
 export async function fetchStats() {
   try {

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 // Lấy dữ liệu chấm công theo ngày (YYYY-MM-DD)
 export const getChamCongByDate = async (date) => {
@@ -51,14 +51,14 @@ export const filterChamCong = async ({ name = "", page = 1, limit = 10 }) => {
   }
 };
 export const getSalarySummary = (user_id, year, month) => {
-  return axios.get(`http://localhost:5000/api/attendances/salary`, {
+  return axios.get(`${API_BASE_URL}/attendances/salary`, {
     params: { user_id, year, month },
   });
 };
 export const saveSalary = (data) =>
-  axios.post("http://localhost:5000/api/attendances/save", data);
+  axios.post(`${API_BASE_URL}/attendances/save`, data);
 export const checkSalarySaved = async (user_id, year, month) => {
-  const res = await axios.get(`http://localhost:5000/api/attendances/check`, {
+  const res = await axios.get(`${API_BASE_URL}/attendances/check`, {
     params: { user_id, year, month },
   });
   return res.data;

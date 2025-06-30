@@ -20,6 +20,7 @@ import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import { FaBoxOpen } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 import { FaRegEye } from "react-icons/fa6";
+const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
 const DanhSachSanPham = () => {
   const { user } = useAuth();
@@ -194,7 +195,7 @@ const DanhSachSanPham = () => {
                 <td>
                   {prod.image && (
                     <img
-                      src={`http://localhost:5000/uploads/${prod.image}`}
+                      src={`${URL_WEB}/uploads/${prod.image}`}
                       alt="Ảnh sản phẩm"
                       width={70}
                       className="img-fluid rounded"

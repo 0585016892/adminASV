@@ -13,6 +13,7 @@ import {
 } from "react-bootstrap";
 import { getProductById } from "../api/productAPI";
 import { getAllColors } from "../api/colorApi";
+const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
 const SanphamDetail = () => {
   const { id } = useParams();
@@ -53,7 +54,7 @@ const SanphamDetail = () => {
 
   if (loading || !product)
     return (
-      <div className="text-center mt-5">
+      <div className="text-center mt-5 d-flex justify-content-center align-items-center h-100" >
         <Spinner animation="border" variant="primary" />
       </div>
     );
@@ -64,10 +65,10 @@ const SanphamDetail = () => {
         <h2 className="fw-bold">Chi tiết sản phẩm</h2>
       </div>
       <Row className="gx-5">
-        <Col md={6}>
+        <Col md={4}>
           <div className="border rounded p-3 shadow-sm bg-white">
             <Image
-              src={`http://localhost:5000/uploads/${selectedImage}`}
+              src={`${URL_WEB}/uploads/${selectedImage}`}
               fluid
               style={{
                 borderRadius: "10px",
@@ -79,7 +80,7 @@ const SanphamDetail = () => {
               {[product.image, ...(product.subImages || [])].map((img, idx) => (
                 <Image
                   key={idx}
-                  src={`http://localhost:5000/uploads/${img}`}
+                  src={`${URL_WEB}/uploads/${img}`}
                   thumbnail
                   style={{
                     width: "70px",
@@ -99,7 +100,7 @@ const SanphamDetail = () => {
           </div>
         </Col>
 
-        <Col md={6}>
+        <Col md={8}>
           <Card className="border-0 shadow-sm bg-white p-3">
             <Card.Body>
               <h3 className="fw-bold">{product.name}</h3>

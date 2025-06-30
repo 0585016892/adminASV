@@ -164,7 +164,7 @@
 }
 @media (min-width: 768px) {
   .sidebar-container {
-    position: relative;
+    position: fixed;
     left: 0 !important;
     width: 220px;
   }

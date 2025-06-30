@@ -209,9 +209,9 @@ const ChamCongAdmin = () => {
           </h5>
 
           {loading ? (
-            <div className="text-center my-4">
-              <Spinner animation="border" />
-            </div>
+            <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+                     <Spinner animation="border" variant="primary" />
+                   </div>
           ) : (
             <Table striped bordered hover responsive className="mt-3">
               <thead className="table-dark">

@@ -1,7 +1,7 @@
 // src/api/employeeApi.js
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = process.env.REACT_APP_API_URL;
 
 export const getEmployees = (token) => {
   return axios.get(`${API_URL}/employees/employees`, {

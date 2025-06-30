@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import NumberFormat from 'react-number-format';
 import {
   Table,
   Button,
@@ -306,7 +307,9 @@ const CouponManagement = () => {
               {loading ? (
                 <tr>
                   <td colSpan="9" className="text-center">
-                    <Spinner animation="border" size="sm" /> Đang tải...
+                   <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
+                      <Spinner animation="border" variant="primary" />
+                  </div>
                   </td>
                 </tr>
               ) : coupons.length === 0 ? (

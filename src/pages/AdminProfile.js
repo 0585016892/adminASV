@@ -25,9 +25,10 @@ import { useAuth } from "../contexts/AuthContext";
 import logo from "../img/admin.jpg";
 import { getAttendanceByDate, checkIn, checkOut } from "../api/adminproApi";
 import io from "socket.io-client";
-const socket = io("http://localhost:5000");
+const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
+const socket = io(`${URL_WEB}`);
 const AdminProfile = () => {
-  const API_URL = "http://localhost:5000/api"; // Cập nhật URL nếu khác
+  const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -262,7 +263,7 @@ const AdminProfile = () => {
               <img
                 src={
                   user && user.avatar
-                    ? `http://localhost:5000${user.avatar}`
+                    ? `${URL_WEB}${user.avatar}`
                     : logo
                 }
                 alt="avatar"
@@ -425,7 +426,7 @@ const AdminProfile = () => {
                   <div style={{ flex: 1 }}>
                     <small>Ảnh checkin :</small>
                     <img
-                      src={`http://localhost:5000${modalData.img_checkin}`}
+                      src={`${URL_WEB}${modalData.img_checkin}`}
                       alt="Ảnh checkin"
                       style={{
                         width: "100%",
@@ -441,7 +442,7 @@ const AdminProfile = () => {
                   <div style={{ flex: 1 }}>
                     <small>Ảnh checkout:</small>
                     <img
-                      src={`http://localhost:5000${modalData.img_checkout}`}
+                      src={`${URL_WEB}${modalData.img_checkout}`}
                       alt="Ảnh checkout"
                       style={{
                         width: "100%",

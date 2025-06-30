@@ -5,7 +5,7 @@ import { Spinner, Form, Button, Row, Col } from "react-bootstrap";
 import "chart.js/auto";
 
 const CustomersReport = () => {
-  const API_URL = "http://localhost:5000/api"; // Cập nhật URL nếu khác
+  const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState("2025-01-01");
@@ -85,7 +85,9 @@ const CustomersReport = () => {
         </Row>
       </Form>
       {loading ? (
-        <Spinner animation="border" />
+         <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+         <Spinner animation="border" variant="primary" />
+       </div>
       ) : (
         <div style={{ maxWidth: "400px", margin: "0 auto" }}>
           <Doughnut data={chartData} />

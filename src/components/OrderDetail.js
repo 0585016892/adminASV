@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Table, Button, Row, Col, Card, Form } from "react-bootstrap";
+import { Table, Button, Row, Col, Card, Form ,Spinner} from "react-bootstrap";
 import { updateOrderStatus, getOrderDetails } from "../api/orderApi"; // API cập nhật trạng thái đơn hàng
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -46,20 +46,23 @@ const OrderDetail = () => {
     window.print(); // In trực tiếp trang hiện tại
   };
   const handleDownloadPDF = async () => {
-    const input = document.getElementById("invoice-content"); // ID của div cần in
-
+    const input = document.getElementById("invoice-content");
+    if (!input) return alert("Không tìm thấy hóa đơn để in.");
+  
     const canvas = await html2canvas(input, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
-
+  
     const pdf = new jsPDF("p", "mm", "a4");
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
+  
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save(`hoa_don_DH${order.order_id}.pdf`);
   };
   if (loading) {
-    return <div>Đang tải thông tin đơn hàng...</div>;
+    return <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
+    <Spinner animation="border" variant="primary" />
+</div>;
   }
 
   if (error) {
@@ -71,7 +74,8 @@ const OrderDetail = () => {
   }
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
+    <>
+     <div className="container-fluid my-4" id="invoice-content" style={{ paddingLeft: "35px" }}>
       <h4 className="mb-4 text-center">Chi tiết đơn hàng</h4>
       <Card className="mb-4 shadow-sm">
         <Card.Body>
@@ -192,13 +196,15 @@ const OrderDetail = () => {
           </p>
         </Card.Body>
       </Card>
-
+      </div>
+      {order && (
       <div className="text-center mt-4">
         <Button variant="outline-primary" size="lg" onClick={handleDownloadPDF}>
           <i className="bi bi-download me-2"></i>Tải hóa đơn PDF
         </Button>
       </div>
-    </div>
+        )}
+    </>
   );
 };
 

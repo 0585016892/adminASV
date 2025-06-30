@@ -21,8 +21,9 @@ import {
 } from "../api/dashApi";
 import { io } from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
+const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
-const socket = io("http://localhost:5000");
+const socket = io(`${URL_WEB}`);
 
 // Hàm format tiền
 function formatCurrency(value) {

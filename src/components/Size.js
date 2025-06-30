@@ -189,9 +189,9 @@ const Size = () => {
       )}
 
       {loading ? (
-        <div className="text-center my-4">
-          <Spinner animation="border" />
-        </div>
+        <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+                 <Spinner animation="border" variant="primary" />
+               </div>
       ) : (
         <Table striped bordered hover responsive className="shadow-sm">
           <thead className="table-light text-center">

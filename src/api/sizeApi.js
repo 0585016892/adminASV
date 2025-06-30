@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api"; // Cập nhật URL nếu khác
+const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
 
 // ✅ Lấy danh sách size có phân trang
 export const getSizes = (token, page = 1, limit = 5) => {

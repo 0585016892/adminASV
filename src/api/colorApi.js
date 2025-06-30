@@ -1,7 +1,7 @@
 // src/api/colorApi.js
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api"; // Đổi lại nếu cần
+const API_URL = process.env.REACT_APP_API_URL; // Đổi lại nếu cần
 
 // Lấy danh sách màu có phân trang
 export const getColors = (token, page = 1, limit = 15) => {
@@ -19,7 +19,7 @@ export const getAllColors = (token) => {
 
 // Tạo mới màu
 export const createColor = (token, colorData) => {
-  return axios.post(API_URL, colorData, {
+  return axios.post(`${API_URL}/colors/`, colorData, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };

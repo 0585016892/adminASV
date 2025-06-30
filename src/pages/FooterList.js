@@ -283,7 +283,7 @@ const FooterList = () => {
   );
 
   return (
-    <div className="container-fluid " style={{ paddingLeft: "35px" }}>
+    <div className="container-fluid mt-md-4  " style={{ paddingLeft: "35px" }}>
       <Row className="align-items-center mb-3">
         <Col>
           <h4>📜 Danh sách footer</h4>
@@ -362,7 +362,9 @@ const FooterList = () => {
             {loading ? (
               <tr>
                 <td colSpan="6">
-                  <Spinner animation="border" />
+                  <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+                           <Spinner animation="border" variant="primary" />
+                         </div>
                 </td>
               </tr>
             ) : footers?.length === 0 ? (

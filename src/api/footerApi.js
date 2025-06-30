@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api"; // Đảm bảo rằng địa chỉ này đúng với backend của bạn
+const API_BASE_URL = process.env.REACT_APP_API_URL; // Đảm bảo rằng địa chỉ này đúng với backend của bạn
 
 // Lấy danh sách footer
 export const getFooters = async ({ page, limit, keyword }) => {

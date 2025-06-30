@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import io from "socket.io-client";
+const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
-const socket = io("http://localhost:5000"); // Đổi lại nếu chạy production
+const socket = io(`${URL_WEB}`); // Đổi lại nếu chạy production
 
 const ChatUser = () => {
-  const API_URL = "http://localhost:5000/api"; // Cập nhật URL nếu khác
+  const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
 
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -165,7 +166,7 @@ const ChatUser = () => {
     return linkedText.replace(/\n/g, "<br/>");
   }
   return (
-    <div className="container-fluid " style={{ paddingLeft: "35px" }}>
+    <div className="container-fluid mt-md-4 h-100vh" style={{ paddingLeft: "35px" }}>
       <div className="row flex-grow-1 shadow rounded overflow-hidden">
         {/* Sidebar */}
         <div className="p-2">
@@ -318,7 +319,7 @@ const ChatUser = () => {
                           src={msg.image}
                           alt="Product"
                           style={{
-                            width: "100%",
+                            width: "20%",
                             borderRadius: "10px",
                             marginTop: "5px",
                           }}

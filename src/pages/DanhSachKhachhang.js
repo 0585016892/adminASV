@@ -191,7 +191,9 @@ const DanhSachKhachhang = () => {
           {loading ? (
             <tr>
               <td colSpan="9" className="text-center">
-                Đang tải dữ liệu...
+                <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
+                    <Spinner animation="border" variant="primary" />
+                 </div>
               </td>
             </tr>
           ) : customers.length === 0 ? (

@@ -10,14 +10,14 @@ const Public = () => {
   return (
     <div className="position-relative d-flex">
       {/* Toggle menu button for mobile */}
-      <Button
+      {/* <Button
         className="d-md-none m-2 position-fixed zindex-tooltip"
         variant="primary"
         onClick={() => setShowMenu(!showMenu)}
         style={{ top: 10, left: 10 }}
       >
         ☰ Menu
-      </Button>
+      </Button> */}
 
       {/* Sidebar */}
       <div className={`sidebar-container ${showMenu ? "open" : ""}`}>
@@ -25,7 +25,7 @@ const Public = () => {
       </div>
 
       {/* Main content */}
-      <div className="content-area p-2">
+      <div className="content-area p-2" style={{marginLeft:220}}>
         <Outlet />
       </div>
     </div>

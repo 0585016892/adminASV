@@ -5,11 +5,13 @@ import { Spinner, Form, Button, Row, Col } from "react-bootstrap";
 import "chart.js/auto";
 
 const RevenueReport = () => {
-  const API_URL = "http://localhost:5000/api"; // Cập nhật URL nếu khác
+  const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
+  const date = new Date();
+  const formatted = date.toISOString().split("T")[0];
+  const [toDate, setToDate] = useState(formatted);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState("2025-01-01");
-  const [toDate, setToDate] = useState("2025-06-01");
 
   const fetchData = async () => {
     setLoading(true);
@@ -82,7 +84,11 @@ const RevenueReport = () => {
         </Row>
       </Form>
 
-      {loading ? <Spinner animation="border" /> : <Bar data={chartData} />}
+      {loading ?
+        <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+                    <Spinner animation="border" variant="primary" />
+        </div> :
+        <Bar data={chartData} />}
     </div>
   );
 };

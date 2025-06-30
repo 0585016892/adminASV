@@ -108,7 +108,7 @@ const EmployeePage = () => {
       setShowForm(false);
       fetchData();
     } catch (err) {
-      setMessage("Lỗi khi lưu dữ liệu");
+      setMessage("Kiểm tra lại email , thông tin nhân viên !");
       setMessageType("error");
       setTimeout(() => setMessage(""), 3000);
     }
@@ -286,6 +286,7 @@ const EmployeePage = () => {
                     <label>Email</label>
                     <input
                       type="email"
+                      placeholder="Không được trùng email !"
                       className="form-control"
                       name="email"
                       value={form.email}

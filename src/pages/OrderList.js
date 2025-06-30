@@ -282,6 +282,9 @@ const OrderList = () => {
                       onChange={(e) =>
                         handleStatusChange(order.order_id, e.target.value)
                       }
+                      disabled={
+                        order?.status === "Đã giao" || order?.status === "Đã hủy"
+                      }
                     >
                       <option value="Chờ xử lý">Chờ xử lý</option>
                       <option value="Đang giao">Đang giao</option>

@@ -5,6 +5,9 @@ import { BsEyeFill, BsEyeSlashFill } from "react-icons/bs";
 import { useAuth } from "../contexts/AuthContext"; // import hook
 import "../assets/Login.css";
 export default function Login() {
+  const API_URL_LOGIN = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
+console.log(API_URL_LOGIN);
+
   const { login } = useAuth(); // lấy login từ context
   const [email, setEmail] = useState(
     localStorage.getItem("rememberEmail") || ""
@@ -14,7 +17,6 @@ export default function Login() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const API_URL = "http://localhost:5000/api"; // Cập nhật URL nếu khác
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -23,7 +25,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL_LOGIN}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

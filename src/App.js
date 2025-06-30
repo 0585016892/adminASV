@@ -15,6 +15,7 @@ import {
   Size,
   Color,
   SanphamDetail,
+  AutoReplyManager
 } from "./components";
 import {
   Public,
@@ -213,6 +214,14 @@ function App() {
             element={
               <RoleRoute allowedRoles={["admin"]}>
                 <ReportPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/ai/danh-sach"
+            element={
+              <RoleRoute allowedRoles={["admin"]}>
+                <AutoReplyManager />
               </RoleRoute>
             }
           />

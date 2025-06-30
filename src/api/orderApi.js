@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 // API lọc đơn hàng theo nhiều điều kiện
 
@@ -67,7 +67,7 @@ export const updateOrderStatus = async (orderId, newStatus) => {
 
 export const getOrderDetails = async (orderId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/orders/${orderId}`);
+    const response = await axios.get(`${API_BASE_URL}/orders/acv/${orderId}`);
     return response.data;
   } catch (error) {
     throw new Error(
