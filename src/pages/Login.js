@@ -6,7 +6,6 @@ import { useAuth } from "../contexts/AuthContext"; // import hook
 import "../assets/Login.css";
 export default function Login() {
   const API_URL_LOGIN = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
-console.log(API_URL_LOGIN);
 
   const { login } = useAuth(); // lấy login từ context
   const [email, setEmail] = useState(
@@ -32,7 +31,6 @@ console.log(API_URL_LOGIN);
       });
 
       const data = await res.json();
-      console.log(data);
 
       if (!res.ok) {
         setError(data.message || "Đăng nhập thất bại");

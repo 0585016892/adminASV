@@ -33,7 +33,6 @@ const DanhSachSanPham = () => {
   const [message, setMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-  console.log(user);
 
   const [filters, setFilters] = useState({
     page: 1,
