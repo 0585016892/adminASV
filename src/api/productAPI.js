@@ -18,7 +18,10 @@ export const addProduct = async (productData) => {
     const response = await axios.post(
       `${API_BASE_URL}/products/add`,
       productData
+      
     );
+    console.log(productData);
+
     return response.data; // Trả về dữ liệu sản phẩm vừa được thêm
   } catch (error) {
     console.error("Lỗi khi thêm sản phẩm:", error);

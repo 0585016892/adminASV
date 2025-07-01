@@ -108,7 +108,7 @@ const SanphamDetail = () => {
                 bg={product.status === "active" ? "success" : "secondary"}
                 className="mb-3"
               >
-                {product.status.toUpperCase()}
+                {product.status == 'active' ? 'Đang hoạt động' :'Không hoạt động'}
               </Badge>
 
               <h4 className="text-danger mb-3">

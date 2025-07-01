@@ -148,7 +148,10 @@ const DanhSachSanPhamAdd = () => {
         "color",
         JSON.stringify(productData.color.map((c) => c.name))
       );
-      formData.append("couponId", productData.couponId); // Thêm mã giảm giá vào form data
+      if (productData.couponId) {
+        formData.append("couponId", productData.couponId);
+      } // Thêm mã giảm giá vào form data
+      
       await addProduct(formData);
       setMessage("✅ Thêm sản phẩm thành công!");
       setProductData({
@@ -162,7 +165,9 @@ const DanhSachSanPhamAdd = () => {
         quantity: "",
         size: [],
         color: [],
-        categoryId: null,
+        categoryId: "",
+        couponId: "",
+        subImages: [],
       });
       setTimeout(() => {
         setIsLoading(false); // Dừng loading sau 2 giây
