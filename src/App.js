@@ -33,6 +33,7 @@ import {
   ReportPage,
   AdminProfile,
   ChamCongAdmin,
+  DanhSachBaiViet,
 } from "./pages";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
@@ -42,12 +43,14 @@ import RoleRoute from "./routes/RoleRoute";
 import { Routes, Route, usePaRams } from "react-router-dom";
 import { io } from "socket.io-client";
 import "bootstrap/dist/css/bootstrap.min.css";
-
+import { Toaster } from 'react-hot-toast';
 function App() {
   const socket = io("http://localhost:3000");
 
   return (
     <div>
+          <Toaster position="top-right" reverseOrder={false} />
+
       <Routes>
         <Route path="/login" element={<Login />} />
 
@@ -59,6 +62,7 @@ function App() {
             </PrivateRoute>
           }
         >
+          
           <Route
             path={path.HOME}
             element={
@@ -222,6 +226,14 @@ function App() {
             element={
               <RoleRoute allowedRoles={["admin"]}>
                 <AutoReplyManager />
+              </RoleRoute>
+            }
+          />
+           <Route
+            path="/tintuc-blog/danh-sach"
+            element={
+              <RoleRoute allowedRoles={["admin"]}>
+                <DanhSachBaiViet />
               </RoleRoute>
             }
           />

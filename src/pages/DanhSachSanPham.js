@@ -20,6 +20,8 @@ import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import { FaBoxOpen } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 import { FaRegEye } from "react-icons/fa6";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
 const DanhSachSanPham = () => {
@@ -54,7 +56,7 @@ const DanhSachSanPham = () => {
         setTotalProducts(data.totalProducts);
         setTotalPages(data.totalPages);
       } catch (error) {
-        console.error("Lỗi khi fetch sản phẩm:", error);
+        showErrorToast("Sản phẩm", error);
         setProducts([]);
         setTotalProducts(0);
         setTotalPages(1);
@@ -79,10 +81,10 @@ const DanhSachSanPham = () => {
       setProducts((prevProducts) =>
         prevProducts.filter((prod) => prod.id !== productToDelete)
       );
-      setMessage(result.message);
+      showSuccessToast("Sản phẩm",result.message);
       setShowModal(false);
     } catch (error) {
-      alert(error.message || "❌ Lỗi khi xóa sản phẩm.");
+      showErrorToast("Sản phẩm",error.message || "❌ Lỗi khi xóa sản phẩm.");
     }
   };
 
@@ -188,8 +190,8 @@ const DanhSachSanPham = () => {
               </td>
             </tr>
           ) : (
-            products.map((prod) => (
-              <tr key={prod.id}>
+            products.map((prod, index) => (
+              <tr key={`${prod.id}-${index}`}>
                 <td>{`SP180703${prod.id}`}</td>
                 <td>
                   {prod.image && (

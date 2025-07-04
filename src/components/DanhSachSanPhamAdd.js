@@ -11,6 +11,7 @@ import { ClipLoader } from "react-spinners";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaImage, FaTags } from "react-icons/fa";
 import { BsFillFileTextFill } from "react-icons/bs";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 // Loại bỏ thẻ HTML để sinh slug
 const stripHtml = (html) => html.replace(/<[^>]*>/g, "").trim();
@@ -79,10 +80,10 @@ const DanhSachSanPhamAdd = () => {
         if (couponList && Array.isArray(couponList.coupons)) {
           setCoupons(couponList.coupons); // Lưu mã giảm giá vào state
         } else {
-          console.error("Dữ liệu mã giảm giá không phải là mảng:", couponList);
+          showErrorToast("Lỗi dữ liệu mã giảm giá :", couponList);
         }
       } catch (error) {
-        console.error("Lỗi khi lấy danh mục:", error);
+        showErrorToast("Lỗi khi lấy danh mục:", error);
       }
     };
 
@@ -153,7 +154,7 @@ const DanhSachSanPhamAdd = () => {
       } // Thêm mã giảm giá vào form data
       
       await addProduct(formData);
-      setMessage("✅ Thêm sản phẩm thành công!");
+      showSuccessToast("Sản phẩm","Thêm sản phẩm thành công!");
       setProductData({
         name: "",
         slug: "",
@@ -174,14 +175,14 @@ const DanhSachSanPhamAdd = () => {
         navigate("/san-pham/danh-sach");
       }, 2000);
     } catch {
-      setMessage("❌ Có lỗi khi thêm sản phẩm.");
+      showErrorToast("Sản phẩm","❌ Có lỗi khi thêm sản phẩm.");
     }
   };
 
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <h4 className="text-primary mb-4">Thêm Sản Phẩm</h4>
-      {message && <div className="alert alert-info">{message}</div>}
+      {/* {message && <div className="alert alert-info">{message}</div>} */}
       {isLoading ? (
         <div className="loading-container d-flex justify-content-center">
           <ClipLoader color="#3498db" loading={isLoading} size={50} />
