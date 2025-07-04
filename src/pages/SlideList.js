@@ -17,6 +17,8 @@ import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import * as XLSX from "xlsx";
 import { FiEye } from "react-icons/fi";
 import { getSlides, deleteSlideById, updateSlideStatus } from "../api/slideApi"; // giả định API
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
 const SlideList = () => {
@@ -79,17 +81,13 @@ const SlideList = () => {
   const handleDelete = async () => {
     try {
       await deleteSlideById(slideToDelete);
-      setMessage("🗑️ Slide đã được xóa.");
+      showSuccessToast("Slide","🗑️ Xóa  Slide thành công!.");
       fetchSlides();
     } catch {
-      alert("❌ Xóa slide thất bại.");
+      showErrorToast("Slide","Xóa slide thất bại.");
     } finally {
       closeDeleteModal();
 
-      // Tự động xóa thông báo sau 3 giây (3000ms)
-      setTimeout(() => {
-        setMessage(""); // Xóa thông báo
-      }, 3000);
     }
   };
 
@@ -115,15 +113,15 @@ const SlideList = () => {
     try {
       const response = await updateSlideStatus(slideId, newStatus);
       if (response.success) {
-        setMessage("✅ Cập nhật trạng thái thành công!");
+        showSuccessToast("Slide","Cập nhật trạng thái thành công!");
         fetchSlides();
       }
     } catch (error) {
-      setMessage("❌ Lỗi khi cập nhật trạng thái.");
+      showErrorToast("Slide","Lỗi khi cập nhật trạng thái.");
     } finally {
-      setTimeout(() => {
-        setMessage("");
-      }, 3000);
+      // setTimeout(() => {
+      //   setMessage("");
+      // }, 3000);
     }
   };
   return (
@@ -131,17 +129,14 @@ const SlideList = () => {
       <Row className="align-items-center mb-3">
         <Col>
           <h4>🖼️ Danh sách slide</h4>
-          {message && <div className="alert alert-success mt-2">{message}</div>}
+          {/* {message && <div className="alert alert-success mt-2">{message}</div>} */}
         </Col>
-        <Col className="text-end">
-          <Button as={Link} to="/slides/create" variant="primary">
-            ➕ Thêm slide
-          </Button>
-        </Col>
+       
       </Row>
 
       <Row className="mb-3">
-        <Col md={5}>
+      
+        <Col md={6}>
           <Form.Control
             type="text"
             placeholder="🔍 Tìm tiêu đề"
@@ -150,50 +145,19 @@ const SlideList = () => {
             onChange={handleFilterChange}
           />
         </Col>
-        <Col className="text-end">
+        <Col md={3} className="text-end">
+          <Button as={Link} to="/slides/create" variant="primary">
+            ➕ Thêm slide
+          </Button>
+        </Col>
+        <Col md={3} className="text-end">
           <Button variant="success" onClick={handleExportToExcel}>
             📄 Xuất Excel
           </Button>
         </Col>
       </Row>
 
-      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
-        <div>
-          <small className="text-muted fw-medium">
-            Tổng cộng <strong>{pagination.totalSlides}</strong> slide
-          </small>
-        </div>
-        <Pagination className="m-0">
-          <Pagination.First
-            onClick={() => handlePageChange(1)}
-            disabled={pagination.currentPage === 1}
-          />
-          <Pagination.Prev
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-          />
-          {Array.from({ length: pagination.totalPages }, (_, idx) => {
-            const page = idx + 1;
-            return (
-              <Pagination.Item
-                key={page}
-                active={page === pagination.currentPage}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Pagination.Item>
-            );
-          })}
-          <Pagination.Next
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-          <Pagination.Last
-            onClick={() => handlePageChange(pagination.totalPages)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-        </Pagination>
-      </div>
+    
 
       <div className="table-responsive">
         <Table bordered hover className="text-center table-striped shadow-sm">
@@ -283,7 +247,43 @@ const SlideList = () => {
           </tbody>
         </Table>
       </div>
-
+      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
+        <div>
+          <small className="text-muted fw-medium">
+            Tổng cộng <strong>{pagination.totalSlides}</strong> slide
+          </small>
+        </div>
+        <Pagination className="m-0">
+          <Pagination.First
+            onClick={() => handlePageChange(1)}
+            disabled={pagination.currentPage === 1}
+          />
+          <Pagination.Prev
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+          />
+          {Array.from({ length: pagination.totalPages }, (_, idx) => {
+            const page = idx + 1;
+            return (
+              <Pagination.Item
+                key={page}
+                active={page === pagination.currentPage}
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Pagination.Item>
+            );
+          })}
+          <Pagination.Next
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.totalPages}
+          />
+          <Pagination.Last
+            onClick={() => handlePageChange(pagination.totalPages)}
+            disabled={pagination.currentPage === pagination.totalPages}
+          />
+        </Pagination>
+      </div>
       <Modal show={showModal} onHide={closeDeleteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Xác nhận xóa slide</Modal.Title>

@@ -5,6 +5,7 @@ import { Button, Form, Row, Col, Card } from "react-bootstrap";
 import { addDanhmuc, getParentCategories } from "../api/danhmucApi";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 const stripHtml = (html) => html.replace(/<[^>]*>/g, "").trim();
 const removeVietnameseTones = (str) => {
@@ -32,7 +33,6 @@ const DanhMucAdd = () => {
     status: "",
     parent_id: null,
   });
-  const [message, setMessage] = useState("");
 
   // Fetch danh mục cha
   useEffect(() => {
@@ -77,7 +77,7 @@ const DanhMucAdd = () => {
         parent_id: danhMucData.parent_id,
       };
       await addDanhmuc(dataToSend);
-      setMessage("✅ Thêm danh mục thành công!");
+      showSuccessToast("Danh mục","Thêm danh mục thành công!");
       setDanhMucData({
         name: "",
         slug: "",
@@ -90,7 +90,7 @@ const DanhMucAdd = () => {
         navigate("/danh-muc/danh-sach");
       }, 2000);
     } catch (error) {
-      setMessage("❌ Có lỗi khi thêm danh mục.");
+      showErrorToast("Danh mục","Có lỗi khi thêm danh mục.");
     }
   };
 
@@ -99,7 +99,6 @@ const DanhMucAdd = () => {
       <h4 className="mb-4 text-center">Thêm Danh Mục</h4>
       <Card>
         <Card.Body>
-          {message && <div className="alert alert-info">{message}</div>}
           {isLoading ? (
             <div className="loading-container d-flex justify-content-center">
               <ClipLoader color="#3498db" loading={isLoading} size={50} />

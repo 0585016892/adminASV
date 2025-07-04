@@ -68,7 +68,7 @@ export const showErrorToast = (title, message) => {
             left: 0,
             height: "4px",
             width: "100%",
-            backgroundColor: "#22c55e",
+            backgroundColor: "#ef4444",
             animation: "progressSlide 4s linear forwards",
           }}
         />

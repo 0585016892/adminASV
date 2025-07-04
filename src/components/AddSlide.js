@@ -4,6 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ClipLoader } from "react-spinners";
 import { FaImage } from "react-icons/fa";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 const AddSlide = () => {
   const navigate = useNavigate();
@@ -43,13 +44,12 @@ const AddSlide = () => {
 
       await axios.post(`${API_URL}/slides/add`, formData);
 
-      setMessage("✅ Thêm slide thành công!");
+      showSuccessToast("Slide","Thêm slide thành công!");
       setTimeout(() => {
         navigate("/slide-banner/danh-sach");
       }, 1500);
     } catch (err) {
-      console.error(err);
-      setMessage("❌ Lỗi khi thêm slide.");
+      showErrorToast("Slide"," Lỗi khi thêm slide.");
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +58,6 @@ const AddSlide = () => {
   return (
     <div className="container mt-5">
       <h4 className="text-primary mb-4">➕ Thêm Slide Mới</h4>
-      {message && <div className="alert alert-info">{message}</div>}
 
       {isLoading ? (
         <div className="d-flex justify-content-center">

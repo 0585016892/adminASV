@@ -24,6 +24,8 @@ import {
 } from "../api/couponApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const CouponManagement = () => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ const CouponManagement = () => {
       setCoupons(data.coupons || []);
       setTotalPages(data.totalPages || 1);
     } catch (error) {
-      console.error("Lỗi khi fetch coupon:", error);
+      
       setCoupons([]);
       setTotalPages(1);
     } finally {
@@ -120,11 +122,11 @@ const CouponManagement = () => {
     if (!couponToDelete) return;
     try {
       await deleteCoupon(couponToDelete);
-      setMessage("Xóa thành công!");
+      showSuccessToast("Khuyến mãi","Xóa mã giảm giá thành công!");
       closeDeleteModal();
       fetchData();
     } catch (error) {
-      alert(error.message || "❌ Lỗi khi xóa mã giảm giá.");
+      showErrorToast("Khuyến mãi",error.message || "❌ Lỗi khi xóa mã giảm giá.");
     }
   };
 
@@ -133,16 +135,16 @@ const CouponManagement = () => {
     try {
       if (editingCoupon) {
         await updateCoupon(editingCoupon, formData);
-        setMessage("Cập nhật mã giảm giá thành công!");
+        showSuccessToast("Khuyến mãi","Cập nhật mã giảm giá thành công!");
       } else {
         await createCoupon(formData);
-        setMessage("Thêm mã giảm giá thành công!");
+        showSuccessToast("Khuyến mãi","Thêm mã giảm giá thành công!");
       }
       setShowModal(false);
       fetchData();
     } catch (err) {
       console.error("Lỗi khi cập nhật mã giảm giá:", err);
-      setMessage(`Lỗi: ${err.message || "Không thể cập nhật mã giảm giá."}`);
+      showErrorToast("Khuyến mãi",`Lỗi: ${err.message || "Không thể cập nhật mã giảm giá."}`);
     }
   };
 
@@ -159,11 +161,11 @@ const CouponManagement = () => {
     try {
       const response = await updateCouponStatus(couponId, newStatus);
       if (response.success || response.updatedCoupon) {
-        setMessage("Cập nhật trạng thái thành công!");
+        showSuccessToast("Khuyến mãi","Cập nhật trạng thái thành công!");
         fetchData();
       }
     } catch (error) {
-      setMessage("Lỗi khi cập nhật trạng thái.");
+      showErrorToast("Khuyến mãi","Lỗi khi cập nhật trạng thái.");
     }
   };
 

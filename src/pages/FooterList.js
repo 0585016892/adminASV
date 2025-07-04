@@ -24,6 +24,7 @@ import {
   updateFooterStatus,
   addFooterChild,
 } from "../api/footerApi"; // API giả định
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 import { IoMdArrowDropup } from "react-icons/io";
 const FooterList = () => {
@@ -83,13 +84,12 @@ const FooterList = () => {
   const handleDelete = async () => {
     try {
       await deleteFooterById(footerToDelete);
-      setMessage("🗑️ Footer đã được xóa.");
+      showSuccessToast("Footer","🗑️ Xóa Footer thành công!.");
       fetchFooters();
     } catch {
-      alert("❌ Xóa footer thất bại.");
+      showErrorToast("Footer","Xóa Footer thất bại.");
     } finally {
       closeDeleteModal();
-      setTimeout(() => setMessage(""), 3000);
     }
   };
   //excel
@@ -114,13 +114,13 @@ const FooterList = () => {
     try {
       const response = await updateFooterStatus(footerId, newStatus);
       if (response.success) {
-        setMessage("✅ Cập nhật trạng thái thành công!");
+        showSuccessToast("Footer","Cập nhật trạng thái thành công!");
         fetchFooters();
       }
     } catch {
-      setMessage("❌ Lỗi khi cập nhật trạng thái.");
+      showErrorToast("Footer","Lỗi khi cập nhật trạng thái.");
     } finally {
-      setTimeout(() => setMessage(""), 3000);
+      // setTimeout(() => setMessage(""), 3000);
     }
   };
 
@@ -158,9 +158,9 @@ const FooterList = () => {
 
       fetchFooters(); // Cập nhật lại danh sách
       setShowAddChildModal(false);
-      setMessage("✅ Đã thêm danh mục con!");
+      showSuccessToast("Footer","Đã thêm danh mục con!");
     } catch {
-      setMessage("❌ Lỗi khi thêm danh mục con.");
+      showErrorToast("Footer","Lỗi khi thêm danh mục con.");
     }
   };
 
@@ -287,13 +287,8 @@ const FooterList = () => {
       <Row className="align-items-center mb-3">
         <Col>
           <h4>📜 Danh sách footer</h4>
-          {message && <div className="alert alert-success mt-2">{message}</div>}
         </Col>
-        <Col className="text-end">
-          <Button as={Link} to="/footers/create" variant="primary">
-            ➕ Thêm footer
-          </Button>
-        </Col>
+       
       </Row>
 
       <Row className="mb-3">
@@ -307,44 +302,14 @@ const FooterList = () => {
           />
         </Col>
         <Col className="text-end">
+          <Button as={Link} to="/footers/create" style={{marginRight:3}} variant="primary">
+            ➕ Thêm footer
+          </Button>
           <Button variant="success" onClick={handleExportToExcel}>
             📄 Xuất Excel
           </Button>
         </Col>
       </Row>
-
-      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
-        <small className="text-muted fw-medium">
-          Tổng cộng <strong>{pagination.totalFooters}</strong> footer
-        </small>
-        <Pagination className="m-0">
-          <Pagination.First
-            onClick={() => handlePageChange(1)}
-            disabled={pagination.currentPage === 1}
-          />
-          <Pagination.Prev
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-          />
-          {Array.from({ length: pagination.totalPages }, (_, i) => (
-            <Pagination.Item
-              key={i + 1}
-              active={i + 1 === pagination.currentPage}
-              onClick={() => handlePageChange(i + 1)}
-            >
-              {i + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-          <Pagination.Last
-            onClick={() => handlePageChange(pagination.totalPages)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-        </Pagination>
-      </div>
 
       <div className="table-responsive">
         <Table bordered hover className="text-center table-striped shadow-sm">
@@ -408,6 +373,40 @@ const FooterList = () => {
           </tbody>
         </Table>
       </div>
+      
+      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
+        <small className="text-muted fw-medium">
+          Tổng cộng <strong>{pagination.totalFooters}</strong> footer
+        </small>
+        <Pagination className="m-0">
+          <Pagination.First
+            onClick={() => handlePageChange(1)}
+            disabled={pagination.currentPage === 1}
+          />
+          <Pagination.Prev
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+          />
+          {Array.from({ length: pagination.totalPages }, (_, i) => (
+            <Pagination.Item
+              key={i + 1}
+              active={i + 1 === pagination.currentPage}
+              onClick={() => handlePageChange(i + 1)}
+            >
+              {i + 1}
+            </Pagination.Item>
+          ))}
+          <Pagination.Next
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.totalPages}
+          />
+          <Pagination.Last
+            onClick={() => handlePageChange(pagination.totalPages)}
+            disabled={pagination.currentPage === pagination.totalPages}
+          />
+        </Pagination>
+      </div>
+
       <Modal
         show={showAddChildModal}
         onHide={() => setShowAddChildModal(false)}

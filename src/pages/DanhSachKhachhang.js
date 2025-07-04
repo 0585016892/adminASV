@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import { FaRegEye } from "react-icons/fa6";
 import { useAuth } from "../contexts/AuthContext";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 const DanhSachKhachhang = () => {
   const { user } = useAuth();
@@ -66,10 +67,10 @@ const DanhSachKhachhang = () => {
       setCustomers((prevDanhmuc) =>
         prevDanhmuc.filter((cus) => cus.id !== khachhangToDelete)
       );
-      setMessage(result.message);
+      showSuccessToast("Khách hàng",result.message);
       setShowModal(false);
     } catch (error) {
-      alert(error.message || "❌ Lỗi khi xóa sản phẩm.");
+      showErrorToast("Khách hàng",error.message || "❌ Lỗi khi xóa sản phẩm.");
     }
   };
   const openDeleteModal = (id) => {
@@ -101,9 +102,9 @@ const DanhSachKhachhang = () => {
         )
       );
 
-      setMessage("Cập nhật trạng thái thành công!");
+      showSuccessToast("Khách hàng","Cập nhật trạng thái thành công!");
     } catch (error) {
-      setMessage("Có lỗi khi cập nhật trạng thái.");
+      showErrorToast("Khách hàng","Có lỗi khi cập nhật trạng thái.");
     }
   };
   return (
@@ -111,11 +112,6 @@ const DanhSachKhachhang = () => {
       <Row className="align-items-center mb-3">
         <Col md={6}>
           <h4 className="mb-3 fw-bold">Danh sách khách hàng</h4>
-          {message && (
-            <Alert variant="info" className="mt-2">
-              {message}
-            </Alert>
-          )}
         </Col>
       </Row>
       {/* Filter Form */}
@@ -149,32 +145,7 @@ const DanhSachKhachhang = () => {
           </Col>
         </Row>
       </div>
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <span className="text-muted">
-          Có <strong>{totalKhachhang}</strong> khách hàng
-        </span>
-        <Pagination className="mb-0">
-          <Pagination.First onClick={() => handlePageChange(1)} />
-          <Pagination.Prev
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          />
-          {[...Array(totalPages).keys()].map((page) => (
-            <Pagination.Item
-              key={page + 1}
-              active={currentPage === page + 1}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              {page + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-        </Pagination>
-      </div>
+      
       <Table striped bordered hover responsive className="shadow-sm">
         <thead>
           <tr>
@@ -257,6 +228,32 @@ const DanhSachKhachhang = () => {
           )}
         </tbody>
       </Table>
+      <div className="d-flex justify-content-between align-items-center mt-3">
+        <span className="text-muted">
+          Có <strong>{totalKhachhang}</strong> khách hàng
+        </span>
+        <Pagination className="mb-0">
+          <Pagination.First onClick={() => handlePageChange(1)} />
+          <Pagination.Prev
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          />
+          {[...Array(totalPages).keys()].map((page) => (
+            <Pagination.Item
+              key={page + 1}
+              active={currentPage === page + 1}
+              onClick={() => handlePageChange(page + 1)}
+            >
+              {page + 1}
+            </Pagination.Item>
+          ))}
+          <Pagination.Next
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          />
+          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
+        </Pagination>
+      </div>
       {/* Modal xác nhận xóa */}
       <Modal show={showModal} onHide={closeDeleteModal} centered>
         <Modal.Header closeButton>

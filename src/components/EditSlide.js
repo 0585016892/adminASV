@@ -4,6 +4,7 @@ import { FaImage } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router-dom";
 import { getSlideById, updateSlide } from "../api/slideApi"; // Hàm API lấy slide và update slide
 import { ClipLoader } from "react-spinners"; // Import ClipLoader
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 const EditSlide = () => {
   const [slideData, setSlideData] = useState({
@@ -30,8 +31,7 @@ const EditSlide = () => {
         const data = await getSlideById(id);
         setSlideData(data);
       } catch (error) {
-        console.error("Lỗi khi lấy thông tin slide:", error);
-        setMessage("❌ Lỗi khi tải thông tin slide.");
+        showErrorToast("Slide","Lỗi khi tải thông tin slide.");
       } finally {
         setIsLoading(false); // Dừng loading khi hoàn thành
       }
@@ -63,20 +63,20 @@ const EditSlide = () => {
       formData.append("end_date", slideData.end_date);
 
       await updateSlide(id, formData); // Gửi dữ liệu lên API để update slide
-      setMessage("✅ Slide đã được cập nhật thành công!");
+      showSuccessToast("Slide","Slide đã được cập nhật thành công!");
       setTimeout(() => {
         setIsLoading(false);
         navigate("/slide-banner/danh-sach"); // Chuyển hướng về trang danh sách slide
       }, 2000);
     } catch (error) {
-      setMessage("❌ Có lỗi khi cập nhật slide.");
+      showErrorToast("Slide"," Có lỗi khi cập nhật slide.");
     }
   };
 
   return (
     <div className="container mt-5">
       <h4 className="text-primary mb-4 text-center">Sửa Slide</h4>
-      {message && <div className="alert alert-info">{message}</div>}
+      {/* {message && <div className="alert alert-info">{message}</div>} */}
       {isLoading ? (
         <div className="loading-container d-flex justify-content-center">
           <ClipLoader color="#3498db" loading={isLoading} size={50} />

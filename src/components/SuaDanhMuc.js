@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getDanhMucById, updateDanhMuc } from "../api/danhmucApi";
 import { useForm, Controller } from "react-hook-form";
-import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
+import { Form, Button, Row, Col, Card } from "react-bootstrap";
 import { ClipLoader } from "react-spinners";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const SuaDanhMuc = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const {
     control,
@@ -26,8 +27,7 @@ const SuaDanhMuc = () => {
         setValue("status", productData.status);
         setValue("description", productData.description);
       } catch (error) {
-        setErrorMessage(error.message || "Lỗi khi lấy sản phẩm.");
-        console.error("Lỗi khi lấy sản phẩm:", error);
+        showErrorToast("Danh mục",error.message || "Lỗi khi lấy sản phẩm.");
       } finally {
         setLoading(false);
       }
@@ -52,18 +52,17 @@ const SuaDanhMuc = () => {
         navigate("/danh-muc/danh-sach");
       }, 2000);
       if (result && result.success) {
+        showSuccessToast("Danh mục","Cập nhật danh mục thành công !")
       } else {
-        throw new Error(result.message || "Có lỗi xảy ra khi sửa sản phẩm.");
+        showSuccessToast("Danh mục",result.message || "Có lỗi xảy ra khi sửa sản phẩm.");
       }
     } catch (error) {
-      setErrorMessage(error.message || "Có lỗi xảy ra khi sửa sản phẩm.");
-      console.error("Lỗi khi sửa sản phẩm:", error);
+      showErrorToast("Danh mục",error.message || "Có lỗi xảy ra khi sửa sản phẩm.");
     }
   };
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <h3 className="mb-4">Sửa danh mục</h3>
-      {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       {isLoading ? (
         <div className="loading-container d-flex justify-content-center">
           <ClipLoader color="#3498db" loading={isLoading} size={50} />

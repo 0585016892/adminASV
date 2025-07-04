@@ -7,6 +7,7 @@ import {
 } from "../api/employeeApi";
 import EmployeeTable from "../components/EmployeeTable";
 import { Modal, Button } from "react-bootstrap";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 const EmployeePage = () => {
   const [employees, setEmployees] = useState([]);
@@ -62,7 +63,7 @@ const EmployeePage = () => {
 
       setEmployees(filtered);
     } catch (err) {
-      alert("Lỗi khi lấy danh sách nhân viên");
+      showErrorToast("Nhân viên","Lỗi khi lấy danh sách nhân viên");
     }
   };
 
@@ -82,14 +83,14 @@ const EmployeePage = () => {
 
       if (editingId) {
         await updateEmployee(token, editingId, formData);
-        setMessage("Cập nhật nhân viên thành công");
+        showSuccessToast("Nhân viên","Cập nhật nhân viên thành công");
       } else {
         await createEmployee(token, formData);
-        setMessage("Thêm nhân viên thành công");
+        showSuccessToast("Nhân viên","Thêm nhân viên thành công");
       }
 
       setMessageType("success");
-      setTimeout(() => setMessage(""), 3000);
+      // setTimeout(() => setMessage(""), 3000);
 
       setForm({
         full_name: "",
@@ -108,9 +109,9 @@ const EmployeePage = () => {
       setShowForm(false);
       fetchData();
     } catch (err) {
-      setMessage("Kiểm tra lại email , thông tin nhân viên !");
+      showErrorToast("Nhân viên","Kiểm tra lại email , thông tin nhân viên !");
       setMessageType("error");
-      setTimeout(() => setMessage(""), 3000);
+      // setTimeout(() => setMessage(""), 3000);
     }
   };
 
@@ -134,9 +135,9 @@ const EmployeePage = () => {
 
   const openDeleteModal = (emp) => {
     if (emp.role === "admin") {
-      setMessage("Không thể xoá tài khoản admin");
+      showErrorToast("Nhân viên","Không thể xoá tài khoản admin");
       setMessageType("error");
-      setTimeout(() => setMessage(""), 3000);
+      // setTimeout(() => setMessage(""), 3000);
       return;
     }
     setSelectedDeleteId(emp.id);
@@ -151,15 +152,15 @@ const EmployeePage = () => {
   const confirmDelete = async () => {
     try {
       await deleteEmployee(token, selectedDeleteId);
-      setMessage("Xóa nhân viên thành công");
+      showSuccessToast("Nhân viên","Xóa nhân viên thành công");
       setMessageType("success");
       fetchData();
     } catch (err) {
-      setMessage("Lỗi khi xóa nhân viên");
+      showErrorToast("Nhân viên","Lỗi khi xóa nhân viên");
       setMessageType("error");
     } finally {
       closeDeleteModal();
-      setTimeout(() => setMessage(""), 3000);
+      // setTimeout(() => setMessage(""), 3000);
     }
   };
 
@@ -191,7 +192,7 @@ const EmployeePage = () => {
       <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
         <h3>Quản lý nhân viên</h3>
 
-        {message && (
+        {/* {message && (
           <div
             className={`alert ${
               messageType === "success" ? "alert-success" : "alert-danger"
@@ -199,7 +200,7 @@ const EmployeePage = () => {
           >
             {message}
           </div>
-        )}
+        )} */}
 
         <div className="mb-3">
           <div className="row align-items-center">

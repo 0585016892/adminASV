@@ -14,6 +14,8 @@ import { getAllDanhMuc, filterDanhmuc, deleteDanhMuc } from "../api/danhmucApi";
 import { Link } from "react-router-dom";
 import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import { useAuth } from "../contexts/AuthContext";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const DsDanhMuc = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -60,10 +62,10 @@ const DsDanhMuc = () => {
       setDanhmuc((prevDanhmuc) =>
         prevDanhmuc.filter((prod) => prod.id !== danhmucToDelete)
       );
-      setMessage(result.message);
+      showSuccessToast("Danh mục",result.message);
       setShowModal(false);
     } catch (error) {
-      alert(error.message || "❌ Lỗi khi xóa sản phẩm.");
+      showErrorToast("Danh mục",error.message || "Lỗi khi xóa sản phẩm.");
     }
   };
 
@@ -89,7 +91,6 @@ const DsDanhMuc = () => {
       <Row className="align-items-center mb-3">
         <Col>
           <h4 className="fw-bold text-primary">Danh Mục</h4>
-          {message && <div className="alert alert-info">{message}</div>}
         </Col>
         {user?.role === "admin" && (
           <Col className="text-end">
@@ -142,31 +143,7 @@ const DsDanhMuc = () => {
         </Row>
       </div>
 
-      {/* Pagination */}
-      <div className="d-flex justify-content-between align-items-center">
-        <div>{totalDanhMuc} danh mục</div>
-        <Pagination>
-          <Pagination.First onClick={() => handlePageChange(1)} />
-          <Pagination.Prev
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          />
-          {[...Array(totalPages).keys()]?.map((page) => (
-            <Pagination.Item
-              key={page + 1}
-              active={currentPage === page + 1}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              {page + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-        </Pagination>
-      </div>
+   
 
       {/* Danh sách danh mục */}
       <div className="row row-cols-1 row-cols-md-3 g-4">
@@ -217,7 +194,31 @@ const DsDanhMuc = () => {
           ))
         )}
       </div>
-
+   {/* Pagination */}
+   <div className="d-flex justify-content-between align-items-center">
+        <div>{totalDanhMuc} danh mục</div>
+        <Pagination>
+          <Pagination.First onClick={() => handlePageChange(1)} />
+          <Pagination.Prev
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          />
+          {[...Array(totalPages).keys()]?.map((page) => (
+            <Pagination.Item
+              key={page + 1}
+              active={currentPage === page + 1}
+              onClick={() => handlePageChange(page + 1)}
+            >
+              {page + 1}
+            </Pagination.Item>
+          ))}
+          <Pagination.Next
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          />
+          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
+        </Pagination>
+      </div>
       {/* Modal xác nhận xóa */}
       <Modal show={showModal} onHide={closeDeleteModal}>
         <Modal.Header closeButton>

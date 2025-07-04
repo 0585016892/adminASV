@@ -24,6 +24,7 @@ import {
   importSizes,
   getAllSizes,
 } from "../api/sizeApi";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 import { MdDeleteOutline, MdOutlineAutoFixHigh } from "react-icons/md";
 
 const Size = () => {
@@ -52,7 +53,7 @@ const Size = () => {
       setSizes(res.data.data);
       setTotalPages(res.data.totalPages || 1);
     } catch (err) {
-      console.error("Lỗi lấy danh sách size:", err);
+      showErrorToast("Size !","Thao tác thất bại.");
     } finally {
       setLoading(false);
     }
@@ -93,11 +94,11 @@ const Size = () => {
     if (!sizeToDelete) return;
     try {
       await deleteSize(token, sizeToDelete);
-      setMessage("Xóa size thành công!");
+      showSuccessToast("Size !","Xóa size thành công!");
       closeDeleteModal();
       fetchSizes();
     } catch (error) {
-      setMessage(error.message || "❌ Lỗi khi xóa size.");
+      showErrorToast(error.message || "❌ Lỗi khi xóa size.");
     }
   };
 
@@ -105,16 +106,15 @@ const Size = () => {
     try {
       if (editMode) {
         await updateSize(token, currentSize.id, currentSize);
-        setMessage("Cập nhật thành công!");
+        showSuccessToast("Size !","Cập nhật thành công!");
       } else {
         await createSize(token, currentSize);
-        setMessage("Thêm mới thành công!");
+        showSuccessToast("Size !","Thêm mới thành công!");
       }
       handleCloseModal();
       fetchSizes();
     } catch (err) {
-      console.error("Lỗi lưu size:", err);
-      setMessage("Thao tác thất bại.");
+      showErrorToast("Size !","Thao tác thất bại.");
     }
   };
 
@@ -158,12 +158,7 @@ const Size = () => {
     return <Pagination className="justify-content-center">{items}</Pagination>;
   };
 
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(""), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
+
 
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
@@ -182,12 +177,6 @@ const Size = () => {
           </Button>
         </Col>
       </Row>
-      {message && (
-        <Alert variant={message.includes("Lỗi") ? "danger" : "success"}>
-          {message}
-        </Alert>
-      )}
-
       {loading ? (
         <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
                  <Spinner animation="border" variant="primary" />

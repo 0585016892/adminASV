@@ -21,6 +21,8 @@ import {
   checkSalarySaved,
 } from "../api/chamcongApi";
 import { saveAs } from "file-saver";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 import "../assets/ChamCongAdmin.css";
 const formatDate = (date) => date.toISOString().split("T")[0];
 const formatDisplayDate = (date) => date.toLocaleDateString("vi-VN");
@@ -130,37 +132,37 @@ const ChamCongAdmin = () => {
     if (saving || salaryDetail?.saved) return; // tránh double-click
 
     setSaving(true);
-    setMessage("");
+    
 
     try {
       const res = await saveSalary(salaryDetail);
-      setMessage("✅ Lưu lương thành công!");
+      showSuccessToast("Lương nhân viên","Lưu lương thành công!");
       setSalaryDetail((prev) => ({ ...prev, saved: true }));
       setShowSalaryDetailModal(false);
     } catch (err) {
       if (err.response?.status === 409) {
-        setMessage("⚠️ Lương đã được lưu trước đó.");
+        showSuccessToast("Lương nhân viên","⚠️ Lương đã được lưu trước đó.");
       } else {
-        setMessage("❌ Lỗi khi lưu lương");
+        showErrorToast("Lương nhân viên","Lỗi khi lưu lương");
       }
     } finally {
       setSaving(false);
     }
   };
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(""), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
+  // useEffect(() => {
+  //   if (message) {
+  //     const timer = setTimeout(() => setMessage(""), 3000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [message]);
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <h3 className="mb-4 text-primary">📅 Quản lý chấm công</h3>
-      {message && (
+      {/* {message && (
         <Alert variant="info" className="mt-2">
           {message}
         </Alert>
-      )}
+      )} */}
       <Row>
         {/* Cột lịch */}
         <Col md={8}>

@@ -4,6 +4,8 @@ import { Form, Button, Container, Row, Col, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { ClipLoader } from "react-spinners";
 import { getFooterParents, addFooterItem } from "../api/footerApi";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const AddFooter = () => {
   const [formData, setFormData] = useState({
     title: "",
@@ -12,6 +14,7 @@ const AddFooter = () => {
     type: "link",
     parent_id: "",
     status: "active",
+    icon:0
   });
 
   const [parents, setParents] = useState([]);
@@ -53,9 +56,11 @@ const AddFooter = () => {
         type: formData.type,
         parent_id: formData.parent_id,
         status: formData.status,
+        icon:0
+
       };
       await addFooterItem(dataToSend);
-      setMessage("✅ Thêm danh mục thành công!");
+      showSuccessToast("Footer","Thêm danh mục thành công!");
       setFormData({
         title: "",
         label: "",
@@ -69,7 +74,7 @@ const AddFooter = () => {
         navigate("/footer/danh-sach");
       }, 2000);
     } catch (error) {
-      setMessage("❌ Có lỗi khi thêm danh mục.");
+      showErrorToast("Footer","Có lỗi khi thêm danh mục.");
     }
   };
 
@@ -105,7 +110,6 @@ const AddFooter = () => {
   return (
     <Container>
       <h3 className="my-3">Thêm Footer Item</h3>
-      {message && <div className="alert alert-info">{message}</div>}
       {isLoading ? (
         <div className="loading-container d-flex justify-content-center">
           <ClipLoader color="#3498db" loading={isLoading} size={50} />

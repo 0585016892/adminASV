@@ -236,7 +236,14 @@ function App() {
                 <DanhSachBaiViet />
               </RoleRoute>
             }
-          />
+          /><Route
+          path="/trang-bao-tri"
+          element={
+            <RoleRoute allowedRoles={["admin"]}>
+              <Unauthorized />
+            </RoleRoute>
+          }
+        />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/trang-ca-nhan" element={<AdminProfile />} />
         </Route>

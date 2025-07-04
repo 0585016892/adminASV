@@ -22,6 +22,7 @@ import {
 import * as XLSX from "xlsx";
 import { FiEye } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 const OrderList = () => {
   const { user } = useAuth();
@@ -90,10 +91,10 @@ const OrderList = () => {
   const handleDelete = async () => {
     try {
       await deleteOrderById(orderToDelete);
-      setMessage("🗑️ Đơn hàng đã được xóa.");
+      showSuccessToast("Đơn hàng","🗑️ Đơn hàng đã được xóa.");
       fetchOrders();
     } catch {
-      alert("❌ Xóa đơn hàng thất bại.");
+      showErrorToast("Đơn hàng","Xóa đơn hàng thất bại.");
     } finally {
       closeDeleteModal();
     }
@@ -102,10 +103,10 @@ const OrderList = () => {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       await updateOrderStatus(orderId, newStatus);
-      setMessage("✅ Trạng thái đơn hàng đã được cập nhật.");
+      showSuccessToast("Đơn hàng","Trạng thái đơn hàng đã được cập nhật.");
       fetchOrders();
     } catch (err) {
-      alert("❌ Lỗi khi cập nhật trạng thái.");
+      showErrorToast("Đơn hàng","Lỗi khi cập nhật trạng thái.");
     }
   };
 
@@ -151,7 +152,6 @@ const OrderList = () => {
       <Row className="align-items-center mb-3">
         <Col>
           <h4>📦 Danh sách đơn hàng</h4>
-          {message && <div className="alert alert-success mt-2">{message}</div>}
         </Col>
       </Row>
 
@@ -185,47 +185,6 @@ const OrderList = () => {
         </Col>
       </Row>
 
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 px-2">
-        <div className="mb-2 mb-md-0">
-          <small className="text-muted fw-medium">
-            Tổng cộng <strong>{pagination.totalOrders}</strong> đơn hàng
-          </small>
-        </div>
-
-        <Pagination className="m-0">
-          <Pagination.First
-            onClick={() => handlePageChange(1)}
-            disabled={pagination.currentPage === 1}
-          />
-          <Pagination.Prev
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-          />
-
-          {Array.from({ length: pagination.totalPages }, (_, idx) => {
-            const page = idx + 1;
-            return (
-              <Pagination.Item
-                key={page}
-                active={page === pagination.currentPage}
-                onClick={() => handlePageChange(page)}
-                className="fw-bold"
-              >
-                {page}
-              </Pagination.Item>
-            );
-          })}
-
-          <Pagination.Next
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-          <Pagination.Last
-            onClick={() => handlePageChange(pagination.totalPages)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-        </Pagination>
-      </div>
       <div className="table-responsive">
         <Table
           responsive
@@ -322,6 +281,47 @@ const OrderList = () => {
         </Table>
       </div>
 
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 px-2">
+        <div className="mb-2 mb-md-0">
+          <small className="text-muted fw-medium">
+            Tổng cộng <strong>{pagination.totalOrders}</strong> đơn hàng
+          </small>
+        </div>
+
+        <Pagination className="m-0">
+          <Pagination.First
+            onClick={() => handlePageChange(1)}
+            disabled={pagination.currentPage === 1}
+          />
+          <Pagination.Prev
+            onClick={() => handlePageChange(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+          />
+
+          {Array.from({ length: pagination.totalPages }, (_, idx) => {
+            const page = idx + 1;
+            return (
+              <Pagination.Item
+                key={page}
+                active={page === pagination.currentPage}
+                onClick={() => handlePageChange(page)}
+                className="fw-bold"
+              >
+                {page}
+              </Pagination.Item>
+            );
+          })}
+
+          <Pagination.Next
+            onClick={() => handlePageChange(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.totalPages}
+          />
+          <Pagination.Last
+            onClick={() => handlePageChange(pagination.totalPages)}
+            disabled={pagination.currentPage === pagination.totalPages}
+          />
+        </Pagination>
+      </div>
       <Modal show={showModal} onHide={closeDeleteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Xác nhận xóa đơn hàng</Modal.Title>

@@ -1,4 +1,10 @@
 import React from "react";
+import {
+  Button,
+  Tooltip,
+  OverlayTrigger,
+} from "react-bootstrap";
+import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 
 const EmployeeTable = ({ employees, onEdit, onDelete }) => (
   <table className="table table-bordered">
@@ -27,18 +33,25 @@ const EmployeeTable = ({ employees, onEdit, onDelete }) => (
           <td>{emp.address}</td>
           <td>{emp.status == "active" ? "Hoạt động" : "Không hoạt động"}</td>
           <td>
-            <button
-              className="btn btn-sm btn-primary"
-              onClick={() => onEdit(emp)}
-            >
-              Sửa
-            </button>
-            <button
-              className="btn btn-sm btn-danger ms-2"
-              onClick={() => onDelete(emp)}
-            >
-              Xoá
-            </button>
+                     <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
+              <Button
+                 style={{marginRight:2}}
+                          size="sm"
+                          variant="outline-primary"
+                          onClick={() => onEdit(emp)}
+                        >
+                          <FaEdit />
+                        </Button>
+            </OverlayTrigger>
+            <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
+                        <Button
+                          size="sm"
+                          variant="outline-danger"
+                          onClick={() => onDelete(emp)}
+                        >
+                          <FaTrash />
+                        </Button>
+                      </OverlayTrigger>
           </td>
         </tr>
       ))}

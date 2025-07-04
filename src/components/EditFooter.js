@@ -4,6 +4,8 @@ import { getFooterById, updateFooter } from "../api/footerApi";
 import { useForm, Controller } from "react-hook-form";
 import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
 import { ClipLoader } from "react-spinners";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const EditFooter = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -25,8 +27,7 @@ const EditFooter = () => {
         setValue("label", productData.label);
         setValue("status", productData.status);
       } catch (error) {
-        setErrorMessage(error.message || "Lỗi khi lấy thông tin.");
-        console.error("Lỗi khi lấy thông tin:", error);
+        showErrorToast(error.message || "Lỗi khi lấy thông tin.");
       } finally {
         setLoading(false);
       }
@@ -45,26 +46,21 @@ const EditFooter = () => {
     try {
       setIsLoading(true);
       const result = await updateFooter(id, jsonData);
-      setErrorMessage("✅ Thêm danh mục thành công!");
+      showSuccessToast("Footer","Sửa danh mục thành công!");
 
       setTimeout(() => {
         setIsLoading(false); // Dừng loading sau 2 giây
 
         navigate("/footer/danh-sach");
       }, 2000);
-      if (result && result.success) {
-      } else {
-        throw new Error(result.message || "Có lỗi xảy ra khi sửa sản phẩm.");
-      }
     } catch (error) {
-      setErrorMessage(error.message || "Có lỗi xảy ra khi sửa sản phẩm.");
-      console.error("Lỗi khi sửa sản phẩm:", error);
+      showErrorToast(error.message || "Có lỗi xảy ra khi sửa sản phẩm.");
     }
   };
   return (
     <div className="container mt-4">
       <h3 className="mb-4">Sửa Footer</h3>
-      {errorMessage && <div className="alert alert-info">{errorMessage}</div>}
+      {/* {errorMessage && <div className="alert alert-info">{errorMessage}</div>} */}
       {isLoading ? (
         <div className="loading-container d-flex justify-content-center">
           <ClipLoader color="#3498db" loading={isLoading} size={50} />

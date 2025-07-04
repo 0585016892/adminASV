@@ -24,10 +24,12 @@ import {
 } from "../api/colorApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const Color = () => {
   const [colors, setColors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1); // ✅ Đã khai báo page
+  const [page, setPage] = useState(1); // Đã khai báo page
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentColor, setCurrentColor] = useState({
@@ -43,7 +45,7 @@ const Color = () => {
   const token = localStorage.getItem("token");
   const limit = 15;
 
-  // ✅ Lấy dữ liệu khi page thay đổi
+  // Lấy dữ liệu khi page thay đổi
   const fetchColors = async () => {
     try {
       setLoading(true);
@@ -51,7 +53,7 @@ const Color = () => {
       setColors(data.data.data);
       setTotalPages(data.data.totalPages || 1); // lấy số trang từ API
     } catch (error) {
-      setMessage("❌ Lỗi khi tải dữ liệu màu!");
+      showErrorToast("Màu","❌ Lỗi khi tải dữ liệu màu!");
     } finally {
       setLoading(false);
     }
@@ -80,15 +82,15 @@ const Color = () => {
     try {
       if (editMode) {
         await updateColor(token, currentColor.id, currentColor);
-        setMessage("✅ Cập nhật màu thành công!");
+        showSuccessToast("Màu !","Cập nhật màu thành công!");
       } else {
         await createColor(token, currentColor);
-        setMessage("✅ Thêm màu thành công!");
+        showSuccessToast("Màu !","Thêm màu thành công!");
       }
       setShowModal(false);
       fetchColors();
     } catch (error) {
-      setMessage("❌ Lỗi khi xử lý màu!");
+      showErrorToast("Màu !","❌ Lỗi khi xử lý màu!");
     }
   };
 
@@ -100,10 +102,10 @@ const Color = () => {
   const handleDelete = async () => {
     try {
       await deleteColor(token, colorToDelete);
-      setMessage("✅ Xoá màu thành công!");
+      showSuccessToast("Màu !","Xoá màu thành công!");
       fetchColors();
     } catch (error) {
-      setMessage("❌ Lỗi khi xoá màu!");
+      showErrorToast("Màu !","Lỗi khi xoá màu!");
     } finally {
       setShowModalDelete(false);
     }
@@ -143,19 +145,19 @@ const Color = () => {
     return <Pagination className="justify-content-center">{items}</Pagination>;
   };
 
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(""), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
+  // useEffect(() => {
+  //   if (message) {
+  //     const timer = setTimeout(() => setMessage(""), 3000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [message]);
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <Row className="mb-3">
         <Col>
           <h4>🎨 Quản lý Màu</h4>
 
-          {message && (
+          {/* {message && (
             <Alert
               variant={message.includes("✅") ? "success" : "danger"}
               onClose={() => setMessage("")}
@@ -163,7 +165,7 @@ const Color = () => {
             >
               {message}
             </Alert>
-          )}
+          )} */}
         </Col>
         <Col className="text-end">
           <Button variant="primary" className="me-2" onClick={handleShowAdd}>
