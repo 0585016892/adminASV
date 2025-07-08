@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import NumberFormat from 'react-number-format';
+import NumberFormat from "react-number-format";
 import {
   Table,
   Button,
@@ -24,7 +24,7 @@ import {
 } from "../api/couponApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
 const CouponManagement = () => {
   const [coupons, setCoupons] = useState([]);
@@ -68,7 +68,6 @@ const CouponManagement = () => {
       setCoupons(data.coupons || []);
       setTotalPages(data.totalPages || 1);
     } catch (error) {
-      
       setCoupons([]);
       setTotalPages(1);
     } finally {
@@ -122,11 +121,14 @@ const CouponManagement = () => {
     if (!couponToDelete) return;
     try {
       await deleteCoupon(couponToDelete);
-      showSuccessToast("Khuyến mãi","Xóa mã giảm giá thành công!");
+      showSuccessToast("Khuyến mãi", "Xóa mã giảm giá thành công!");
       closeDeleteModal();
       fetchData();
     } catch (error) {
-      showErrorToast("Khuyến mãi",error.message || "❌ Lỗi khi xóa mã giảm giá.");
+      showErrorToast(
+        "Khuyến mãi",
+        error.message || "❌ Lỗi khi xóa mã giảm giá."
+      );
     }
   };
 
@@ -135,16 +137,19 @@ const CouponManagement = () => {
     try {
       if (editingCoupon) {
         await updateCoupon(editingCoupon, formData);
-        showSuccessToast("Khuyến mãi","Cập nhật mã giảm giá thành công!");
+        showSuccessToast("Khuyến mãi", "Cập nhật mã giảm giá thành công!");
       } else {
         await createCoupon(formData);
-        showSuccessToast("Khuyến mãi","Thêm mã giảm giá thành công!");
+        showSuccessToast("Khuyến mãi", "Thêm mã giảm giá thành công!");
       }
       setShowModal(false);
       fetchData();
     } catch (err) {
       console.error("Lỗi khi cập nhật mã giảm giá:", err);
-      showErrorToast("Khuyến mãi",`Lỗi: ${err.message || "Không thể cập nhật mã giảm giá."}`);
+      showErrorToast(
+        "Khuyến mãi",
+        `Lỗi: ${err.message || "Không thể cập nhật mã giảm giá."}`
+      );
     }
   };
 
@@ -161,11 +166,11 @@ const CouponManagement = () => {
     try {
       const response = await updateCouponStatus(couponId, newStatus);
       if (response.success || response.updatedCoupon) {
-        showSuccessToast("Khuyến mãi","Cập nhật trạng thái thành công!");
+        showSuccessToast("Khuyến mãi", "Cập nhật trạng thái thành công!");
         fetchData();
       }
     } catch (error) {
-      showErrorToast("Khuyến mãi","Lỗi khi cập nhật trạng thái.");
+      showErrorToast("Khuyến mãi", "Lỗi khi cập nhật trạng thái.");
     }
   };
 
@@ -309,9 +314,9 @@ const CouponManagement = () => {
               {loading ? (
                 <tr>
                   <td colSpan="9" className="text-center">
-                   <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
+                    <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
                       <Spinner animation="border" variant="primary" />
-                  </div>
+                    </div>
                   </td>
                 </tr>
               ) : coupons.length === 0 ? (
@@ -345,10 +350,24 @@ const CouponManagement = () => {
                         size="sm"
                         value={c.status}
                         onChange={(e) => handleStatusChange(e, c.id)}
+                        disabled={
+                          new Date(c.end_date) < new Date() || c.quantity === 0
+                        }
                       >
                         <option value="active">Hoạt động</option>
                         <option value="inactive">Không hoạt động</option>
                       </Form.Select>
+
+                      {new Date(c.end_date) < new Date() && (
+                        <div className="text-danger small mt-1">
+                          Hết hạn theo thời gian
+                        </div>
+                      )}
+                      {c.quantity === 0 && (
+                        <div className="text-danger small mt-1">
+                          Đã sử dụng hết
+                        </div>
+                      )}
                     </td>
                     <td className="text-center">
                       <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
