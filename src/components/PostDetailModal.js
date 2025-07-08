@@ -1,5 +1,5 @@
 import React from "react";
-import { Spinner, Modal, Button, Badge } from "react-bootstrap";
+import { Spinner, Modal, Button, Badge ,Row,Col} from "react-bootstrap";
 
 const PostDetailModal = ({ show, onHide, post,loading = false }) => {
   if (!post) return null;
@@ -41,11 +41,13 @@ const PostDetailModal = ({ show, onHide, post,loading = false }) => {
           style={{ minHeight: 120 }}
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
-      </div>
-
-      {post.images?.length > 0 && (
-        <>
+              </div>
           <hr />
+              
+              <Row>
+                <Col md={6}>
+                {post.images?.length > 0 && (
+        <>
           <div className="mb-2">
             <h6 className="fw-semibold text-muted">🖼️ Hình ảnh:</h6>
             <div className="d-flex flex-wrap gap-2">
@@ -72,9 +74,38 @@ const PostDetailModal = ({ show, onHide, post,loading = false }) => {
                 </div>
               ))}
             </div>
-          </div>
+                  </div>
+                  
         </>
-      )}
+      )}</Col>
+                <Col md={6}>
+                <div className="mb-2">
+            <h6 className="fw-semibold text-muted">🖼️ Hình ảnh chính:</h6>
+            <div className="d-flex flex-wrap gap-2">
+             
+                <div
+                  style={{
+                    border: "1px solid #ddd",
+                    borderRadius: 5,
+                    padding: 4,
+                    background: "#f9f9f9",
+                  }}
+                >
+                  <img
+                    src={`${process.env.REACT_APP_WEB_URL}${post.image}`}
+                    alt={`Hình  1}`}
+                    style={{
+                      height: 100,
+                      width: "auto",
+                      borderRadius: 4,
+                      display: "block",
+                    }}
+                  />
+                </div>
+            </div>
+          </div></Col>
+</Row>
+   
     </>
   )}
 </Modal.Body>

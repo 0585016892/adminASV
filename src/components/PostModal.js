@@ -22,6 +22,7 @@ const PostModal = ({ show, onHide, initialData = null, onSuccess ,loading = fals
     content: "",
     status: "draft",
     images: [],
+    image: null, // ✅ ảnh chính là File, không phải string
   });
 
   const [message, setMessage] = useState("");
@@ -34,6 +35,7 @@ const PostModal = ({ show, onHide, initialData = null, onSuccess ,loading = fals
         content: initialData.content || "",
         status: initialData.status || "draft",
         images: [], // Không load ảnh cũ vào form, chỉ khi upload mới
+        image:initialData.image,
       });
     } else {
       setFormData({
@@ -42,11 +44,15 @@ const PostModal = ({ show, onHide, initialData = null, onSuccess ,loading = fals
         content: "",
         status: "draft",
         images: [],
+        image: '',
       });
     }
     setMessage("");
   }, [initialData]);
-
+  const handleMainImageChange = (e) => {
+    const file = e.target.files[0];
+    setFormData((prev) => ({ ...prev, image: file }));
+  };
   const handleChange = (e) => {
     const { name, value } = e.target;
   
@@ -76,6 +82,9 @@ const PostModal = ({ show, onHide, initialData = null, onSuccess ,loading = fals
       data.append("content", formData.content);
       data.append("status", formData.status);
       data.append("slug", formData.slug);
+      if (formData.image) {
+        data.append("image", formData.image); // ảnh chính
+      }
       formData.images.forEach((img) => data.append("images", img));
 
       let res;
@@ -195,6 +204,24 @@ const generateSlug = (text) => {
                                       onChange={handleFileChange}
                                   />
                               </Form.Group>
+                          </Col>
+                          <Col md={6}>
+                          <Form.Group className="mb-3">
+                              <Form.Label>Hình ảnh chính</Form.Label>
+                              <Form.Control
+                                type="file"
+                                accept="image/*"
+                                onChange={handleMainImageChange}
+                              />
+                              {/* 👉 Hiển thị ảnh đã có nếu đang ở chế độ sửa */}
+                              {isEditMode && initialData.image && (
+                                <img
+                                  src={`https://finlyapi-production.up.railway.app${initialData.image}`}
+                                  alt="Ảnh hiện tại"
+                                  style={{ maxWidth: "100%", marginTop: 10 }}
+                                />
+                              )}
+                            </Form.Group>
                           </Col>
                       </Row>
                   </Modal.Body>
