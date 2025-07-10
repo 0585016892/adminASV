@@ -15,7 +15,8 @@ import {
   Size,
   Color,
   SanphamDetail,
-  AutoReplyManager
+  AutoReplyManager,
+  CollectionList
 } from "./components";
 import {
   Public,
@@ -122,7 +123,14 @@ function App() {
               </RoleRoute>
             }
           />
-
+          <Route
+            path="/bo-sieu-tap/danh-sach"
+            element={
+              <RoleRoute allowedRoles={["admin"]}>
+                <CollectionList />
+              </RoleRoute>
+            }
+          />
           <Route path="/don-hang/danh-sach" element={<OrderList />} />
           <Route path="/don-hang/chi-tiet/:orderId" element={<OrderDetail />} />
 

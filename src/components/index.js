@@ -20,5 +20,7 @@ export { default as SanphamDetail } from "./SanphamDetail";
 export { default as AutoReplyManager } from "./AutoReplyManager";
 export { default as PostModal } from "./PostModal";
 export { default as PostDetailModal } from "./PostDetailModal";
+export { default as CollectionList } from "./CollectionList";
+export { default as CollectionModal } from "./CollectionModal";
 
 export { default as TopSeller } from "../api/TopSeller";

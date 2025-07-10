@@ -28,7 +28,7 @@ const PostModal = ({
     content: "",
     status: "draft",
     images: [],
-    image: null, // ✅ ảnh chính là File, không phải string
+    image: null,
   });
 
   const [message, setMessage] = useState("");
@@ -40,8 +40,8 @@ const PostModal = ({
         category: initialData.category || "",
         content: initialData.content || "",
         status: initialData.status || "draft",
-        images: [], // Không load ảnh cũ vào form, chỉ khi upload mới
-        image:initialData.image,
+        images: [],
+        image: initialData.image || null,
       });
     } else {
       setFormData({
@@ -50,15 +50,17 @@ const PostModal = ({
         content: "",
         status: "draft",
         images: [],
-        image: '',
+        image: null,
       });
     }
     setMessage("");
   }, [initialData]);
+
   const handleMainImageChange = (e) => {
     const file = e.target.files[0];
     setFormData((prev) => ({ ...prev, image: file }));
   };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -83,47 +85,44 @@ const PostModal = ({
     try {
       const data = new FormData();
       data.append("title", formData.title);
+      data.append("slug", formData.slug);
       data.append("category", formData.category);
       data.append("content", formData.content);
       data.append("status", formData.status);
-      data.append("slug", formData.slug);
       if (formData.image) {
-        data.append("image", formData.image); // ảnh chính
+        data.append("image", formData.image);
       }
       formData.images.forEach((img) => data.append("images", img));
 
-      let res; // ✅ Khai báo đúng chỗ
-
-      if (isEditMode) {
-        res = await updatePost(initialData.id, data);
-      } else {
-        res = await createPost(data);
-      }
+      const res = isEditMode
+        ? await updatePost(initialData.id, data)
+        : await createPost(data);
 
       setMessage("✅ Lưu thành công!");
-      onSuccess(); // load lại danh sách
       showSuccessToast(
         "Tin tức blog",
         isEditMode
           ? "Cập nhật bài viết thành công!"
           : "Thêm bài viết thành công!"
       );
-      onHide(); // đóng modal
+      onSuccess();
+      onHide();
     } catch (err) {
       console.error("Lỗi gửi dữ liệu:", err.response?.data || err);
+      showErrorToast("Lỗi khi lưu bài viết");
       setMessage("❌ Lỗi khi lưu bài viết.");
     }
   };
 
   const generateSlug = (text) => {
     return text
-      .normalize("NFD") // Tách dấu ra
-      .replace(/[\u0300-\u036f]/g, "") // Bỏ dấu
-      .replace(/Đ/g, "D") // Đổi Đ thành D (hoặc "" nếu muốn bỏ luôn)
-      .replace(/đ/g, "d") // Đổi đ thành d
-      .replace(/[^a-zA-Z0-9 ]/g, "") // Bỏ ký tự đặc biệt
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/Đ/g, "D")
+      .replace(/đ/g, "d")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
       .trim()
-      .replace(/\s+/g, "-"); // Thay khoảng trắng bằng "-"
+      .replace(/\s+/g, "-");
   };
 
   return (
@@ -133,11 +132,9 @@ const PostModal = ({
           {isEditMode ? "✏️ Sửa bài viết" : "➕ Thêm bài viết"}
         </Modal.Title>
       </Modal.Header>
+
       {loading ? (
-        <div
-          className="d-flex justify-content-center align-items-center"
-          style={{ minHeight: 200 }}
-        >
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 200 }}>
           <Spinner animation="border" role="status" variant="primary">
             <span className="visually-hidden">Đang tải...</span>
           </Spinner>
@@ -161,13 +158,13 @@ const PostModal = ({
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Slug (tự động tạo)</Form.Label>
+                  <Form.Label>Slug</Form.Label>
                   <Form.Control
                     type="text"
                     name="slug"
                     value={formData.slug}
                     onChange={handleChange}
-                    readOnly // hoặc cho phép sửa nếu muốn
+                    readOnly
                   />
                 </Form.Group>
               </Col>
@@ -180,8 +177,21 @@ const PostModal = ({
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    placeholder="VD: Xu hướng, phối đồ"
+                    placeholder="VD: Tin tức, thời trang"
                   />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Trạng thái</Form.Label>
+                  <Form.Select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                  >
+                    <option value="draft">Nháp</option>
+                    <option value="published">Hiển thị</option>
+                  </Form.Select>
                 </Form.Group>
               </Col>
             </Row>
@@ -200,64 +210,25 @@ const PostModal = ({
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Trạng thái</Form.Label>
-                  <Form.Select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                  >
-                    <option value="draft">Nháp</option>
-                    <option value="published">Hiển thị</option>
-                  </Form.Select>
+                  <Form.Label>Hình ảnh chính</Form.Label>
+                  <Form.Control
+                    type="file"
+                    accept="image/*"
+                    onChange={handleMainImageChange}
+                  />
+                  {isEditMode && initialData.image && (
+                    <img
+                      src={`https://finlyapi-production.up.railway.app${initialData.image}`}
+                      alt="Ảnh hiện tại"
+                      style={{ maxWidth: "100%", marginTop: 10 }}
+                    />
+                  )}
                 </Form.Group>
               </Col>
 
-<<<<<<< HEAD
-                          <Col md={6}>
-                              <Form.Group className="mb-3">
-                                  <Form.Label>Hình ảnh (nhiều ảnh)</Form.Label>
-                                  <Form.Control
-                                      type="file"
-                                      multiple
-                                      accept="image/*"
-                                      onChange={handleFileChange}
-                                  />
-                              </Form.Group>
-                          </Col>
-                          <Col md={6}>
-                          <Form.Group className="mb-3">
-                              <Form.Label>Hình ảnh chính</Form.Label>
-                              <Form.Control
-                                type="file"
-                                accept="image/*"
-                                onChange={handleMainImageChange}
-                              />
-                              {/* 👉 Hiển thị ảnh đã có nếu đang ở chế độ sửa */}
-                              {isEditMode && initialData.image && (
-                                <img
-                                  src={`https://finlyapi-production.up.railway.app${initialData.image}`}
-                                  alt="Ảnh hiện tại"
-                                  style={{ maxWidth: "100%", marginTop: 10 }}
-                                />
-                              )}
-                            </Form.Group>
-                          </Col>
-                      </Row>
-                  </Modal.Body>
-                  <Modal.Footer>
-                      <Button variant="secondary" onClick={onHide}>
-                          Đóng
-                      </Button>
-                      <Button type="submit" variant="primary">
-                          {isEditMode ? "Cập nhật" : "Thêm"}
-                      </Button>
-                  </Modal.Footer>
-              </Form>
-          )}
-=======
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Hình ảnh (nhiều ảnh)</Form.Label>
+                  <Form.Label>Hình ảnh phụ (nhiều)</Form.Label>
                   <Form.Control
                     type="file"
                     multiple
@@ -278,7 +249,6 @@ const PostModal = ({
           </Modal.Footer>
         </Form>
       )}
->>>>>>> 49e23134a34bd1d461270ee508535b7f07f02f4f
     </Modal>
   );
 };
