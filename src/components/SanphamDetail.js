@@ -44,6 +44,7 @@ const SanphamDetail = () => {
 
     fetchData();
   }, [id]);
+console.log(product);
 
   const findColorCode = (colorName) => {
     const matched = colors.find(

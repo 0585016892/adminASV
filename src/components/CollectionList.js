@@ -8,6 +8,7 @@ import {
   Pagination,
   Badge,
   InputGroup,
+  Modal
 } from "react-bootstrap";
 import CollectionModal from "./CollectionModal";
 import {
@@ -16,6 +17,7 @@ import {
   deleteCollection,
   getCollections,
 } from "../api/collectionApi";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
 const CollectionList = () => {
   const [collections, setCollections] = useState([]);
@@ -24,7 +26,9 @@ const CollectionList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [showModalDe, setShowModalDe] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [bSTToDelete, setBSTToDelete] = useState(null);
 
   // Gọi API lấy danh sách bộ sưu tập
   const fetchCollections = async () => {
@@ -38,7 +42,7 @@ const CollectionList = () => {
       setCollections(res.data); // backend nên trả { data, totalPages }
       setTotalPages(res.totalPages || 1);
     } catch (err) {
-      console.error("❌ Lỗi load collections:", err);
+      showErrorToast("❌ Lỗi load collections:", err);
     }
   };
 
@@ -47,30 +51,43 @@ const CollectionList = () => {
   }, [search, statusFilter, page]);
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc muốn xóa bộ sưu tập này?")) {
-      try {
-        await deleteCollection(id);
-        fetchCollections();
-      } catch (err) {
-        console.error("❌ Lỗi xoá:", err);
-      }
-    }
+    if (!bSTToDelete) return;
+    
+        try {
+          const result = await deleteCollection(bSTToDelete);
+          setCollections((prevDanhmuc) =>
+            prevDanhmuc.filter((prod) => prod.id !== bSTToDelete)
+          );
+          showSuccessToast("Bộ siêu tập",result.message);
+          setShowModalDe(false);
+        } catch (error) {
+          showErrorToast("Bộ siêu tập",error.message || "Lỗi khi xóa sản phẩm.");
+        }
   };
 
   const handleSave = async (formData) => {
     try {
       if (formData.id) {
         await updateCollection(formData.id, formData);
+        showSuccessToast("Bộ Siêu tập","✅ Cập nhật bộ sưu tập thành công");
       } else {
-        alert('gửi data ok');
         await createCollection(formData);
+        showSuccessToast("Bộ Siêu tập","✅ Thêm bộ sưu tập thành công");
       }
       fetchCollections();
     } catch (err) {
-      console.error("❌ Lỗi lưu bộ sưu tập:", err);
+      showErrorToast("❌ Lỗi lưu bộ sưu tập:", err);
     }
   };
+  const openDeleteModal = (id) => {
+    setBSTToDelete(id);
+    setShowModalDe(true);
+  };
 
+  const closeDeleteModal = () => {
+    setShowModalDe(false);
+    setBSTToDelete(null);
+  };
   return (
     <div className="p-4 bg-white rounded shadow-sm">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -125,7 +142,7 @@ const CollectionList = () => {
                 src={
                   col.image?.startsWith("http")
                     ? col.image
-                    : `${process.env.REACT_APP_API_URL}/uploads/${col.image}`
+                    : `${process.env.REACT_APP_WEB_URL}/uploads/${col.image}`
                 }
                 style={{ height: "200px", objectFit: "cover" }}
               />
@@ -153,7 +170,7 @@ const CollectionList = () => {
                   <Button
                     size="sm"
                     variant="outline-danger"
-                    onClick={() => handleDelete(col.id)}
+                    onClick={() => openDeleteModal(col.id)}
                   >
                     🗑️ Xóa
                   </Button>
@@ -196,6 +213,20 @@ const CollectionList = () => {
         onSave={handleSave}
         initialData={editItem}
       />
+        <Modal show={showModalDe} onHide={closeDeleteModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Xác nhận xóa danh mục</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Bạn có chắc chắn muốn xóa danh mục này không?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={closeDeleteModal}>
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={handleDelete}>
+            Xóa
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

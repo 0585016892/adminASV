@@ -34,7 +34,6 @@ const Menu = () => {
         { path: "/san-pham/danh-sach", text: "Danh sách sản phẩm" },
         { path: "/san-pham/mau-sac", text: "Danh sách màu sắc" },
         { path: "/san-pham/size", text: "Danh sách size" },
-        { path: "/san-pham/phan-phoi", text: "Nhà phân phối" },
       ],
     },
     {

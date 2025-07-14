@@ -20,6 +20,7 @@ const PostModal = ({
   loading = false,
 }) => {
   const isEditMode = !!initialData;
+  const API_URL = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
   const [formData, setFormData] = useState({
     title: "",
@@ -32,7 +33,8 @@ const PostModal = ({
   });
 
   const [message, setMessage] = useState("");
-
+  const [previewImage, setPreviewImage] = useState(null);
+  const [previewImages, setPreviewImages] = useState([]);
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -55,12 +57,20 @@ const PostModal = ({
     }
     setMessage("");
   }, [initialData]);
-
+  useEffect(() => {
+    return () => {
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage]);
   const handleMainImageChange = (e) => {
     const file = e.target.files[0];
-    setFormData((prev) => ({ ...prev, image: file }));
+    if (file) {
+      setFormData((prev) => ({ ...prev, image: file }));
+      setPreviewImage(URL.createObjectURL(file));
+    }
   };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -77,7 +87,12 @@ const PostModal = ({
   };
 
   const handleFileChange = (e) => {
-    setFormData((prev) => ({ ...prev, images: Array.from(e.target.files) }));
+    const files = Array.from(e.target.files);
+  setFormData((prev) => ({ ...prev, images: files }));
+
+  // Tạo URL preview
+  const urls = files.map((file) => URL.createObjectURL(file));
+  setPreviewImages(urls);
   };
 
   const handleSubmit = async (e) => {
@@ -97,7 +112,8 @@ const PostModal = ({
       const res = isEditMode
         ? await updatePost(initialData.id, data)
         : await createPost(data);
-
+        console.log(data);
+        
       setMessage("✅ Lưu thành công!");
       showSuccessToast(
         "Tin tức blog",
@@ -124,7 +140,11 @@ const PostModal = ({
       .trim()
       .replace(/\s+/g, "-");
   };
-
+  useEffect(() => {
+    return () => {
+      previewImages.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewImages]);
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Modal.Header closeButton>
@@ -216,27 +236,55 @@ const PostModal = ({
                     accept="image/*"
                     onChange={handleMainImageChange}
                   />
-                  {isEditMode && initialData.image && (
-                    <img
-                      src={`https://finlyapi-production.up.railway.app${initialData.image}`}
-                      alt="Ảnh hiện tại"
-                      style={{ maxWidth: "100%", marginTop: 10 }}
-                    />
-                  )}
+                 {previewImage ? (
+                        <img
+                          src={previewImage}
+                          alt="Preview"
+                          style={{ maxWidth: "100%", marginTop: 10, borderRadius: 6 }}
+                        />
+                      ) : isEditMode && initialData.image ? (
+                        <img
+                          src={`${API_URL}${initialData.image}`}
+                          alt="Ảnh hiện tại"
+                          style={{ maxWidth: "100%", marginTop: 10, borderRadius: 6 }}
+                        />
+                      ) : null}
+
                 </Form.Group>
               </Col>
 
               <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Hình ảnh phụ (nhiều)</Form.Label>
-                  <Form.Control
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleFileChange}
-                  />
-                </Form.Group>
-              </Col>
+              <Form.Group className="mb-3">
+                <Form.Label>Hình ảnh phụ (nhiều)</Form.Label>
+                <Form.Control
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+
+                {/* ✅ Hiển thị preview ảnh phụ */}
+                {previewImages.length > 0 && (
+                  <div className="d-flex flex-wrap gap-2 mt-2">
+                    {previewImages.map((imgUrl, idx) => (
+                      <img
+                        key={idx}
+                        src={imgUrl}
+                        alt={`Ảnh phụ ${idx + 1}`}
+                        style={{
+                          width: 100,
+                          height: 100,
+                          objectFit: "cover",
+                          borderRadius: 4,
+                          border: "1px solid #ccc",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </Form.Group>
+            </Col>
+
             </Row>
           </Modal.Body>
           <Modal.Footer>

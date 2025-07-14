@@ -1,6 +1,5 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api/collections";
 const API_URL = process.env.REACT_APP_API_URL; 
 // 👉 Thêm bộ sưu tập
 export const createCollection = async (formData) => {
@@ -46,7 +45,7 @@ export const deleteCollection = async (id) => {
 
 // 👉 Lấy danh sách bộ sưu tập (có lọc, phân trang)
 export const getCollections = async ({ search = "", status = "", page = 1, limit = 6 }) => {
-  const res = await axios.get(API_URL, {
+  const res = await axios.get(`${API_URL}/collections`, {
     params: { search, status, page, limit },
   });
   return res.data;

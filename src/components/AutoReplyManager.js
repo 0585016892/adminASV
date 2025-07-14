@@ -14,6 +14,7 @@ import {
 } from "react-bootstrap";
 import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import { Link } from "react-router-dom";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -51,11 +52,11 @@ const AutoReplyManager = () => {
     const result = await res.json();
 
     if (result.success) {
-      setMessage(`✅ Đã import ${result.inserted} dòng`);
+      showSuccessToast("Import Excel", `Đã import ${result.inserted} dòng`);
       setFile(null);
       fetchRules();
     } else {
-      setMessage("❌ Lỗi khi import file Excel");
+      showErrorToast("Import Excel", "Lỗi khi import file Excel");
     }
   };
 
@@ -89,12 +90,12 @@ const AutoReplyManager = () => {
       const result = await res.json();
 
       if (result.success) {
-        setMessage("🗑️ Xoá thành công");
+        showSuccessToast("Xoá câu lệnh", "🗑️ Xoá thành công");
         setShowModalDelete(false);
         setAiToDelete(null);
         fetchRules(); // làm mới lại danh sách rule
       } else {
-        setMessage(result.message || "❌ Xoá thất bại.");
+        showErrorToast("Xoá câu lệnh", result.message || "❌ Xoá thất bại.");
       }
     } catch (error) {
       setMessage("❌ Lỗi khi gọi API: " + error.message);
@@ -114,9 +115,11 @@ const AutoReplyManager = () => {
     });
     const result = await res.json();
     if (result.success) {
-      setMessage("✅ Đã cập nhật thành công !");
+      showSuccessToast("Cập nhật", "✅ Đã cập nhật thành công!");
       setShowModal(false);
       fetchRules();
+    }else {
+      showErrorToast("Cập nhật", "❌ Cập nhật thất bại!");
     }
   };
   //gpt
@@ -151,21 +154,23 @@ const AutoReplyManager = () => {
 
       const result = await res.json();
       if (result.success) {
-        setMessage(`✨ Đã thêm ${result.inserted} câu trả lời từ Gemini`);
+        showSuccessToast("Gemini", `✨ Đã thêm ${result.inserted} câu trả lời`);
         setShowGPTModal(false);
         fetchRules();
       } else {
-        alert("❌ Lỗi: " + result.message);
+        showErrorToast("Gemini", result.message || "❌ Lỗi khi gọi Gemini");
       }
     } catch (err) {
-      alert("❌ Lỗi khi gọi Gemini: " + err.message);
+      showErrorToast("❌ Lỗi khi gọi Gemini: " + err.message);
     }
     setLoadingSuggest(false);
   };
 
-  const filtered = rules.filter((r) =>
-    r.keyword.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = rules?.filter((r) =>
+    !search || (r.chatbot_replies && r.chatbot_replies.toLowerCase().includes(search.toLowerCase()))
+  ) || [];
+  
+  
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <div className="p-4">
@@ -224,8 +229,8 @@ const AutoReplyManager = () => {
           <tbody>
             {filtered.map((r) => (
               <tr key={r.id}>
-                <td>{r.id}</td>
-                <td>{r.keyword}</td>
+                <td>CB821{r.id}</td>
+                <td>{r.chatbot_replies}</td>
                 <td>{r.reply}</td>
                 <td>
                   <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>

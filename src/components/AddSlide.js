@@ -19,7 +19,7 @@ const AddSlide = () => {
     start_date: "2025-01-01",
     end_date: "2025-12-31",
   });
-
+  const [previewImage, setPreviewImage] = useState(null);
   const [image, setImage] = useState(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -29,8 +29,15 @@ const AddSlide = () => {
   };
 
   const handleFileChange = (e) => {
-    setImage(e.target.files[0]);
+    const file = e.target.files[0];
+    setImage(file);
+    if (file) {
+      setPreviewImage(URL.createObjectURL(file));
+    } else {
+      setPreviewImage(null);
+    }
   };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,16 +88,26 @@ const AddSlide = () => {
             </Col>
 
             <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Hình ảnh</Form.Label>
-                <Form.Control
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  required
-                  className="shadow-sm"
-                />
-              </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Hình ảnh</Form.Label>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                required
+                className="shadow-sm"
+              />
+              {previewImage && (
+                <div className="mt-2">
+                  <img
+                    src={previewImage}
+                    alt="Preview"
+                    style={{ maxWidth: "100%", maxHeight: "250px", borderRadius: "8px", border: "1px solid #ddd" }}
+                  />
+                </div>
+              )}
+            </Form.Group>
+
             </Col>
           </Row>
 

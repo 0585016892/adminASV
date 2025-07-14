@@ -7,6 +7,7 @@ import {
   Alert,
   Image,
 } from "react-bootstrap";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
 const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
   const isEdit = !!initialData;
@@ -31,7 +32,7 @@ const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
         status: initialData.status || "active",
         image: null,
         imagePreview: initialData.image
-          ? `${process.env.REACT_APP_API_URL}/uploads/${initialData.image}`
+          ? `${process.env.REACT_APP_WEB_URL}/uploads/${initialData.image}`
           : "",
       });
     } else {
