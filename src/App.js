@@ -35,8 +35,8 @@ import {
   AdminProfile,
   ChamCongAdmin,
   DanhSachBaiViet,
+  POSPage,
 } from "./pages";
-import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import path from "./ultis/path";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -251,7 +251,8 @@ function App() {
               <Unauthorized />
             </RoleRoute>
           }
-        />
+          />
+          <Route path="/ban-hang-off" element={<POSPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/trang-ca-nhan" element={<AdminProfile />} />
         </Route>

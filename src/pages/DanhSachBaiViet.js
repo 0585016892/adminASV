@@ -16,6 +16,10 @@ import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import { FaRegEye } from "react-icons/fa6";
 import { PostModal, PostDetailModal } from "../components";
 import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+import { FaPlus, FaFileExport } from "react-icons/fa";
+
+
+
 const DanhSachBaiViet = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [posts, setPosts] = useState([]);
@@ -106,28 +110,33 @@ const DanhSachBaiViet = () => {
             Quản lý và cập nhật các bài viết mới nhất
           </p>
         </Col>
+        
+      </Row>
+
+      <Row>
+        <Col>
+          <Form.Group className="mb-4">
+          <Form.Control
+            type="text"
+            placeholder="🔍 Tìm kiếm theo tiêu đề hoặc danh mục..."
+            name="keyword"
+            value={filters.keyword}
+            onChange={handleFilterChange}
+          />
+            </Form.Group>
+        </Col>
         <Col md={4} className="text-end">
           <Button
-            variant="success"
+            variant="primary"
             onClick={() => {
               setEditData(null);
               setShowModalAdd(true);
             }}
           >
-            ➕ Thêm bài viết
+            <FaPlus className="me-1" /> Thêm bài viết
           </Button>
         </Col>
       </Row>
-
-      <Form.Group className="mb-4">
-        <Form.Control
-          type="text"
-          placeholder="🔍 Tìm kiếm theo tiêu đề hoặc danh mục..."
-          name="keyword"
-          value={filters.keyword}
-          onChange={handleFilterChange}
-        />
-      </Form.Group>
 
       <Table striped hover responsive bordered className="rounded shadow-sm">
         <thead className="table-light text-center">

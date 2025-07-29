@@ -145,27 +145,11 @@ const Color = () => {
     return <Pagination className="justify-content-center">{items}</Pagination>;
   };
 
-  // useEffect(() => {
-  //   if (message) {
-  //     const timer = setTimeout(() => setMessage(""), 3000);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [message]);
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <Row className="mb-3">
-        <Col>
+        <Col md={12}>
           <h4>🎨 Quản lý Màu</h4>
-
-          {/* {message && (
-            <Alert
-              variant={message.includes("✅") ? "success" : "danger"}
-              onClose={() => setMessage("")}
-              dismissible
-            >
-              {message}
-            </Alert>
-          )} */}
         </Col>
         <Col className="text-end">
           <Button variant="primary" className="me-2" onClick={handleShowAdd}>

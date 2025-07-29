@@ -14,3 +14,4 @@ export { default as ReportPage } from "./ReportPage";
 export { default as AdminProfile } from "./AdminProfile";
 export { default as ChamCongAdmin } from "./ChamCongAdmin";
 export { default as DanhSachBaiViet } from "./DanhSachBaiViet";
+export { default as POSPage } from "./POSPage";

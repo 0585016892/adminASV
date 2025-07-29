@@ -10,6 +10,7 @@ import {
   Pagination,
   Modal,
 } from "react-bootstrap";
+import { FaPlus, FaFileExport } from "react-icons/fa";
 import {
   getAllProducts,
   deleteProduct,
@@ -116,7 +117,7 @@ const DanhSachSanPham = () => {
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <Row className="align-items-center mb-3">
-        <Col md={8}>
+        <Col md={12}>
           <div className="d-flex align-items-center">
             <FaBoxOpen
               className="me-2"
@@ -127,24 +128,13 @@ const DanhSachSanPham = () => {
           </div>
           {message && <div className="alert alert-info">{message}</div>}
         </Col>
-        <Col md={4} className="text-md-end">
-          {user?.role === "admin" && (
-            <Button variant="success">
-              <Link
-                to={"/san-pham/them"}
-                style={{ textDecoration: "none", color: "white" }}
-              >
-                Thêm sản phẩm
-              </Link>
-            </Button>
-          )}
-        </Col>
+        
       </Row>
 
       {/* Filter Form */}
       <div className="mb-4">
         <Row>
-          <Col xs={12} sm={6} md={3} className="mb-2">
+          <Col xs={12} sm={4} md={3} className="mb-2">
             <Form.Control
               type="text"
               placeholder="🔍 Tìm tên / mã "
@@ -153,7 +143,7 @@ const DanhSachSanPham = () => {
               onChange={handleFilterChange}
             />
           </Col>
-          <Col xs={12} sm={6} md={2} className="mb-2">
+          <Col xs={12} sm={4} md={2} className="mb-2">
             <Form.Select
               name="status"
               value={filters.status}
@@ -164,6 +154,19 @@ const DanhSachSanPham = () => {
               <option value="inactive">Ẩn</option>
             </Form.Select>
           </Col>
+          <Col xs={12} sm={4} md={7} className="text-md-end">
+          {user?.role === "admin" && (
+            <Button variant="primary">
+              <Link
+                to={"/san-pham/them"}
+                style={{ textDecoration: "none", color: "white" }}
+                >
+                  <FaPlus className="me-1" />
+                Thêm sản phẩm
+              </Link>
+            </Button>
+          )}
+        </Col>
         </Row>
       </div>
 

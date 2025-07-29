@@ -260,7 +260,6 @@ const ChatUser = () => {
           <div className="p-3 border-bottom bg-light">
             <h5>
               💬 Đang chat với khách hàng
-              {selectedUser || "Chọn user để bắt đầu"}
             </h5>
           </div>
           <div

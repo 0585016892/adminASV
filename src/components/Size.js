@@ -26,6 +26,7 @@ import {
 } from "../api/sizeApi";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 import { MdDeleteOutline, MdOutlineAutoFixHigh } from "react-icons/md";
+import { FaPlus, FaFileExport } from "react-icons/fa";
 
 const Size = () => {
   const token = localStorage.getItem("token");
@@ -163,17 +164,15 @@ const Size = () => {
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <Row className="align-items-center mb-3">
-        <Col>
+        <Col md={12}>
           <h4 className="fw-bold">📏 Quản lý Size</h4>
         </Col>
-      </Row>
-      <Row className="align-items-center mb-3">
-        <Col className="text-start">
+        <Col className="text-end">
           <Button variant="primary" className="me-2" onClick={handleShowAdd}>
-            ➕ Thêm Size
+           <FaPlus className="me-1" /> Thêm Size
           </Button>
           <Button variant="success" onClick={handleExport}>
-            📤 Xuất Excel
+            <FaFileExport className="me-1" /> Xuất Excel
           </Button>
         </Col>
       </Row>

@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
-
+import { markMessagesAsRead } from "../api/chatApi";
 import { BiSearchAlt } from "react-icons/bi";
 import { FaBell, FaChevronDown } from "react-icons/fa";
 import "../assets/MainContainer.css";
@@ -21,6 +21,7 @@ import {
 } from "../api/dashApi";
 import { io } from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
 const socket = io(`${URL_WEB}`);
@@ -35,6 +36,7 @@ function formatCurrency(value) {
 
 export default function Dashboard() {
   const [stats, setStats] = useState([]);
+const navigate = useNavigate();
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -49,6 +51,7 @@ export default function Dashboard() {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
     fetchStats()
       .then((data) => {
@@ -95,17 +98,35 @@ export default function Dashboard() {
     });
   }, []);
 
-  useEffect(() => {
-    // Lắng nghe sự kiện 'newOrderNotification' từ server
-    socket.on("newOrderNotification", (data) => {
-      setNotifications((prev) => [data, ...prev]); // Thêm thông báo mới lên đầu mảng
-      setShowNotifications(true); // Tự động hiện popup khi có thông báo mới
-    });
-
-    return () => {
-      socket.off("newOrderNotification");
+useEffect(() => {
+  socket.on("newOrderNotification", (data) => {
+    console.log("🛒 New order received:", data);
+    const notif = {
+      type: "order",
+      message: `🛒 Đơn hàng mới từ ${data.customer_name || "khách hàng"}!`,
     };
-  }, []);
+    setNotifications((prev) => [notif, ...prev]);
+    setShowNotifications(true);
+    setUnreadCount((n) => n + 1);
+  });
+
+  socket.on("newMessageNotification", (data) => {
+    console.log("📩 New message received:", data);
+    const notif = {
+      type: "message",
+      sender: data.sender,
+      message: `💬 Tin nhắn mới từ người dùng`,
+    };
+    setNotifications((prev) => [notif, ...prev]);
+    setShowNotifications(true);
+    setUnreadCount((n) => n + 1);
+  });
+
+  return () => {
+    socket.off("newOrderNotification");
+    socket.off("newMessageNotification");
+  };
+}, []);
 
   const formattedValue = (value) => {
     // Chuyển số thành chuỗi định dạng tiền Việt Nam, không hiện phần thập phân nếu bằng 0
@@ -133,7 +154,24 @@ export default function Dashboard() {
     value={searchTerm}
     onChange={(e) => setSearchTerm(e.target.value)}
   />;
+ const [readMessages, setReadMessages] = useState({}); // lưu trạng thái đã đọc tạm thời
 
+  const handleClick = async (note) => {
+    if (note.type === "message" && note.sender) {
+      try {
+        await markMessagesAsRead(note.sender, user?.id);
+        setReadMessages((prev) => ({ ...prev, [note.id]: true })); // đánh dấu đã đọc cục bộ
+        navigate("/message/danh-sach");
+      } catch (err) {
+        console.error("Lỗi khi đánh dấu đã đọc:", err);
+      }
+      return;
+    }
+
+    if (note.type === "order") {
+      navigate("/don-hang/danh-sach");
+    }
+  };
   return (
     <>
       <div className="topContainer">
@@ -145,23 +183,44 @@ export default function Dashboard() {
           <div className="position-relative" ref={notifRef}>
             <button
               className="profileIcon"
-              onClick={() => setShowNotifications(!showNotifications)}
+               onClick={() => {
+              setShowNotifications(!showNotifications);
+              if (!showNotifications) setUnreadCount(0);
+            }}
             >
               <FaBell />
+  {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
             </button>
-            {showNotifications && (
-              <div className="notif-popup">
-                {notifications.length === 0 ? (
-                  <p>Không có thông báo mới</p>
-                ) : (
-                  notifications.map((note, i) => (
-                    <div className="notification-item" key={i}>
-                      {note.message}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+          {showNotifications && (
+  <div className="notif-popup">
+    {notifications.length === 0 ? (
+      <p>Không có thông báo mới</p>
+    ) : (
+      <div>
+      {notifications.map((note, i) => {
+        const isRead = note.is_read || readMessages[note.id];
+
+        return (
+          <div
+            key={i}
+            className="notification-item"
+            onClick={() => handleClick(note)}
+            style={{
+              cursor: "pointer",
+              padding: "10px 14px",
+              backgroundColor: isRead ? "#f7f7f7" : "#fff",
+              color: isRead ? "#999" : "#000",
+              borderBottom: "1px solid #e0e0e0",
+            }}
+          >
+            {note.message}
+          </div>
+        );
+      })}
+    </div>
+    )}
+  </div>
+)}
           </div>
           <div className="profileImage">
             <img src={women} alt="" />

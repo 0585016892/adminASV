@@ -8,6 +8,7 @@ import {
 import EmployeeTable from "../components/EmployeeTable";
 import { Modal, Button } from "react-bootstrap";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { FaPlus, FaFileExport } from "react-icons/fa";
 
 const EmployeePage = () => {
   const [employees, setEmployees] = useState([]);
@@ -191,27 +192,9 @@ const EmployeePage = () => {
     <>
       <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
         <h3>Quản lý nhân viên</h3>
-
-        {/* {message && (
-          <div
-            className={`alert ${
-              messageType === "success" ? "alert-success" : "alert-danger"
-            }`}
-          >
-            {message}
-          </div>
-        )} */}
-
         <div className="mb-3">
           <div className="row align-items-center">
-            <div className="col-md-4 col-sm-12 mb-2 mb-md-0">
-              <button
-                className="btn btn-primary w-100"
-                onClick={handleShowAddForm}
-              >
-                Thêm nhân viên
-              </button>
-            </div>
+            
 
             <div className="col-md-8 col-sm-12">
               <div className="row g-2">
@@ -260,6 +243,15 @@ const EmployeePage = () => {
                   </select>
                 </div>
               </div>
+            </div>
+            <div className="col-md-4 col-sm-12 mb-2 mb-md-0 text-end">
+              <button
+                className="btn btn-primary "
+                onClick={handleShowAddForm}
+              >
+                <FaPlus className="me-1" /> 
+                Thêm nhân viên
+              </button>
             </div>
           </div>
         </div>

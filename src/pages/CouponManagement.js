@@ -14,7 +14,7 @@ import {
   Tooltip,
   OverlayTrigger,
 } from "react-bootstrap";
-import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrash,FaFileExport } from "react-icons/fa";
 import {
   filterCoupon,
   createCoupon,
@@ -225,20 +225,20 @@ const CouponManagement = () => {
       <Card className="shadow-sm mb-3">
         <Card.Body>
           <Row className="mb-3">
-            <Col>
+            <Col md={12}>
               <h4>Quản lý khuyến mãi</h4>
             </Col>
             <Col className="text-end">
-              <Button onClick={openAddModal}>
+              <Button onClick={openAddModal} className="me-2">
                 <FaPlus className="me-2" /> Thêm mã mới
               </Button>
-            </Col>
-            <Col>
+
               <Button
                 variant="success"
                 onClick={exportToExcel}
                 className="me-2"
               >
+                <FaFileExport className="me-1" />
                 Xuất Excel
               </Button>
             </Col>

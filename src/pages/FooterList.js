@@ -25,6 +25,7 @@ import {
   addFooterChild,
 } from "../api/footerApi"; // API giả định
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { FaPlus, FaFileExport } from "react-icons/fa";
 
 import { IoMdArrowDropup } from "react-icons/io";
 const FooterList = () => {
@@ -303,10 +304,10 @@ const FooterList = () => {
         </Col>
         <Col className="text-end">
           <Button as={Link} to="/footers/create" style={{marginRight:3}} variant="primary">
-            ➕ Thêm footer
+             <FaPlus className="me-1" />  Thêm footer
           </Button>
           <Button variant="success" onClick={handleExportToExcel}>
-            📄 Xuất Excel
+            <FaFileExport className="me-1" /> Xuất Excel
           </Button>
         </Col>
       </Row>

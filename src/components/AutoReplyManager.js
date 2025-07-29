@@ -181,26 +181,20 @@ const AutoReplyManager = () => {
           </Alert>
         )}
         <Row>
-          <Col md={6}>
+          <Col md={4}>
             <InputGroup className="mb-3 mt-3">
               <FormControl
                 placeholder="Tìm từ khóa..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <Button onClick={handleExport}>📤 Xuất Excel</Button>
-              <Button
-                onClick={() => setShowGPTModal(true)}
-                variant="success"
-                className="ms-2"
-              >
-                ✨ Gợi ý từ Gemini
-              </Button>
+              
+             
             </InputGroup>
           </Col>
-          <Col md={6}>
+          <Col md={8}>
             <Row className="mb-3 mt-3">
-              <Col md={8}>
+              <Col md={3}>
                 <Form.Group>
                   <Form.Control
                     type="file"
@@ -209,10 +203,22 @@ const AutoReplyManager = () => {
                   />
                 </Form.Group>
               </Col>
-              <Col>
+              <Col md={3}>
                 <Button className="ms-2" onClick={handleUpload}>
                   📤 Import
                 </Button>
+              </Col>
+              <Col md={3}>
+               <Button
+                onClick={() => setShowGPTModal(true)}
+                variant="success"
+                className="ms-2"
+              >
+                ✨ Gợi ý từ Gemini
+                </Button>
+              </Col>
+              <Col md={3}>
+                <Button onClick={handleExport} className="me-2">📤 Xuất Excel</Button>
               </Col>
             </Row>
           </Col>

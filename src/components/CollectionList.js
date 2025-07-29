@@ -18,6 +18,7 @@ import {
   getCollections,
 } from "../api/collectionApi";
 import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+import { FaPlus, FaFileExport } from "react-icons/fa";
 
 const CollectionList = () => {
   const [collections, setCollections] = useState([]);
@@ -90,23 +91,17 @@ const CollectionList = () => {
   };
   return (
     <div className="p-4 bg-white rounded shadow-sm">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h4 className="fw-bold text-primary">📁 Bộ sưu tập</h4>
-        <Button
-          variant="success"
-          className="rounded-pill"
-          onClick={() => {
-            setEditItem(null);
-            setShowModal(true);
-          }}
-        >
-          ➕ Thêm bộ sưu tập
-        </Button>
-      </div>
+        <Row className="align-items-center mb-3">
+                <Col>
+                  <h4 className="fw-bold text-primary">📁 Bộ sưu tập</h4>
+                </Col>
+              
+              </Row>
 
       {/* Bộ lọc */}
-      <Row className="mb-3 align-items-end">
-        <Col md={5}>
+      <div>
+          <Row className="mb-3 align-items-end">
+        <Col md={3}>
           <InputGroup>
             <Form.Control
               placeholder="🔍 Tìm theo tên"
@@ -125,12 +120,19 @@ const CollectionList = () => {
             <option value="inactive">Ẩn</option>
           </Form.Select>
         </Col>
-        <Col md={2}>
-          <Button variant="outline-primary" onClick={() => setPage(1)}>
-            Áp dụng
+        <Col md={6} className="text-end">
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditItem(null);
+            setShowModal(true);
+          }}
+        >
+          <FaPlus className="me-1" />  Thêm bộ sưu tập
           </Button>
         </Col>
       </Row>
+    </div>
 
       {/* Hiển thị danh sách bộ sưu tập */}
       <Row>

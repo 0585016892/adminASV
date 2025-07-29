@@ -18,6 +18,7 @@ import * as XLSX from "xlsx";
 import { FiEye } from "react-icons/fi";
 import { getSlides, deleteSlideById, updateSlideStatus } from "../api/slideApi"; // giả định API
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { FaPlus, FaFileExport } from "react-icons/fa";
 
 const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 
@@ -145,14 +146,12 @@ const SlideList = () => {
             onChange={handleFilterChange}
           />
         </Col>
-        <Col md={3} className="text-end">
-          <Button as={Link} to="/slides/create" variant="primary">
-            ➕ Thêm slide
+        <Col md={6} className="text-end">
+          <Button as={Link} to="/slides/create" variant="primary" className="me-2">
+            <FaPlus className="me-1" /> Thêm slide
           </Button>
-        </Col>
-        <Col md={3} className="text-end">
           <Button variant="success" onClick={handleExportToExcel}>
-            📄 Xuất Excel
+            <FaFileExport className="me-1" /> Xuất Excel
           </Button>
         </Col>
       </Row>

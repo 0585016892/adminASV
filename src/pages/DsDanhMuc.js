@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import { useAuth } from "../contexts/AuthContext";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { FaPlus, FaFileExport } from "react-icons/fa";
 
 const DsDanhMuc = () => {
   const [loading, setLoading] = useState(false);
@@ -92,18 +93,7 @@ const DsDanhMuc = () => {
         <Col>
           <h4 className="fw-bold text-primary">Danh Mục</h4>
         </Col>
-        {user?.role === "admin" && (
-          <Col className="text-end">
-            <Button variant="warning" className="shadow-sm">
-              <Link
-                to={"/danh-muc/them"}
-                style={{ textDecoration: "none", color: "black" }}
-              >
-                Thêm danh mục
-              </Link>
-            </Button>
-          </Col>
-        )}
+      
       </Row>
 
       {/* Filter Form */}
@@ -131,15 +121,19 @@ const DsDanhMuc = () => {
               <option value="inactive">Không kích hoạt</option>
             </Form.Select>
           </Col>
-          <Col md={2}>
-            <Button
-              variant="secondary"
-              onClick={() => setFilters(filters)}
-              className="shadow-sm"
-            >
-              Áp dụng
+            {user?.role === "admin" && (
+          <Col md={6} className="text-end">
+            <Button variant="primary" className="shadow-sm">
+              <Link
+                to={"/danh-muc/them"}
+                style={{ textDecoration: "none", color: "white" }}
+                >
+                <FaPlus className="me-1" /> 
+                Thêm danh mục
+              </Link>
             </Button>
           </Col>
+        )}
         </Row>
       </div>
 

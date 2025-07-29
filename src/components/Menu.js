@@ -28,6 +28,13 @@ const Menu = () => {
   };
   const menu = [
     {
+      text: "Bán hàng tại quầy",
+      roles: ["admin", "staff"],
+      children: [
+        { path: "/ban-hang-off", text: "Tạo hóa đơn" },
+      ],
+    },
+    {
       text: "Quản lý sản phẩm",
       roles: ["admin", "staff"],
       children: [
@@ -155,14 +162,17 @@ const Menu = () => {
             ))}
         </ul>
 
-        <ul className="bottom-menu">
-          <Button onClick={() => navigate("/cai-dat")} title="Cài đặt">
-            <FaCog />
-          </Button>
-          <Button onClick={handleLogout} title="Đăng xuất">
-            <FaSignOutAlt />
-          </Button>
-        </ul>
+        <ul className="bottom-menu d-flex justify-content-center p-3 border-top mt-auto bg-white shadow-sm">
+  <Button
+    variant="light"
+    onClick={handleLogout}
+    title="Đăng xuất"
+    className="d-flex align-items-center gap-2 px-3 py-2 rounded-pill logout-btn"
+  >
+    <FaSignOutAlt />
+    <span>Đăng xuất</span>
+  </Button>
+</ul>
       </aside>
     </>
   );
