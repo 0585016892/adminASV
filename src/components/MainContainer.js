@@ -100,7 +100,6 @@ const navigate = useNavigate();
 
 useEffect(() => {
   socket.on("newOrderNotification", (data) => {
-    console.log("🛒 New order received:", data);
     const notif = {
       type: "order",
       message: `🛒 Đơn hàng mới từ ${data.customer_name || "khách hàng"}!`,
@@ -111,7 +110,6 @@ useEffect(() => {
   });
 
   socket.on("newMessageNotification", (data) => {
-    console.log("📩 New message received:", data);
     const notif = {
       type: "message",
       sender: data.sender,
@@ -176,7 +174,7 @@ useEffect(() => {
     <>
       <div className="topContainer">
         <div className="dashboard-title">
-          <h2>Trung tâm quản lý bán hàng Finly</h2>
+          <h2>Trung tâm quản lý bán hàng Âm Sắc Việt</h2>
         </div>
 
         <div className="profileContainer">

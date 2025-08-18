@@ -42,7 +42,7 @@ export const getSlideById = async (id) => {
 export const updateSlideStatus = async (id, newStatus) => {
   try {
     const response = await fetch(`${API_BASE_URL}/slides/status/${id}`, {
-      method: "PATCH", // Chuyển từ PUT sang PATCH
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },

@@ -165,11 +165,11 @@ const Size = () => {
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
       <Row className="align-items-center mb-3">
         <Col md={12}>
-          <h4 className="fw-bold">📏 Quản lý Size</h4>
+          <h4 className="fw-bold">📏 Quản lý Hình dạng</h4>
         </Col>
         <Col className="text-end">
           <Button variant="primary" className="me-2" onClick={handleShowAdd}>
-           <FaPlus className="me-1" /> Thêm Size
+           <FaPlus className="me-1" /> Thêm 
           </Button>
           <Button variant="success" onClick={handleExport}>
             <FaFileExport className="me-1" /> Xuất Excel
@@ -185,7 +185,7 @@ const Size = () => {
           <thead className="table-light text-center">
             <tr>
               <th>#</th>
-              <th>Tên Size</th>
+              <th>Tên</th>
               <th>Trạng thái</th>
               <th>Ngày tạo</th>
               <th>Hành động</th>
@@ -250,7 +250,7 @@ const Size = () => {
         </Modal.Header>
         <Modal.Body>
           <Form.Group className="mb-3">
-            <Form.Label>Tên Size</Form.Label>
+            <Form.Label>Tên</Form.Label>
             <Form.Control
               type="text"
               value={currentSize.name}

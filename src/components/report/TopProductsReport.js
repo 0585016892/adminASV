@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Pie } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 import { Spinner, Form, Button, Row, Col } from "react-bootstrap";
 import "chart.js/auto";
 
 const TopProductsReport = () => {
-  const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
+  const API_URL = process.env.REACT_APP_API_URL;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState("2025-01-01");
- const date = new Date();
-   const formatted = date.toISOString().split("T")[0];
-   const [toDate, setToDate] = useState(formatted);
+  const date = new Date();
+  const formatted = date.toISOString().split("T")[0];
+  const [toDate, setToDate] = useState(formatted);
   const [limit, setLimit] = useState(5);
 
   const fetchData = async () => {
@@ -45,6 +45,7 @@ const TopProductsReport = () => {
     labels: data.map((d) => d.name),
     datasets: [
       {
+        label: "Số lượng bán",
         data: data.map((d) => d.total_sold),
         backgroundColor: [
           "#FF6384",
@@ -54,8 +55,30 @@ const TopProductsReport = () => {
           "#9966FF",
           "#FF9F40",
         ],
+        borderRadius: 6, // bo tròn đầu cột
       },
     ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => ` ${context.formattedValue} sản phẩm`,
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: { display: true, text: "Số lượng bán" },
+      },
+      x: {
+        title: { display: true, text: "Tên sản phẩm" },
+      },
+    },
   };
 
   return (
@@ -84,18 +107,6 @@ const TopProductsReport = () => {
               />
             </Form.Group>
           </Col>
-          <Col md={2}>
-            <Form.Group>
-              <Form.Label>Top sản phẩm</Form.Label>
-              <Form.Control
-                type="number"
-                value={limit}
-                min={1}
-                max={10}
-                onChange={(e) => setLimit(e.target.value)}
-              />
-            </Form.Group>
-          </Col>
           <Col md={2} className="d-flex align-items-end">
             <Button type="submit" variant="primary">
               Xem báo cáo
@@ -105,12 +116,12 @@ const TopProductsReport = () => {
       </Form>
 
       {loading ? (
-         <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-         <Spinner animation="border" variant="primary" />
-       </div>
+        <div className="text-center py-5 d-flex justify-content-center align-items-center h-100">
+          <Spinner animation="border" variant="primary" />
+        </div>
       ) : (
-        <div style={{ maxWidth: "400px", margin: "0 auto" }}>
-          <Pie data={chartData} />
+        <div style={{ width: "100%", height: "500px" }}>
+          <Bar data={chartData} options={chartOptions} />
         </div>
       )}
     </div>

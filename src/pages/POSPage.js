@@ -133,11 +133,18 @@ useEffect(() => {
 
   // Thêm vào giỏ hàng
   const handleConfirmAddToCart = () => {
-    if (!selectedSize || !selectedColor || quantity < 1) {
-      showErrorToast("Sản phẩm", "Vui lòng chọn đầy đủ thông tin sản phẩm!");
+  if (!selectedSize) {
+      showErrorToast("Sản phẩm","Vui lòng chọn size trước khi thêm vào giỏ!");
       return;
     }
-
+    if (!selectedColor) {
+      showErrorToast("Sản phẩm","Vui lòng chọn màu trước khi thêm vào giỏ!");
+      return;
+    }
+    if (quantity > selectedProduct.stock) {
+      showErrorToast("Sản phẩm",`Số lượng không đủ! Chỉ còn ${selectedProduct.stock} sản phẩm.`);
+      return;
+    }
     const item = {
       ...selectedProduct,
       size: selectedSize,
@@ -480,7 +487,15 @@ console.log(customers);
                     className="shadow-sm rounded"
                   >
                     <option value="">-- Chọn mã giảm giá --</option>
-                    {coupons.map((c) => (
+                    {coupons
+                      ?.filter(
+                        (coupon) =>
+                          coupon.status === "active" &&
+                          coupon.quantity > 0 &&
+                          // total >= coupon.min_order_total &&
+                          new Date(coupon.end_date) >= new Date()
+                      )
+                      .map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.code} (
                         {c.discount_type === "percent"
@@ -671,24 +686,33 @@ console.log(customers);
         {/* Nhập số lượng */}
         <Form.Group>
           <Form.Label>🔢 Số lượng</Form.Label>
-          <Form.Control
+           <Form.Control
             type="number"
             min={1}
+            max={selectedProduct?.stock || 1}
             value={quantity}
             onChange={(e) =>
-              setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+              setQuantity(
+                Math.min(
+                  selectedProduct?.stock || 1,
+                  Math.max(1, parseInt(e.target.value) || 1)
+                )
+              )
             }
-          />
+                />
+                 <small className="text-muted">
+                Còn lại: {selectedProduct?.stock} sản phẩm
+              </small>
         </Form.Group>
       </>
     )}
   </Modal.Body>
   <Modal.Footer>
     <Button variant="outline-secondary" onClick={() => setShowModal(false)}>
-      ❌ Hủy
+       Hủy
     </Button>
     <Button variant="success" onClick={handleConfirmAddToCart}>
-      ✅ Thêm vào giỏ
+       Thêm vào giỏ
     </Button>
   </Modal.Footer>
 </Modal>

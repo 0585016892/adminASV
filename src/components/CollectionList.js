@@ -70,10 +70,10 @@ const CollectionList = () => {
     try {
       if (formData.id) {
         await updateCollection(formData.id, formData);
-        showSuccessToast("Bộ Siêu tập","✅ Cập nhật bộ sưu tập thành công");
+        showSuccessToast("Bộ Siêu tập","Cập nhật bộ sưu tập thành công");
       } else {
         await createCollection(formData);
-        showSuccessToast("Bộ Siêu tập","✅ Thêm bộ sưu tập thành công");
+        showSuccessToast("Bộ Siêu tập","Thêm bộ sưu tập thành công");
       }
       fetchCollections();
     } catch (err) {
