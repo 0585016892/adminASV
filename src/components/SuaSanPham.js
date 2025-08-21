@@ -4,6 +4,8 @@ import { getProductById, updateProduct } from "../api/productAPI";
 import { useForm, Controller } from "react-hook-form";
 import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
 import { ClipLoader } from "react-spinners";
+import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+
 const SuaSanPham = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -83,8 +85,10 @@ const SuaSanPham = () => {
     try {
       setIsLoading(true);
       await updateProduct(id, formData);
+              showSuccessToast("Sản phẩm","Cập nhật sản phẩm thành công!");
       setTimeout(() => {
         setIsLoading(false); // Dừng loading sau 2 giây
+        
         navigate("/san-pham/danh-sach");
       }, 2000);
     } catch (error) {
@@ -92,6 +96,7 @@ const SuaSanPham = () => {
       console.error("Lỗi khi sửa sản phẩm:", error);
     }
   };
+
 
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
@@ -186,7 +191,7 @@ const SuaSanPham = () => {
                     {imagePreview && (
                       <div className="mt-2">
                         <img
-                          src={imagePreview}
+                          src={`http://localhost:5000${imagePreview}`}
                           alt="Xem trước"
                           style={{ maxHeight: "150px" }}
                         />

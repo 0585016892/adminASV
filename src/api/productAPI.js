@@ -119,3 +119,46 @@ export const getAllColors = (token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+// api/productApi.js
+export const exportProductsExcel = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/export/excel`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Lỗi khi xuất Excel");
+    }
+
+    // Nhận dữ liệu dạng blob
+    const blob = await response.blob();
+
+    // Tạo URL để tải xuống
+    const url = window.URL.createObjectURL(blob);
+
+    // Tạo thẻ <a> để tải file
+    const a = document.createElement("a");
+    a.href = url;
+
+    // Lấy tên file từ header response
+    const disposition = response.headers.get("Content-Disposition");
+    let fileName = "san_pham.xlsx";
+    if (disposition && disposition.indexOf("filename=") !== -1) {
+      fileName = disposition.split("filename=")[1];
+    }
+    a.download = fileName.replace(/["']/g, "");
+
+    document.body.appendChild(a);
+    a.click();
+
+    // Xóa sau khi tải xong
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert("Xuất Excel thất bại");
+  }
+};

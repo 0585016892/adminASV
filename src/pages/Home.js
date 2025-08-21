@@ -1,5 +1,5 @@
 import React from "react";
-import { MainContainer } from "../components";
+import { MainContainer,ChatWidget } from "../components";
 
 const Home = () => {
   return (

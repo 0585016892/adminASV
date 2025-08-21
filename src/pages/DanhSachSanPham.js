@@ -15,6 +15,7 @@ import {
   getAllProducts,
   deleteProduct,
   filterProducts,
+  exportProductsExcel 
 } from "../api/productAPI";
 import { Link } from "react-router-dom";
 import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
@@ -156,7 +157,8 @@ const DanhSachSanPham = () => {
           </Col>
           <Col xs={12} sm={4} md={7} className="text-md-end">
           {user?.role === "admin" && (
-            <Button variant="primary">
+              <div >
+                <Button variant="primary">
               <Link
                 to={"/san-pham/them"}
                 style={{ textDecoration: "none", color: "white" }}
@@ -164,7 +166,12 @@ const DanhSachSanPham = () => {
                   <FaPlus className="me-1" />
                 Thêm sản phẩm
               </Link>
-            </Button>
+              </Button>
+               <Button className="m-2" variant="success" onClick={exportProductsExcel}>
+                <FaFileExport className="me-1" />
+                Xuất Excel
+              </Button>
+            </div>
           )}
         </Col>
         </Row>
