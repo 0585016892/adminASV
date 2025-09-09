@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
-import { markMessagesAsRead, fetchNotifications ,markNotificationAsRead } from "../api/chatApi";
+import { markMessagesAsRead, fetchNotifications ,markNotificationAsRead ,markAllNotificationsAsRead} from "../api/chatApi";
 import { BiSearchAlt } from "react-icons/bi";
 import { FaBell, FaChevronDown } from "react-icons/fa";
 import "../assets/MainContainer.css";
@@ -22,6 +22,8 @@ import {
 import { io } from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button, Badge } from "react-bootstrap";
 
 const URL_WEB = process.env.REACT_APP_WEB_URL; 
 const socket = io(`${URL_WEB}`);
@@ -113,6 +115,22 @@ export default function Dashboard() {
     console.error("Lỗi khi đánh dấu thông báo đã đọc:", err);
   }
 };
+const handleMarkAllAsRead = async () => {
+  if (!user?.id) return;
+
+  try {
+    const res = await markAllNotificationsAsRead(user.id);
+    if (res.success) {
+      // cập nhật local state notifications
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, is_read: 1 }))
+      );
+      setUnreadCount(0);
+    }
+  } catch (err) {
+    console.error("Lỗi khi đánh dấu tất cả đã đọc:", err);
+  }
+};
 
   const formattedValue = (value) => {
     const num = Number(value);
@@ -140,6 +158,7 @@ export default function Dashboard() {
           <h2>Trung tâm quản lý bán hàng Âm Sắc Việt</h2>
         </div>
         <div className="profileContainer">
+          {/* Notification Popup */}
           <div className="position-relative" ref={notifRef}>
             <button
               className="profileIcon"
@@ -154,36 +173,102 @@ export default function Dashboard() {
               )}
             </button>
 
-            {showNotifications && (
-              <div className="notif-popup">
-                {notifications.length === 0 ? (
-                  <p>Không có thông báo mới</p>
-                ) : (
-                  notifications.map((note, i) => {
-                    const isRead = note.is_read || readMessages[note.id];
-                    return (
-                      <div
-                        key={i}
-                        className="notification-item"
-                        onClick={() => handleClickNotification(note)}
-                        style={{
-                          cursor: "pointer",
-                          padding: "10px 14px",
-                          backgroundColor: isRead ? "#f7f7f7" : "#fff",
-                          color: isRead ? "#999" : "#000",
-                          borderBottom: "1px solid #e0e0e0",
-                        }}
-                      >
-                        {note.message}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  className="notif-popup shadow-lg rounded-3 p-2"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  style={{
+                    position: "absolute",
+                    top: "60px",
+                    right: "10px",
+                    width: "350px",
+                    maxHeight: "450px",
+                    overflowY: "auto",
+                    background: "#ffffff",
+                    zIndex: 9999,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  {/* Header */}
+                  <div className="d-flex justify-content-between align-items-center mb-2 px-2">
+                    <h6 className="mb-0">Thông báo</h6>
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      onClick={handleMarkAllAsRead}
+                    >
+                      Đã đọc tất cả
+                    </Button>
+                  </div>
+
+                  <hr className="my-1" />
+
+                  {/* Notifications list */}
+                  {notifications.length === 0 ? (
+                    <p className="text-center text-muted my-3">Không có thông báo mới</p>
+                  ) : (
+                    notifications.map((note) => {
+                      const isRead = note.is_read || readMessages[note.id];
+                      return (
+                        <motion.div
+                          key={note.id}
+                          className="notification-item d-flex align-items-start p-2 mb-2 rounded"
+                          whileHover={{ scale: 1.02, backgroundColor: isRead ? "#f1f1f1" : "#e6f0ff" }}
+                          style={{
+                            cursor: "pointer",
+                            backgroundColor: isRead ? "#f7f7f7" : "#dceeff",
+                            color: isRead ? "#666" : "#000",
+                            borderLeft: isRead ? "4px solid transparent" : "4px solid #007bff",
+                            transition: "all 0.2s",
+                          }}
+                          onClick={async () => {
+                            if (!isRead) {
+                              try {
+                                await markNotificationAsRead(note.id);
+                                setReadMessages((prev) => ({ ...prev, [note.id]: true }));
+                              } catch (err) {
+                                console.error("Lỗi khi đánh dấu thông báo đã đọc:", err);
+                              }
+                            }
+
+                            if (note.type === "message" && note.sender) {
+                              navigate("/message/danh-sach");
+                            } else if (note.type === "order") {
+                              navigate("/don-hang/danh-sach");
+                            }
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div className="d-flex justify-content-between align-items-start">
+                              <p className="mb-1">{note.message}</p>
+                              {!isRead && <Badge bg="primary" pill>New</Badge>}
+                            </div>
+                            <small className="text-muted">
+                              {new Date(note.created_at).toLocaleString("vi-VN")}
+                            </small>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+
           <div className="profileImage">
-            <img src={women} alt="" />
+            <img
+                           src={
+                             user && user.avatar
+                               ? `${URL_WEB}${user.avatar}`
+                               : women
+                           }
+                           alt="avatar"
+                           className="rounded-circle border"
+                         />
           </div>
           <p style={{ color: "black" }} className="profileName">
             {user?.full_name}

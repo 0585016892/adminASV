@@ -40,3 +40,17 @@ export const markNotificationAsRead = async (noteId, token) => {
     throw err;
   }
 };
+export const markAllNotificationsAsRead = async (userId) => {
+  if (!userId) return { success: false, message: "User ID không hợp lệ" };
+
+  try {
+    const { data } = await axios.post(
+      `${API_BASE_URL}/dashboard/notifications/mark-read-all`,
+      { userId }
+    );
+    return { success: true, data };
+  } catch (error) {
+    console.error("Lỗi khi đánh dấu tất cả thông báo đã đọc:", error);
+    return { success: false, message: error.message };
+  }
+};

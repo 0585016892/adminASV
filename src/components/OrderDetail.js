@@ -31,6 +31,7 @@ const OrderDetail = () => {
 
     fetchOrderDetails();
   }, [orderId]);
+console.log(order);
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -109,6 +110,18 @@ const OrderDetail = () => {
               </p>
               <p>
                 <strong>Tổng tiền:</strong>{" "}
+                <span className=" ">
+                  {Number(order?.total).toLocaleString()} VND
+                </span>
+                </p>
+                 <p>
+                <strong>Giảm giá:</strong>{" "}
+                <span className=" ">
+                  {order?.discount == 0 ? '0 VND' : "- " + Number(order?.discount).toLocaleString() + ' VND'} 
+                </span>
+                </p>
+                 <p>
+                <strong>Thành tiền:</strong>{" "}
                 <span className="text-danger fw-bold">
                   {Number(order?.final_total).toLocaleString()} VND
                 </span>

@@ -517,7 +517,7 @@ console.log(customers);
                     className="shadow-sm rounded"
                   >
                     <option value="COD">📦 Thanh toán khi nhận hàng (COD)</option>
-                    <option value="VNPAY">🏦 Thanh toán qua VNPAY</option>
+                    <option value="MOMO">🏦 Thanh toán qua MOMO</option>
                   </Form.Select>
                 </Form.Group>
 
