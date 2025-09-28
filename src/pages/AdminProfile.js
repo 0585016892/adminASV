@@ -25,6 +25,7 @@ import { useAuth } from "../contexts/AuthContext";
 import logo from "../img/admin.jpg";
 import { getAttendanceByDate, checkIn, checkOut } from "../api/adminproApi";
 import io from "socket.io-client";
+import { Spinner } from "react-bootstrap";
 const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
 const socket = io(`${URL_WEB}`);
 const AdminProfile = () => {
@@ -250,9 +251,14 @@ const AdminProfile = () => {
       }
     }
   };
-  if (!user) return <div>Đang tải thông tin người dùng...</div>;
-  console.log(user);
-
+if (!user)
+  return (
+    <div className="text-center my-5 d-flex justify-content-center" style={{height:'87vh'}}>
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Đang tải...</span>
+      </Spinner>
+    </div>
+  );
   return (
     <Container className="mt-4">
       <Row className="g-4">

@@ -9,7 +9,7 @@ export const filterOrders = async (filters) => {
     const response = await axios.get(`${API_BASE_URL}/orders`, {
       params: {
         page: filters.page || 1,
-        limit: filters.limit || 8,
+        limit: filters.limit || 15,
         keyword: filters.keyword || "",
         status: filters.status || "",
       },

@@ -31,6 +31,7 @@ const AutoReplyManager = () => {
 
   const fetchRules = async () => {
     const res = await fetch(`${API}/ai`);
+    
     const data = await res.json();
     setRules(data);
   };

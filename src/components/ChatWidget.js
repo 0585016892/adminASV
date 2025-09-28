@@ -5,6 +5,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ChatWidget = () => {
+  const API_URL = process.env.REACT_APP_API_URL;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { from: "bot", text: "Xin chào 👋! Mình có thể giúp gì cho bạn hôm nay?" },
@@ -22,7 +23,7 @@ const ChatWidget = () => {
 
   // Lấy danh sách coupon từ backend
   useEffect(() => {
-    axios.get("http://localhost:5000/api/assistant/coupons")
+    axios.get(`${API_URL}/assistant/coupons`)
       .then(res => {
         if (res.data.success) setCoupons(res.data.coupons);
       })
@@ -58,11 +59,11 @@ const ChatWidget = () => {
           answer = "⚠️ Không tìm thấy tên mã giảm giá. Vui lòng chọn lại.";
         } else {
           const couponName = match[1].trim();
-          await axios.post("http://localhost:5000/api/assistant/send-coupon-email", { couponName });
+          await axios.post(`${API_URL}/assistant/send-coupon-email`, { couponName });
           answer = "✅ Đã gửi email cho tất cả khách hàng!";
         }
       } else {
-        const res = await axios.post("http://localhost:5000/api/assistant/ask", { question: textToSend });
+        const res = await axios.post(`${API_URL}/assistant/ask`, { question: textToSend });
         answer = res.data.answer || "Xin lỗi, mình chưa hiểu 🥲";
         if (res.data.revenue) answer = `${res.data.revenue} (${formatCurrency(res.data.revenue)})`;
       }
@@ -163,7 +164,7 @@ const ChatWidget = () => {
                     Gửi mã giảm giá cho tất cả khách hàng
                   </p>
                     {coupons
-                      .filter(c => c.description === "0" && Number(c.quantity) > 0)
+                      .filter(c => c.description === "0" && Number(c.quantity) > 0  &&  new Date(c.end_date) >= new Date())
                       .map((c, idx) => (
                         <Dropdown.Item
                           key={idx}
@@ -171,7 +172,9 @@ const ChatWidget = () => {
                           className="d-flex justify-content-between align-items-center"
                         >
                           <span>🎟️ {c.code}</span>
-                          <span className="badge bg-success">{c.discount_value}%</span>
+                          <span className="badge bg-success">{c.discount_type === "percent"
+                                    ? `${Number(c.discount_value)}%`
+                                    : `${Number(c.discount_value).toLocaleString("vi-VN")} VND`}</span>
                         </Dropdown.Item>
                       ))
                     }

@@ -6,7 +6,7 @@ import {
   deleteEmployee,
 } from "../api/employeeApi";
 import EmployeeTable from "../components/EmployeeTable";
-import { Modal, Button } from "react-bootstrap";
+import { Modal, Button ,  Pagination,} from "react-bootstrap";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 import { FaPlus, FaFileExport } from "react-icons/fa";
 
@@ -16,8 +16,18 @@ const EmployeePage = () => {
   const [message, setMessage] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState(null);
+    const [totalNhanVien, setTotalKhachhang] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+  
   const [messageType, setMessageType] = useState("success");
-
+const [filters, setFilters] = useState({
+    page: 1,
+    limit: 12,
+    keyword: "",
+    status: "",
+    seoScore: "",
+  });
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -45,7 +55,9 @@ const EmployeePage = () => {
     try {
       const res = await getEmployees(token);
       let filtered = res.data.data;
-
+      console.log(res.data.total);
+      setTotalPages(res.data.page);
+      setTotalKhachhang(res.data.total)
       if (filter.full_name) {
         filtered = filtered.filter((emp) =>
           emp.full_name.toLowerCase().includes(filter.full_name.toLowerCase())
@@ -71,7 +83,12 @@ const EmployeePage = () => {
   useEffect(() => {
     fetchData();
   }, [filter]);
-
+const handlePageChange = (pageNumber) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      page: pageNumber,
+    }));
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -425,8 +442,34 @@ const EmployeePage = () => {
           onEdit={handleEdit}
           onDelete={openDeleteModal}
         />
+        <div className="d-flex justify-content-between align-items-center mt-3">
+        <span className="text-muted">
+          Có <strong>{totalNhanVien}</strong> khách hàng
+        </span>
+        <Pagination className="mb-0">
+          <Pagination.First onClick={() => handlePageChange(1)} />
+          <Pagination.Prev
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          />
+          {[...Array(totalPages).keys()].map((page) => (
+            <Pagination.Item
+              key={page + 1}
+              active={currentPage === page + 1}
+              onClick={() => handlePageChange(page + 1)}
+            >
+              {page + 1}
+            </Pagination.Item>
+          ))}
+          <Pagination.Next
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          />
+          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
+        </Pagination>
       </div>
-
+      </div>
+       
       <Modal show={showDeleteModal} onHide={closeDeleteModal} centered>
         <Modal.Header closeButton>
           <Modal.Title>Xác nhận xoá nhân viên</Modal.Title>

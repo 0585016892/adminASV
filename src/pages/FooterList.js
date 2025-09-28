@@ -30,7 +30,7 @@ import { FaPlus, FaFileExport } from "react-icons/fa";
 import { IoMdArrowDropup } from "react-icons/io";
 const FooterList = () => {
   const [footers, setFooters] = useState([]);
-  const [filters, setFilters] = useState({ page: 1, limit: 20, keyword: "" });
+  const [filters, setFilters] = useState({ page: 1, limit: 12, keyword: "" });
   const [pagination, setPagination] = useState({
     totalPages: 1,
     totalFooters: 0,

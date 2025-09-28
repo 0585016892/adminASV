@@ -29,7 +29,7 @@ const DsDanhMuc = () => {
   const { user } = useAuth();
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 8,
+    limit: 12,
     keyword: "",
     status: "",
     seoScore: "",

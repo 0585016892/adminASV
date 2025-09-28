@@ -7,6 +7,7 @@ import { ClipLoader } from "react-spinners";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 
 const SuaSanPham = () => {
+  const WEB_URL = process.env.REACT_APP_WEB_URL;
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -191,7 +192,7 @@ const SuaSanPham = () => {
                     {imagePreview && (
                       <div className="mt-2">
                         <img
-                          src={`http://localhost:5000${imagePreview}`}
+                          src={`${WEB_URL}${imagePreview}`}
                           alt="Xem trước"
                           style={{ maxHeight: "150px" }}
                         />

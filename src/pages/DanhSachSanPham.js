@@ -40,7 +40,7 @@ const DanhSachSanPham = () => {
 
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 6,
+    limit: 7,
     keyword: "",
     categoryId: "",
     dateRange: "",
@@ -187,8 +187,9 @@ const DanhSachSanPham = () => {
             <th>Tên</th>
             <th>Giá</th>
             <th>Danh mục</th>
-
-            <th>Code</th>
+            {user?.role === "admin" && (
+              <th>Code</th>
+            )}
             <th>Hành động</th>
           </tr>
         </thead>
@@ -217,7 +218,9 @@ const DanhSachSanPham = () => {
 
                 <td> {Number(prod.price).toLocaleString("vi-VN")}₫</td>
                 <td>{prod.categoryName}</td>
-                <td>{prod.couponCode ? prod.couponCode : "Không có mã"}</td>
+                {user?.role === "admin" && (
+                  <td>{prod.couponCode ? prod.couponCode : "Không có mã"}</td>
+                )}
                 <td className="d-flex">
                   <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
                     <Button

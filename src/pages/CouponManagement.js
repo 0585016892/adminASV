@@ -38,7 +38,7 @@ const CouponManagement = () => {
 
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 8,
+    limit: 9,
     status: "",
     keyword: "",
     discount_type: "",
@@ -396,7 +396,7 @@ const CouponManagement = () => {
             </tbody>
           </Table>
 
-          <Pagination>
+          <Pagination className="d-flex justify-content-center">
             {[...Array(totalPages).keys()].map((p) => (
               <Pagination.Item
                 key={p + 1}

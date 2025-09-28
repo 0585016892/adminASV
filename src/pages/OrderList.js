@@ -30,7 +30,7 @@ const OrderList = () => {
   const [orders, setOrders] = useState([]);
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 8,
+    limit: 12,
     keyword: "",
     status: "",
   });
@@ -48,6 +48,8 @@ const OrderList = () => {
     setLoading(true);
     try {
       const data = await filterOrders(filters);
+      console.log(data);
+      
       setOrders(data.orders);
       setPagination({
         totalPages: data.totalPages,

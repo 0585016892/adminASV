@@ -35,7 +35,7 @@ const DanhSachKhachhang = () => {
 
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 8,
+    limit: 12,
     keyword: "",
     status: "",
     seoScore: "",
@@ -44,9 +44,9 @@ const DanhSachKhachhang = () => {
     const fetchData = async () => {
       setLoading(true);
       const data = await filterKhachhang(filters); // Gọi API lọc
-
+      
       setCustomers(data.customers);
-      setTotalKhachhang(data.totalKhachhang);
+      setTotalKhachhang(data.totalCustomers);
       setTotalPages(data.totalPages);
       setLoading(false);
     };
@@ -189,6 +189,7 @@ const DanhSachKhachhang = () => {
                     : cus.address}
                 </td>
                 <td>
+                  {user?.role === "admin" ?  (
                   <Form.Control
                     as="select"
                     value={cus.status}
@@ -197,7 +198,8 @@ const DanhSachKhachhang = () => {
                   >
                     <option value="active">Hoạt động</option>
                     <option value="inactive">Không hoạt động</option>
-                  </Form.Control>
+                    </Form.Control>
+                  ) : 'Không được xem' }
                 </td>
                 <td className="text-center">
                   <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>

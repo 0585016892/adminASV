@@ -100,6 +100,7 @@ const Menu = () => {
         { path: "/tintuc-blog/danh-sach", text: "Tin tức / blog" },
         { path: "/ai/danh-sach", text: "Ai" },
         { path: "/footer/danh-sach", text: "Footer" },
+        { path: "/binh-luan", text: "Đánh giá sản phẩm" },
         { path: "/trang-bao-tri", text: "Trang bảo trì" },
       ],
     },

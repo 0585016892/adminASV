@@ -71,18 +71,28 @@ export default function Dashboard() {
   // Socket.io events
   useEffect(() => {
     socket.on("newOrderNotification", (data) => {
+
       const notif = { ...data, type: "order", is_read: 0 };
       setNotifications((prev) => [notif, ...prev]);
       setUnreadCount((n) => n + 1);
     });
 
     socket.on("newMessageNotification", (data) => {
+
       const notif = { ...data, type: "message", is_read: 0 };
+      setNotifications((prev) => [notif, ...prev]);
+      setUnreadCount((n) => n + 1);
+    });
+    socket.on("newReview1", (data) => {
+      const notif = { ...data, type: "message", is_read: 0 };
+      console.log(notif);
+      
       setNotifications((prev) => [notif, ...prev]);
       setUnreadCount((n) => n + 1);
     });
 
     return () => {
+      socket.off("newReview1");
       socket.off("newOrderNotification");
       socket.off("newMessageNotification");
     };
@@ -150,6 +160,7 @@ const handleMarkAllAsRead = async () => {
       menuContainer.style.transform = "translateX(300px)";
     });
   }, []);
+  
   return (
     <>
       {/* Top header */}

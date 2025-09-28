@@ -16,7 +16,8 @@ import {
   Color,
   SanphamDetail,
   AutoReplyManager,
-  CollectionList
+  CollectionList,
+  AdminReviews
 } from "./components";
 import {
   Public,
@@ -244,7 +245,16 @@ function App() {
                 <DanhSachBaiViet />
               </RoleRoute>
             }
-          /><Route
+          />
+          <Route
+            path="/binh-luan"
+            element={
+              <RoleRoute allowedRoles={["admin"]}>
+                <AdminReviews />
+              </RoleRoute>
+            }
+          />
+          <Route
           path="/trang-bao-tri"
           element={
             <RoleRoute allowedRoles={["admin"]}>

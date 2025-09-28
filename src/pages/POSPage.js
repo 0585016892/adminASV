@@ -273,7 +273,7 @@ if (selectedCoupon) {
 console.log(customers);
 
   return (
-    <Row className="p-4">
+    <Row className="p-4" style={{height:'100vh'}}>
       {/* 🔍 Tìm kiếm sản phẩm */}
       <Col md={7}>
         <Card className="mb-3 shadow-sm">
