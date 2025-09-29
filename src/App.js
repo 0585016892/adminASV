@@ -47,7 +47,9 @@ import { io } from "socket.io-client";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Toaster } from 'react-hot-toast';
 function App() {
-  const socket = io("http://localhost:3000");
+  const WEB_URL = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
+
+  const socket = io(WEB_URL);
 
   return (
     <div>
