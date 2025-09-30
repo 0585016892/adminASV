@@ -167,8 +167,9 @@ const Color = () => {
           <Spinner animation="border" variant="primary" />
         </div>
       ) : (
-        <Table bordered hover responsive>
-          <thead>
+        <div>
+           <Table bordered hover responsive>
+          <thead className="table-dark">
             <tr>
               <th>#</th>
               <th>Tên màu</th>
@@ -231,8 +232,9 @@ const Color = () => {
             )}
           </tbody>
         </Table>
-      )}
       {renderPagination()}
+        </div>
+      )}
 
       {/* Modal thêm/sửa */}
       <Modal show={showModal} onHide={handleCloseModal}>

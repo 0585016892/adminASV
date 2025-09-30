@@ -9,19 +9,16 @@ import {
   Modal,
   Tooltip,
   OverlayTrigger,
+  Spinner,
 } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { filterPosts, deletePost, updatePostStatus } from "../api/postAPI";
 import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
-import { FaRegEye } from "react-icons/fa6";
+import { FaRegEye, FaPlus } from "react-icons/fa6";
 import { PostModal, PostDetailModal } from "../components";
 import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
-import { FaPlus, FaFileExport } from "react-icons/fa";
-
-
 
 const DanhSachBaiViet = () => {
-  const [successMessage, setSuccessMessage] = useState("");
   const [posts, setPosts] = useState([]);
   const [filters, setFilters] = useState({
     keyword: "",
@@ -36,16 +33,16 @@ const DanhSachBaiViet = () => {
   const [loading, setLoading] = useState(false);
   const [showModalAdd, setShowModalAdd] = useState(false);
   const [editData, setEditData] = useState(null);
-
   const [selectedPost, setSelectedPost] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
   const fetchData = async () => {
+    setLoading(true);
     try {
       const data = await filterPosts(filters);
       setPosts(Array.isArray(data.posts) ? data.posts : []);
       setTotalPosts(data.totalPosts || 0);
       setTotalPages(data.totalPages || 1);
-      setLoading(true);
     } catch (err) {
       showErrorToast("Lỗi khi fetch bài viết:", err);
       setPosts([]);
@@ -94,7 +91,7 @@ const DanhSachBaiViet = () => {
   const handleStatusChange = async (id, newStatus) => {
     try {
       await updatePostStatus(id, newStatus);
-      fetchData(); // reload danh sách
+      fetchData();
       showSuccessToast("Tin tức blog", "Thay đổi trạng thái thành công");
     } catch (err) {
       showErrorToast("Tin tức blog", "Thay đổi trạng thái không thành công");
@@ -110,20 +107,19 @@ const DanhSachBaiViet = () => {
             Quản lý và cập nhật các bài viết mới nhất
           </p>
         </Col>
-        
       </Row>
 
       <Row>
         <Col>
           <Form.Group className="mb-4">
-          <Form.Control
-            type="text"
-            placeholder="🔍 Tìm kiếm theo tiêu đề hoặc danh mục..."
-            name="keyword"
-            value={filters.keyword}
-            onChange={handleFilterChange}
-          />
-            </Form.Group>
+            <Form.Control
+              type="text"
+              placeholder="🔍 Tìm kiếm theo tiêu đề hoặc danh mục..."
+              name="keyword"
+              value={filters.keyword}
+              onChange={handleFilterChange}
+            />
+          </Form.Group>
         </Col>
         <Col md={4} className="text-end">
           <Button
@@ -138,120 +134,136 @@ const DanhSachBaiViet = () => {
         </Col>
       </Row>
 
-      <Table striped hover responsive bordered className="rounded shadow-sm">
-        <thead className="table-light text-center">
-          <tr>
-            <th>#</th>
-            <th>Tiêu đề</th>
-            <th>Danh mục</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {posts.length === 0 ? (
-            <tr>
-              <td colSpan="5" className="text-center text-muted">
-                Không có bài viết nào.
-              </td>
-            </tr>
-          ) : (
-            posts.map((post, index) => (
-              <tr key={post.id}>
-                <td className="text-center">
-                  {(filters.page - 1) * filters.limit + index + 1}
-                </td>
-                <td>{post.title}</td>
-                <td>
-                  {post.category || <i className="text-muted">Không có</i>}
-                </td>
-                <td style={{ maxWidth: 150 }}>
-                  <Form.Select
-                    size="sm"
-                    className={
-                      post.status === "published"
-                        ? "text-success"
-                        : "text-secondary"
-                    }
-                    value={post.status}
-                    onChange={(e) =>
-                      handleStatusChange(post.id, e.target.value)
-                    }
-                  >
-                    <option value="draft"> Nháp</option>
-                    <option value="published"> Hiển thị</option>
-                  </Form.Select>
-                </td>
-                <td className="text-center">
-                  <div className="d-flex justify-content-center gap-2">
-                    <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedPost(post);
-                          setShowDetailModal(true);
-                        }}
-                      >
-                        <FaRegEye />
-                      </Button>
-                    </OverlayTrigger>
-                    <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                      <Button
-                        variant="outline-warning"
-                        size="sm"
-                        onClick={() => {
-                          setEditData(post);
-                          setShowModalAdd(true);
-                        }}
-                      >
-                        <MdOutlineAutoFixHigh />
-                      </Button>
-                    </OverlayTrigger>
-                    <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => openDeleteModal(post.id)}
-                      >
-                        <MdDelete />
-                      </Button>
-                    </OverlayTrigger>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </Table>
-
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <div>
-          <small className="text-muted">{totalPosts} bài viết</small>
+      {/* ✅ Loading Spinner */}
+      {loading ? (
+        <div className="text-center py-5 my-5">
+          <Spinner animation="border" variant="primary" />
         </div>
-        <Pagination className="mb-0">
-          <Pagination.First onClick={() => handlePageChange(1)} />
-          <Pagination.Prev
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          />
-          {[...Array(totalPages).keys()].map((page) => (
-            <Pagination.Item
-              key={page + 1}
-              active={currentPage === page + 1}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              {page + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-        </Pagination>
-      </div>
+      ) : (
+        <>
+          <Table
+            striped
+            hover
+            responsive
+            bordered
+            className="rounded shadow-sm text-center"
+          >
+            <thead  className="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Tiêu đề</th>
+                <th>Danh mục</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {posts.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center text-muted">
+                    Không có bài viết nào.
+                  </td>
+                </tr>
+              ) : (
+                posts.map((post, index) => (
+                  <tr key={post.id}>
+                    <td>{(filters.page - 1) * filters.limit + index + 1}</td>
+                    <td>{post.title}</td>
+                    <td>
+                      {post.category || <i className="text-muted">Không có</i>}
+                    </td>
+                    <td style={{ maxWidth: 150 }}>
+                      <Form.Select
+                        size="sm"
+                        className={
+                          post.status === "published"
+                            ? "text-success"
+                            : "text-secondary"
+                        }
+                        value={post.status}
+                        onChange={(e) =>
+                          handleStatusChange(post.id, e.target.value)
+                        }
+                      >
+                        <option value="draft">Nháp</option>
+                        <option value="published">Hiển thị</option>
+                      </Form.Select>
+                    </td>
+                    <td>
+                      <div className="d-flex justify-content-center gap-2">
+                        <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedPost(post);
+                              setShowDetailModal(true);
+                            }}
+                          >
+                            <FaRegEye />
+                          </Button>
+                        </OverlayTrigger>
+                        <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
+                          <Button
+                            variant="outline-warning"
+                            size="sm"
+                            onClick={() => {
+                              setEditData(post);
+                              setShowModalAdd(true);
+                            }}
+                          >
+                            <MdOutlineAutoFixHigh />
+                          </Button>
+                        </OverlayTrigger>
+                        <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => openDeleteModal(post.id)}
+                          >
+                            <MdDelete />
+                          </Button>
+                        </OverlayTrigger>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </Table>
 
+          {/* Pagination */}
+          <div className="d-flex justify-content-between align-items-center mt-3">
+            <small className="text-muted">{totalPosts} bài viết</small>
+            <Pagination className="mb-0">
+              <Pagination.First onClick={() => handlePageChange(1)} />
+              <Pagination.Prev
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              />
+              {[...Array(totalPages).keys()].map((page) => (
+                <Pagination.Item
+                  key={page + 1}
+                  active={currentPage === page + 1}
+                  onClick={() => handlePageChange(page + 1)}
+                >
+                  {page + 1}
+                </Pagination.Item>
+              ))}
+              <Pagination.Next
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              />
+              <Pagination.Last
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+              />
+            </Pagination>
+          </div>
+        </>
+      )}
+
+      {/* Modal Xác nhận xóa */}
       <Modal show={showModal} onHide={closeDeleteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Xác nhận xóa bài viết</Modal.Title>
@@ -267,18 +279,19 @@ const DanhSachBaiViet = () => {
         </Modal.Footer>
       </Modal>
 
+      {/* Modal thêm / sửa bài */}
       <PostModal
         show={showModalAdd}
         onHide={() => setShowModalAdd(false)}
         initialData={editData}
         onSuccess={fetchData}
-        loading={loading}
       />
+
+      {/* Modal xem chi tiết */}
       <PostDetailModal
         show={showDetailModal}
         onHide={() => setShowDetailModal(false)}
         post={selectedPost}
-        loading={loading}
       />
     </div>
   );

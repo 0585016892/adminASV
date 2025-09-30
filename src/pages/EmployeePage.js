@@ -6,7 +6,7 @@ import {
   deleteEmployee,
 } from "../api/employeeApi";
 import EmployeeTable from "../components/EmployeeTable";
-import { Modal, Button ,  Pagination,} from "react-bootstrap";
+import { Modal, Button ,  Pagination,Spinner} from "react-bootstrap";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
 import { FaPlus, FaFileExport } from "react-icons/fa";
 
@@ -19,7 +19,7 @@ const EmployeePage = () => {
     const [totalNhanVien, setTotalKhachhang] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-  
+  const [loading, setLoading] = useState(false);
   const [messageType, setMessageType] = useState("success");
 const [filters, setFilters] = useState({
     page: 1,
@@ -53,6 +53,7 @@ const [filters, setFilters] = useState({
 
   const fetchData = async () => {
     try {
+       setLoading(true);
       const res = await getEmployees(token);
       let filtered = res.data.data;
       console.log(res.data.total);
@@ -77,7 +78,9 @@ const [filters, setFilters] = useState({
       setEmployees(filtered);
     } catch (err) {
       showErrorToast("Nhân viên","Lỗi khi lấy danh sách nhân viên");
-    }
+    }finally {
+    setLoading(false);
+  }
   };
 
   useEffect(() => {
@@ -436,7 +439,13 @@ const handlePageChange = (pageNumber) => {
             </div>
           </>
         )}
-
+ {loading ? (
+  // Hiển thị spinner loading toàn trang/bảng
+          <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
+            <Spinner animation="border" variant="primary" />
+          </div>
+        ) : (
+          <>
         <EmployeeTable
           employees={employees}
           onEdit={handleEdit}
@@ -468,6 +477,8 @@ const handlePageChange = (pageNumber) => {
           <Pagination.Last onClick={() => handlePageChange(totalPages)} />
         </Pagination>
       </div>
+      </>
+        )}
       </div>
        
       <Modal show={showDeleteModal} onHide={closeDeleteModal} centered>

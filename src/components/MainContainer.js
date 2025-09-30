@@ -9,9 +9,19 @@ import {
   ResponsiveContainer,
   LabelList,
 } from "recharts";
-import { markMessagesAsRead, fetchNotifications ,markNotificationAsRead ,markAllNotificationsAsRead} from "../api/chatApi";
-import { BiSearchAlt } from "react-icons/bi";
-import { FaBell, FaChevronDown } from "react-icons/fa";
+import {
+  markNotificationAsRead,
+  fetchNotifications,
+  markAllNotificationsAsRead,
+} from "../api/chatApi";
+import {
+  FaBell,
+  FaChevronDown,
+  FaBoxOpen,
+  FaUsers,
+  FaMoneyBillWave,
+  FaShoppingCart,
+} from "react-icons/fa";
 import "../assets/MainContainer.css";
 import women from "../img/admin.jpg";
 import {
@@ -23,17 +33,18 @@ import { io } from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button, Badge } from "react-bootstrap";
+import { Button, Badge, Spinner } from "react-bootstrap";
 
-const URL_WEB = process.env.REACT_APP_WEB_URL; 
+const URL_WEB = process.env.REACT_APP_WEB_URL;
 const socket = io(`${URL_WEB}`);
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const notifRef = useRef(null);
 
-  // Dashboard states
+  const notifRef = useRef(null);
+  const menuRef = useRef(null);
+
   const [stats, setStats] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -42,63 +53,57 @@ export default function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [readMessages, setReadMessages] = useState({}); // tạm thời lưu trạng thái đọc
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
 
-  // Fetch dashboard stats
+  // ✅ Load dữ liệu thống kê và đơn hàng
   useEffect(() => {
-    fetchStats()
-      .then(setStats)
+    Promise.all([fetchStats(), fetchRecentOrders()])
+      .then(([statsRes, ordersRes]) => {
+        setStats(statsRes);
+        setRecentOrders(ordersRes);
+        setLoading(false);
+      })
       .catch(console.error);
-    fetchRecentOrders().then(setRecentOrders);
   }, []);
 
+  // ✅ Biểu đồ doanh thu
   useEffect(() => {
     fetchRevenueDaily(fromDate, toDate).then(setRevenueData);
   }, [fromDate, toDate]);
 
-  // Fetch notifications khi load trang
+  // ✅ Lấy thông báo ban đầu
   useEffect(() => {
     if (!user?.id) return;
     fetchNotifications(user.id)
       .then((data) => {
         setNotifications(data);
-        const unread = data.filter((n) => !n.is_read).length;
-        setUnreadCount(unread);
+        setUnreadCount(data.filter((n) => !n.is_read).length);
       })
       .catch(console.error);
   }, [user]);
 
-  // Socket.io events
+  // ✅ Socket: Nhận thông báo mới
   useEffect(() => {
     socket.on("newOrderNotification", (data) => {
-
       const notif = { ...data, type: "order", is_read: 0 };
       setNotifications((prev) => [notif, ...prev]);
       setUnreadCount((n) => n + 1);
     });
 
     socket.on("newMessageNotification", (data) => {
-
       const notif = { ...data, type: "message", is_read: 0 };
-      setNotifications((prev) => [notif, ...prev]);
-      setUnreadCount((n) => n + 1);
-    });
-    socket.on("newReview1", (data) => {
-      const notif = { ...data, type: "message", is_read: 0 };
-      console.log(notif);
-      
       setNotifications((prev) => [notif, ...prev]);
       setUnreadCount((n) => n + 1);
     });
 
     return () => {
-      socket.off("newReview1");
       socket.off("newOrderNotification");
       socket.off("newMessageNotification");
     };
   }, []);
 
-  // Close notifications popup when clicking outside
+  // ✅ Đóng dropdown thông báo khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
@@ -109,282 +114,260 @@ export default function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
- const handleClickNotification = async (note) => {
-  try {
-    if (!note.is_read) {
-      await markNotificationAsRead(note.id);
-      setReadMessages((prev) => ({ ...prev, [note.id]: true }));
-    }
+  // ✅ Đóng menu user khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    if (note.type === "message" && note.sender) {
-      navigate("/message/danh-sach");
-    } else if (note.type === "order") {
-      navigate("/don-hang/danh-sach");
-    }
-  } catch (err) {
-    console.error("Lỗi khi đánh dấu thông báo đã đọc:", err);
-  }
-};
-const handleMarkAllAsRead = async () => {
-  if (!user?.id) return;
-
-  try {
-    const res = await markAllNotificationsAsRead(user.id);
-    if (res.success) {
-      // cập nhật local state notifications
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, is_read: 1 }))
-      );
-      setUnreadCount(0);
-    }
-  } catch (err) {
-    console.error("Lỗi khi đánh dấu tất cả đã đọc:", err);
-  }
-};
-
+  // ✅ Format tiền tệ
   const formattedValue = (value) => {
     const num = Number(value);
     if (isNaN(num)) return value;
     return Math.floor(num).toLocaleString("vi-VN") + " đ";
   };
-  useEffect(() => {
-    const mouseTarget = document.getElementById("menuChevron");
-    const menuContainer = document.getElementById("menuContainer");
-    mouseTarget.addEventListener("mouseenter", () => {
-      mouseTarget.style.transform = "rotate(180deg)";
-      menuContainer.style.transform = "translateX(0px)";
-    });
 
-    menuContainer.addEventListener("mouseleave", () => {
-      mouseTarget.style.transform = "rotate(0deg)";
-      menuContainer.style.transform = "translateX(300px)";
-    });
-  }, []);
-  
+  // ✅ Đánh dấu tất cả thông báo đã đọc
+  const handleMarkAllAsRead = async () => {
+    if (!user?.id) return;
+    try {
+      await markAllNotificationsAsRead(user.id);
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Lỗi khi đánh dấu tất cả đã đọc:", err);
+    }
+  };
+
+  const getIconForStat = (label) => {
+    if (label.includes("Doanh thu")) return <FaMoneyBillWave className="stat-icon text-success" />;
+    if (label.includes("Đơn hàng")) return <FaShoppingCart className="stat-icon text-primary" />;
+    if (label.includes("Sản phẩm")) return <FaBoxOpen className="stat-icon text-warning" />;
+    if (label.includes("Khách hàng")) return <FaUsers className="stat-icon text-danger" />;
+    return <FaBoxOpen className="stat-icon text-secondary" />;
+  };
+
   return (
-    <>
-      {/* Top header */}
-      <div className="topContainer">
-        <div className="dashboard-title">
-          <h2>Trung tâm quản lý bán hàng Âm Sắc Việt</h2>
-        </div>
-        <div className="profileContainer">
-          {/* Notification Popup */}
-          <div className="position-relative" ref={notifRef}>
+    <div className="dashboard-container">
+      {/* Header */}
+      <header className="dashboard-header">
+        <h4 className="dashboard-title">Trung tâm quản lý bán hàng Âm Sắc Việt</h4>
+
+        <div className="header-actions">
+          {/* Thông báo */}
+          <div ref={notifRef} className="notification-wrapper">
             <button
-              className="profileIcon"
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                if (!showNotifications) setUnreadCount(0);
-              }}
+              className="btn btn-light rounded-circle shadow-sm position-relative"
+              onClick={() => setShowNotifications((prev) => !prev)}
             >
-              <FaBell />
+              <FaBell className="fs-5 text-primary" />
               {unreadCount > 0 && (
-                <span className="notif-badge">{unreadCount}</span>
+                <Badge bg="danger" className="notif-badge">
+                  {unreadCount}
+                </Badge>
               )}
             </button>
 
             <AnimatePresence>
               {showNotifications && (
                 <motion.div
-                  className="notif-popup shadow-lg rounded-3 p-2"
+                  className="notification-dropdown"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  style={{
-                    position: "absolute",
-                    top: "60px",
-                    right: "10px",
-                    width: "350px",
-                    maxHeight: "450px",
-                    overflowY: "auto",
-                    background: "#ffffff",
-                    zIndex: 9999,
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                  }}
                 >
-                  {/* Header */}
-                  <div className="d-flex justify-content-between align-items-center mb-2 px-2">
-                    <h6 className="mb-0">Thông báo</h6>
-                    <Button
-                      size="sm"
-                      variant="outline-primary"
-                      onClick={handleMarkAllAsRead}
-                    >
-                      Đã đọc tất cả
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="fw-bold text-primary">Thông báo</h6>
+                    <Button variant="outline-primary" size="sm" onClick={handleMarkAllAsRead}>
+                      Đọc tất cả
                     </Button>
                   </div>
-
-                  <hr className="my-1" />
-
-                  {/* Notifications list */}
+                  <hr />
                   {notifications.length === 0 ? (
-                    <p className="text-center text-muted my-3">Không có thông báo mới</p>
+                    <p className="text-center text-muted">Không có thông báo mới</p>
                   ) : (
-                    notifications.map((note) => {
-                      const isRead = note.is_read || readMessages[note.id];
-                      return (
-                        <motion.div
-                          key={note.id}
-                          className="notification-item d-flex align-items-start p-2 mb-2 rounded"
-                          whileHover={{ scale: 1.02, backgroundColor: isRead ? "#f1f1f1" : "#e6f0ff" }}
-                          style={{
-                            cursor: "pointer",
-                            backgroundColor: isRead ? "#f7f7f7" : "#dceeff",
-                            color: isRead ? "#666" : "#000",
-                            borderLeft: isRead ? "4px solid transparent" : "4px solid #007bff",
-                            transition: "all 0.2s",
-                          }}
-                          onClick={async () => {
-                            if (!isRead) {
-                              try {
-                                await markNotificationAsRead(note.id);
-                                setReadMessages((prev) => ({ ...prev, [note.id]: true }));
-                              } catch (err) {
-                                console.error("Lỗi khi đánh dấu thông báo đã đọc:", err);
-                              }
-                            }
-
-                            if (note.type === "message" && note.sender) {
-                              navigate("/message/danh-sach");
-                            } else if (note.type === "order") {
-                              navigate("/don-hang/danh-sach");
-                            }
-                          }}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <div className="d-flex justify-content-between align-items-start">
-                              <p className="mb-1">{note.message}</p>
-                              {!isRead && <Badge bg="primary" pill>New</Badge>}
-                            </div>
-                            <small className="text-muted">
-                              {new Date(note.created_at).toLocaleString("vi-VN")}
-                            </small>
-                          </div>
-                        </motion.div>
-                      );
-                    })
+                    notifications.map((note) => (
+                      <motion.div
+                        key={note.id}
+                        className={`notif-item ${note.is_read ? "read" : "unread"}`}
+                        whileHover={{ scale: 1.03 }}
+                        onClick={async () => {
+                          if (!note.is_read) await markNotificationAsRead(note.id);
+                          navigate(
+                            note.type === "message" ? "/message/danh-sach" : "/don-hang/danh-sach"
+                          );
+                        }}
+                      >
+                        <div className="fw-semibold">{note.message}</div>
+                        <small className="text-muted">
+                          {new Date(note.created_at).toLocaleString("vi-VN")}
+                        </small>
+                      </motion.div>
+                    ))
                   )}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="profileImage">
+          {/* Avatar + User menu */}
+          <div className="d-flex align-items-center gap-2" ref={menuRef}>
             <img
-                           src={
-                             user && user.avatar
-                               ? `${URL_WEB}${user.avatar}`
-                               : women
-                           }
-                           alt="avatar"
-                           className="rounded-circle border"
-                         />
-          </div>
-          <p style={{ color: "black" }} className="profileName">
-            {user?.full_name}
-          </p>
-          <i className="menuChevron" style={{ color: "black" }} id="menuChevron" >
-            <FaChevronDown />
-          </i>
-          <div className="menuContainer" id="menuContainer">
-            <ul>
-              <li>
-                <a href="/trang-ca-nhan">Trang cá nhân</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+              src={user?.avatar ? `${URL_WEB}${user.avatar}` : women}
+              alt="avatar"
+              className="avatar1"
+            />
 
-      {/* Dashboard stats */}
-      <div className="mt-4 stats-grid">
-        {stats.map(({ label, number, helpText }) => (
-          <div className="stat-card" key={label}>
-            <div className="stat-label">{label}</div>
-            <div className="stat-number">
-              {label === "Doanh thu hôm nay" ? formattedValue(number) : number}
-            </div>
-            <div className="stat-help">{helpText}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Revenue chart */}
-      <div className="date-inputs">
-        <label>
-          Từ ngày:{" "}
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="date-picker"
-          />
-        </label>
-        <label>
-          Đến ngày:{" "}
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="date-picker"
-          />
-        </label>
-      </div>
-      <div className="main-row">
-        <div className="chart-container">
-          <div className="section-title">Biểu đồ doanh thu theo ngày</div>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={revenueData}
-              margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis tickFormatter={formattedValue} tick={{ fontSize: 10 }} />
-              <Tooltip
-                formatter={(value) => formattedValue(value)}
-                labelFormatter={(label) => `Ngày: ${label}`}
+            <div className="user-info" onClick={() => setOpen(!open)}>
+              <strong>{user?.full_name}</strong>
+              <FaChevronDown
+                className={`ms-2 chevron-icon ${open ? "rotate" : ""}`}
               />
-              <Bar dataKey="revenue" fill="#3182ce">
-                <LabelList
-                  dataKey="revenue"
-                  position="top"
-                  formatter={formattedValue}
-                  style={{ fontSize: 10, fill: "#333" }}
-                />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+              {open && (
+                <div className="menuContainer">
+                  <ul>
+                    <li><a href="/trang-ca-nhan">Trang cá nhân</a></li>
+                    <li><a href="/doi-mat-khau">Đổi mật khẩu</a></li>
+                    <li><a href="/dang-xuat">Đăng xuất</a></li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Recent orders table */}
-      <div className="table-container">
-        <div className="section-title">Đơn hàng mới nhất</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Mã đơn</th>
-              <th>Khách hàng</th>
-              <th>Tổng tiền</th>
-              <th>Trạng thái</th>
-              <th>Ngày đặt</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentOrders.map(({ id, customer, total, status, date }) => (
-              <tr key={id}>
-                <td>#{id}</td>
-                <td>{customer}</td>
-                <td>{formattedValue(total)}</td>
-                <td>{status}</td>
-                <td>{date}</td>
-              </tr>
+      {/* Nội dung */}
+      {loading ? (
+        <div className="loading-container">
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : (
+        <>
+          {/* Thống kê nhanh */}
+          <div className="stats-grid">
+            {stats.map(({ label, number, helpText }, i) => (
+              <motion.div
+                key={i}
+                className="stat-card"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <div className="stat-icon-container">{getIconForStat(label)}</div>
+                <div>
+                  <div className="fw-bold text-secondary">{label}</div>
+                  <div className="fs-4 fw-bold mt-2 text-dark">
+                    {label.includes("Doanh thu") ? formattedValue(number) : number}
+                  </div>
+                  <small className="text-muted">{helpText}</small>
+                </div>
+              </motion.div>
             ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+          </div>
+
+          {/* Biểu đồ */}
+          <div className="chart-card shadow-sm">
+            <div className="chart-header d-flex justify-content-between align-items-center mb-3">
+              <h5 className="fw-bold text-primary mb-0">
+                Biểu đồ doanh thu theo ngày
+              </h5>
+
+              <div className="date-filter d-flex align-items-center gap-2">
+                <div className="d-flex flex-column">
+                  <label className="form-label small text-muted mb-1">Từ ngày</label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                  />
+                </div>
+                <div className="d-flex flex-column">
+                  <label className="form-label small text-muted mb-1">Đến ngày</label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="chart-body">
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis tickFormatter={formattedValue} />
+                  <Tooltip
+                    formatter={(value) => formattedValue(value)}
+                    labelFormatter={(label) => `Ngày: ${label}`}
+                  />
+                  <Bar dataKey="revenue" fill="#4e73df" radius={[6, 6, 0, 0]}>
+                    <LabelList
+                      dataKey="revenue"
+                      position="top"
+                      formatter={formattedValue}
+                      style={{ fontSize: 10, fill: "#333" }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+
+          {/* Đơn hàng mới */}
+          <div className="orders-card">
+            <h5 className="fw-bold text-primary mb-3">Đơn hàng mới nhất</h5>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Tổng tiền</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày đặt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentOrders.map(({ id, customer, total, status, date }) => (
+                    <tr key={id}>
+                      <td>DH0{id}</td>
+                      <td>{customer}</td>
+                      <td>{formattedValue(total)}</td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            status === "Đã giao"
+                              ? "bg-success"
+                              : status === "Đang giao"
+                              ? "bg-info"
+                              : status === "Đã hủy"
+                              ? "bg-danger"
+                              : "bg-warning text-dark"
+                          }`}
+                        >
+                          {status}
+                        </span>
+                      </td>
+                      <td>{date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

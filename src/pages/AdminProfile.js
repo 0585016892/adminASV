@@ -7,7 +7,7 @@ import {
   Button,
   ListGroup,
   Badge,
-  Modal,
+  Modal,Alert
 } from "react-bootstrap";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -260,218 +260,156 @@ if (!user)
     </div>
   );
   return (
-    <Container className="mt-4">
+   <Container className="py-4">
       <Row className="g-4">
+        {/* Cột trái: Thông tin người dùng */}
         <Col md={4}>
-          {/* Thông tin người dùng */}
-          <Card className="text-center shadow border-0">
-            <div className="pt-4">
-              <img
-                src={
-                  user && user.avatar
-                    ? `${URL_WEB}${user.avatar}`
-                    : logo
-                }
-                alt="avatar"
-                className="rounded-circle border"
-                style={{ width: "130px", height: "130px", objectFit: "cover" }}
-              />
-            </div>
+          <Card className="shadow border-0 text-center">
+            <Card.Header className="bg-primary text-white fw-bold">
+              Thông tin cá nhân
+            </Card.Header>
             <Card.Body>
-              <Card.Title className="mb-1">{user.full_name}</Card.Title>
-              <Badge bg="success" className="mb-2">
+              <img
+                src={user.avatar ? `${URL_WEB}${user.avatar}` : logo}
+                alt="avatar"
+                className="rounded-circle border mb-3"
+                style={{ width: 130, height: 130, objectFit: "cover" }}
+              />
+              <h5 className="fw-bold">{user.full_name}</h5>
+              <Badge bg="success" className="mb-3">
                 <FaUserShield className="me-1" />
                 {user.role}
               </Badge>
-              <Card.Text>
-                <strong>Nơi làm việc :</strong> {user.department}
-              </Card.Text>
-              <Card.Text>
-                <strong>Trạng thái:</strong>{" "}
-                <span className="text-success">
-                  <FaCheckCircle className="me-1" />
-                  {user.status === "active"
-                    ? "Đang hoạt động"
-                    : "Không hoạt động"}
-                </span>
-              </Card.Text>
-              <Card.Text>
-                <strong>Ngày tham gia:</strong>{" "}
-                {new Date(user.created_at).toLocaleDateString("vi-VN")}
-              </Card.Text>
-              <div className="d-grid gap-2 mt-3">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowForgotModal(true)}
-                >
-                  <FaLock className="me-1" />
-                  Đổi mật khẩu
-                </Button>
-              </div>
+
+              <ListGroup variant="flush" className="text-start mb-3">
+                <ListGroup.Item>
+                  <FaEnvelope className="text-primary me-2" />
+                  {user.email}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <FaPhone className="text-success me-2" />
+                  {user.phone}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Bộ phận:</strong> {user.department}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Trạng thái:</strong>{" "}
+                  <span className={user.status === "active" ? "text-success" : "text-danger"}>
+                    <FaCheckCircle className="me-1" />
+                    {user.status === "active" ? "Đang hoạt động" : "Ngừng hoạt động"}
+                  </span>
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Ngày tham gia:</strong>{" "}
+                  {new Date(user.created_at).toLocaleDateString("vi-VN")}
+                </ListGroup.Item>
+              </ListGroup>
+
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => setShowForgotModal(true)}
+              >
+                <FaLock className="me-1" /> Đổi mật khẩu
+              </Button>
             </Card.Body>
           </Card>
         </Col>
 
+        {/* Cột phải: Lịch chấm công */}
         <Col md={8}>
-          {/* Lịch chấm công */}
           <Card className="shadow border-0">
-            <Card className="shadow border-0 mb-4">
-              <Card.Header className="bg-primary text-white">
-                Thông tin liên hệ
-              </Card.Header>
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <FaEnvelope className="me-2 text-primary" />
-                  <strong>Email:</strong> {user.email}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <FaPhone className="me-2 text-success" />
-                  <strong>SĐT:</strong> {user.phone}
-                </ListGroup.Item>
-              </ListGroup>
-            </Card>
+            <Card.Header className="bg-info text-white fw-bold">
+              Lịch chấm công
+            </Card.Header>
             <Card.Body>
-              <h3 className="mb-3">
-                Lịch chấm công tháng {currentMonth.getMonth() + 1}
-              </h3>
+              <h5 className="mb-3">
+                Tháng {currentMonth.getMonth() + 1}/{currentMonth.getFullYear()}
+              </h5>
+
               <div className="mb-3 d-flex gap-3">
                 <span>🔵 Check-in</span>
                 <span>🟢 Check-out</span>
               </div>
+
               <Calendar
-                onChange={setSelectedDate}
                 value={selectedDate}
-                onActiveStartDateChange={({ activeStartDate }) =>
-                  setCurrentMonth(activeStartDate)
-                }
-                tileContent={tileContent}
+                onChange={setSelectedDate}
                 onClickDay={onDateClick}
+                tileContent={tileContent}
+                onActiveStartDateChange={({ activeStartDate }) => setCurrentMonth(activeStartDate)}
               />
 
-              <div className="mt-3">
-                <p>
-                  Ngày: <b>{selectedDate.toLocaleDateString("vi-VN")}</b>
-                </p>
-                <p>
-                  Trạng thái:{" "}
-                  {isCheckedIn ? (
-                    isCheckedOut ? (
-                      <Badge bg="success">Đã checkout</Badge>
-                    ) : (
-                      <Badge bg="warning">Đã checkin</Badge>
-                    )
-                  ) : (
-                    <Badge bg="secondary">Chưa chấm</Badge>
-                  )}
-                </p>
-
-                {/* {isTodaySelected && (
-                  <div className="d-flex gap-3">
-                    {!isCheckedIn && (
-                      <Button onClick={handleCheckIn} disabled={loading}>
-                        Check-in
-                      </Button>
-                    )}
-                    {isCheckedIn && !isCheckedOut && (
-                      <Button onClick={handleCheckOut} disabled={loading}>
-                        Check-out
-                      </Button>
-                    )}
-                  </div>
-                )} */}
-
-                {notification && (
-                  <div
-                    className={`mt-3 alert alert-${
-                      notification.type === "success" ? "success" : "danger"
-                    }`}
-                  >
-                    {notification.message}
-                  </div>
-                )}
-              </div>
+              {notification && (
+                <Alert
+                  className="mt-3"
+                  variant={notification.type === "success" ? "success" : "danger"}
+                >
+                  {notification.message}
+                </Alert>
+              )}
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
+      {/* Modal chi tiết ngày */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>
-            Chi tiết ngày{" "}
-            {modalData?.work_date
-              ? new Date(modalData.work_date).toLocaleDateString("vi-VN")
-              : selectedDate.toLocaleDateString("vi-VN")}
-          </Modal.Title>
+          <Modal.Title>Chi tiết chấm công</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modalData ? (
             <>
-              <div className="d-flex justify-content-between mb-3">
-                <div>
-                  <strong>Thời gian vào:</strong>{" "}
-                  {modalData.check_in_time
-                    ? new Date(modalData.check_in_time).toLocaleTimeString(
-                        "vi-VN"
-                      )
-                    : "Chưa có"}
-                </div>
-                <div>
-                  <strong>Thời gian về :</strong>{" "}
-                  {modalData.check_out_time
-                    ? new Date(modalData.check_out_time).toLocaleTimeString(
-                        "vi-VN"
-                      )
-                    : "Chưa có"}
-                </div>
-              </div>
+              <p>
+                <strong>Ngày:</strong>{" "}
+                {new Date(modalData.work_date).toLocaleDateString("vi-VN")}
+              </p>
+              <p>
+                <strong>Giờ vào:</strong>{" "}
+                {modalData.check_in_time
+                  ? new Date(modalData.check_in_time).toLocaleTimeString("vi-VN")
+                  : "Chưa có"}
+              </p>
+              <p>
+                <strong>Giờ ra:</strong>{" "}
+                {modalData.check_out_time
+                  ? new Date(modalData.check_out_time).toLocaleTimeString("vi-VN")
+                  : "Chưa có"}
+              </p>
 
-              <div className="d-flex gap-3 justify-content-between">
+              <Row className="mt-3">
                 {modalData.img_checkin && (
-                  <div style={{ flex: 1 }}>
-                    <small>Ảnh checkin :</small>
+                  <Col md={6}>
+                    <small>Ảnh Check-in</small>
                     <img
                       src={`${URL_WEB}${modalData.img_checkin}`}
-                      alt="Ảnh checkin"
-                      style={{
-                        width: "100%",
-                        maxHeight: 250,
-                        objectFit: "cover",
-                        border: "1px solid #ccc",
-                        borderRadius: 5,
-                      }}
+                      alt="Checkin"
+                      className="img-fluid rounded border"
                     />
-                  </div>
+                  </Col>
                 )}
                 {modalData.img_checkout && (
-                  <div style={{ flex: 1 }}>
-                    <small>Ảnh checkout:</small>
+                  <Col md={6}>
+                    <small>Ảnh Check-out</small>
                     <img
                       src={`${URL_WEB}${modalData.img_checkout}`}
-                      alt="Ảnh checkout"
-                      style={{
-                        width: "100%",
-                        maxHeight: 250,
-                        objectFit: "cover",
-                        border: "1px solid #ccc",
-                        borderRadius: 5,
-                      }}
+                      alt="Checkout"
+                      className="img-fluid rounded border"
                     />
-                  </div>
+                  </Col>
                 )}
-              </div>
-
+              </Row>
               <p className="mt-3">
                 <strong>Trạng thái:</strong>{" "}
                 {modalData.status === "late" ? "🕒 Đến muộn" : "✅ Đúng giờ"}
               </p>
             </>
           ) : (
-            <p>Không có dữ liệu chấm công.</p>
+            <p>Không có dữ liệu.</p>
           )}
         </Modal.Body>
-
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowModal(false)}>
             Đóng

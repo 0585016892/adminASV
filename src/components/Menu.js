@@ -1,38 +1,34 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import logo from "../img/logo.png";
-import {
-  FaCog,
-  FaSignOutAlt,
-  FaChevronDown,
-  FaChevronRight,
-} from "react-icons/fa";
-import "../assets/Menu.css";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
+import { FaChevronDown, FaChevronRight, FaSignOutAlt } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
+import logo from "../img/logo.png";
+import "../assets/Menu.css";
+
 const Menu = () => {
   const location = useLocation();
-  const [openIndex, setOpenIndex] = useState(null);
-  const navigate = useNavigate(); // hook chuyển trang
+  const navigate = useNavigate();
   const { user } = useAuth();
+
+  const [openIndex, setOpenIndex] = useState(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSubMenu = (index) => {
     setOpenIndex(openIndex === index ? null : index);
   };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
   };
+
   const menu = [
     {
       text: "Bán hàng tại quầy",
       roles: ["admin", "staff"],
-      children: [
-        { path: "/ban-hang-off", text: "Tạo hóa đơn" },
-      ],
+      children: [{ path: "/ban-hang-off", text: "Tạo hóa đơn" }],
     },
     {
       text: "Quản lý sản phẩm",
@@ -46,7 +42,6 @@ const Menu = () => {
     {
       text: "Quản lý danh mục & bộ sưu tập",
       roles: ["admin", "staff"],
-
       children: [
         { path: "/danh-muc/danh-sach", text: "Danh mục chính" },
         { path: "/bo-sieu-tap/danh-sach", text: "Bộ sưu tập theo mùa" },
@@ -55,25 +50,18 @@ const Menu = () => {
     {
       text: "Quản lý khách hàng",
       roles: ["admin", "staff"],
-
-      children: [
-        { path: "/khach-hang/danh-sach", text: "Danh sách khách hàng" },
-      ],
+      children: [{ path: "/khach-hang/danh-sach", text: "Danh sách khách hàng" }],
     },
     {
       text: "Quản lý đơn hàng",
       roles: ["admin", "staff"],
-
       children: [{ path: "/don-hang/danh-sach", text: "Danh sách đơn hàng" }],
     },
     {
       text: "Quản lý khuyến mãi",
       roles: ["admin"],
-      children: [
-        { path: "/khuyen-mai/danh-sach", text: "Danh sách khuyến mãi" },
-      ],
+      children: [{ path: "/khuyen-mai/danh-sach", text: "Danh sách khuyến mãi" }],
     },
-
     {
       text: "Quản lý Thống kê & báo cáo",
       roles: ["admin"],
@@ -98,7 +86,7 @@ const Menu = () => {
       children: [
         { path: "/slide-banner/danh-sach", text: "Slide/banner trang chủ" },
         { path: "/tintuc-blog/danh-sach", text: "Tin tức / blog" },
-        { path: "/ai/danh-sach", text: "Ai" },
+        { path: "/ai/danh-sach", text: "AI" },
         { path: "/footer/danh-sach", text: "Footer" },
         { path: "/binh-luan", text: "Đánh giá sản phẩm" },
         { path: "/trang-bao-tri", text: "Trang bảo trì" },
@@ -108,6 +96,7 @@ const Menu = () => {
 
   return (
     <>
+      {/* Toggle button (mobile) */}
       <button
         className="toggle-btn d-md-none"
         onClick={() => setSidebarOpen(!isSidebarOpen)}
@@ -115,6 +104,7 @@ const Menu = () => {
         ☰
       </button>
 
+      {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
         <div className="logo">
           <Link to="/" onClick={() => setSidebarOpen(false)}>
@@ -137,22 +127,21 @@ const Menu = () => {
                   <span>{item.text}</span>
                   {item.children &&
                     (openIndex === index ? (
-                      <FaChevronDown />
+                      <FaChevronDown className="icon" />
                     ) : (
-                      <FaChevronRight />
+                      <FaChevronRight className="icon" />
                     ))}
                 </div>
+
                 {item.children && (
-                  <ul
-                    className={`submenu ${openIndex === index ? "show" : ""}`}
-                  >
+                  <ul className={`submenu ${openIndex === index ? "show" : ""}`}>
                     {item.children.map((sub, idx) => (
                       <li
                         key={idx}
                         className={
                           location.pathname === sub.path ? "active" : ""
                         }
-                        onClick={() => setSidebarOpen(false)} // đóng menu sau khi chọn
+                        onClick={() => setSidebarOpen(false)}
                       >
                         <Link to={sub.path}>{sub.text}</Link>
                       </li>
@@ -163,17 +152,17 @@ const Menu = () => {
             ))}
         </ul>
 
-        <ul className="bottom-menu d-flex justify-content-center p-3 border-top mt-auto bg-white shadow-sm">
-  <Button
-    variant="light"
-    onClick={handleLogout}
-    title="Đăng xuất"
-    className="d-flex align-items-center gap-2 px-3 py-2 rounded-pill logout-btn"
-  >
-    <FaSignOutAlt />
-    <span>Đăng xuất</span>
-  </Button>
-</ul>
+        {/* Logout button */}
+        <div className="bottom-menu">
+          <Button
+            variant="light"
+            onClick={handleLogout}
+            className="logout-btn"
+          >
+            <FaSignOutAlt />
+            <span>Đăng xuất</span>
+          </Button>
+        </div>
       </aside>
     </>
   );

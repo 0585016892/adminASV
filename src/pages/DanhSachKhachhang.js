@@ -146,116 +146,120 @@ const DanhSachKhachhang = () => {
         </Row>
       </div>
       
-      <Table striped bordered hover responsive className="shadow-sm">
-        <thead>
-          <tr>
-            <th>Mã khách hàng</th>
-            <th>Tên khách hàng</th>
-            <th>Email</th>
-            <th>Số điện thoại</th>
-            <th>Địa chỉ</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan="9" className="text-center">
-                <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
-                    <Spinner animation="border" variant="primary" />
-                 </div>
-              </td>
-            </tr>
-          ) : customers.length === 0 ? (
-            <tr>
-              <td colSpan="9" className="text-center">
-                Không có khách hàng nào.
-              </td>
-            </tr>
-          ) : (
-            customers?.map((cus) => (
-              <tr key={cus.id}>
-                <td>
-                  KH0000
-                  {cus.id}
-                </td>
-                <td>{cus.full_name}</td>
-                <td>{cus.email}</td>
-                <td>{cus.phone}</td>
-                <td>
-                  {cus.address.length > 30
-                    ? cus.address.slice(0, 30) + "..."
-                    : cus.address}
-                </td>
-                <td>
-                  {user?.role === "admin" ?  (
-                  <Form.Control
-                    as="select"
-                    value={cus.status}
-                    onChange={(e) => handleStatusChange(cus.id, e.target.value)}
-                    style={{ maxWidth: "150px" }} // Bạn có thể thay đổi kích thước này
+      {loading ? (
+          <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
+            <Spinner animation="border" variant="primary" />
+          </div>
+        ) : (
+          <>
+            <Table striped bordered hover responsive className="shadow-sm">
+              <thead className="table-dark">
+                <tr>
+                  <th>Mã khách hàng</th>
+                  <th>Tên khách hàng</th>
+                  <th>Email</th>
+                  <th>Số điện thoại</th>
+                  <th>Địa chỉ</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="text-center">
+                      Không có khách hàng nào.
+                    </td>
+                  </tr>
+                ) : (
+                  customers.map((cus) => (
+                    <tr key={cus.id}>
+                      <td>KH0000{cus.id}</td>
+                      <td>{cus.full_name}</td>
+                      <td>{cus.email}</td>
+                      <td>{cus.phone}</td>
+                      <td>
+                        {cus.address.length > 30
+                          ? cus.address.slice(0, 30) + "..."
+                          : cus.address}
+                      </td>
+                      <td>
+                        {user?.role === "admin" ? (
+                          <Form.Control
+                            as="select"
+                            value={cus.status}
+                            onChange={(e) =>
+                              handleStatusChange(cus.id, e.target.value)
+                            }
+                            style={{ maxWidth: "150px" }}
+                          >
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Không hoạt động</option>
+                          </Form.Control>
+                        ) : (
+                          "Không được xem"
+                        )}
+                      </td>
+                      <td className="text-center">
+                        <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            className="me-2"
+                            as={Link}
+                            to={`/customers/details/${cus.id}`}
+                          >
+                            <FaRegEye />
+                          </Button>
+                        </OverlayTrigger>
+                        {user?.role === "admin" && (
+                          <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => openDeleteModal(cus.id)}
+                            >
+                              <MdDelete />
+                            </Button>
+                          </OverlayTrigger>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
+
+            {/* Phân trang */}
+            <div className="d-flex justify-content-between align-items-center mt-3">
+              <span className="text-muted">
+                Có <strong>{totalKhachhang}</strong> khách hàng
+              </span>
+              <Pagination className="mb-0">
+                <Pagination.First onClick={() => handlePageChange(1)} />
+                <Pagination.Prev
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                />
+                {[...Array(totalPages).keys()].map((page) => (
+                  <Pagination.Item
+                    key={page + 1}
+                    active={currentPage === page + 1}
+                    onClick={() => handlePageChange(page + 1)}
                   >
-                    <option value="active">Hoạt động</option>
-                    <option value="inactive">Không hoạt động</option>
-                    </Form.Control>
-                  ) : 'Không được xem' }
-                </td>
-                <td className="text-center">
-                  <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      className="me-2"
-                      as={Link}
-                      to={`/customers/details/${cus.id}`}
-                    >
-                      <FaRegEye />
-                    </Button>
-                  </OverlayTrigger>
-                  {user?.role === "admin" && (
-                    <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => openDeleteModal(cus.id)}
-                      >
-                        <MdDelete />
-                      </Button>
-                    </OverlayTrigger>
-                  )}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </Table>
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <span className="text-muted">
-          Có <strong>{totalKhachhang}</strong> khách hàng
-        </span>
-        <Pagination className="mb-0">
-          <Pagination.First onClick={() => handlePageChange(1)} />
-          <Pagination.Prev
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          />
-          {[...Array(totalPages).keys()].map((page) => (
-            <Pagination.Item
-              key={page + 1}
-              active={currentPage === page + 1}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              {page + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-        </Pagination>
-      </div>
+                    {page + 1}
+                  </Pagination.Item>
+                ))}
+                <Pagination.Next
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                />
+                <Pagination.Last onClick={() => handlePageChange(totalPages)} />
+              </Pagination>
+            </div>
+          </>
+        )}
+
       {/* Modal xác nhận xóa */}
       <Modal show={showModal} onHide={closeDeleteModal} centered>
         <Modal.Header closeButton>

@@ -2,17 +2,24 @@ import React, { useState, useEffect } from "react";
 import {
   getProducts,
   getCoupons,
-  createOrder,
   getCustomers
 } from "../api/posApi";
 import {
-  Button, Modal, Form, Row, Col, Table, Card, Spinner, Image
+  Button,
+  Modal,
+  Form,
+  Row,
+  Col,
+  Table,
+  Card,
+  Spinner,
+  Image
 } from "react-bootstrap";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
 function POSPage() {
   const URL_WEB = process.env.REACT_APP_WEB_URL;
-  const URL_API = process.env.REACT_APP_API_URL; 
+  const URL_API = process.env.REACT_APP_API_URL;
 
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
@@ -29,100 +36,82 @@ function POSPage() {
   const [quantity, setQuantity] = useState(1);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-const [couponWarning, setCouponWarning] = useState("");
+  const [couponWarning, setCouponWarning] = useState("");
 
   const [customers, setCustomers] = useState([]);
-const [customerInfo, setCustomerInfo] = useState(null);
+  const [customerInfo, setCustomerInfo] = useState(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
-    const [guestInfo, setGuestInfo] = useState({ full_name: "", phone: "" });
-    const [note, setNote] = useState("");
+  const [guestInfo, setGuestInfo] = useState({ full_name: "", phone: "" });
+  const [note, setNote] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("COD"); 
-
+  const [paymentMethod, setPaymentMethod] = useState("COD");
   const [customerPay, setCustomerPay] = useState(0);
+
   const totalAmount = cart.reduce((s, i) => s + i.total, 0);
-const discount = selectedCoupon?.discount_value || 0;
-const finalAmount = totalAmount - discount;
 
-const refund = customerPay - finalAmount;
-
+  // ==== Effects ====
   // Tìm kiếm sản phẩm
   useEffect(() => {
-    if (search.trim().length === 0) {
-      setProducts([]);
-      return;
-    }
-
+    if (!search.trim()) return setProducts([]);
     setLoading(true);
     const timer = setTimeout(() => {
       getProducts(search)
         .then(setProducts)
         .finally(() => setLoading(false));
     }, 500);
-
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Lấy mã giảm giá
+  // Lấy coupon
   useEffect(() => {
     async function fetchCoupons() {
       try {
         const res = await getCoupons();
         setCoupons(Array.isArray(res?.coupons) ? res.coupons : []);
-      } catch (err) {
-        console.error("Lỗi lấy coupons:", err);
+      } catch {
         setCoupons([]);
       }
     }
-
     fetchCoupons();
   }, []);
-  // khách hàng
+
+  // Lấy danh sách khách
   useEffect(() => {
-  async function fetchCustomers() {
-    try {
-      const res = await getCustomers();
-      setCustomers(Array.isArray(res?.customers) ? res.customers : []);
-    } catch (err) {
-      console.error("Lỗi lấy danh sách khách hàng:", err);
-      setCustomers([]);
+    async function fetchCustomers() {
+      try {
+        const res = await getCustomers();
+        setCustomers(Array.isArray(res?.customers) ? res.customers : []);
+      } catch {
+        setCustomers([]);
+      }
     }
-  }
-  fetchCustomers();
-}, []);
-useEffect(() => {
-  if (!selectedCustomerId) {
-    setCustomerInfo(null);
-    return;
-  }
+    fetchCustomers();
+  }, []);
 
-  const found = customers.find(c => c.id === parseInt(selectedCustomerId));
-  setCustomerInfo(found || null);
+  // Cập nhật info khách khi chọn
+  useEffect(() => {
+    if (!selectedCustomerId) return setCustomerInfo(null);
+    const found = customers.find(c => c.id === parseInt(selectedCustomerId));
+    setCustomerInfo(found || null);
+    setEmail(found?.email || "");
+    setAddress(found?.address || "");
+    setNote(found?.note || "");
+  }, [selectedCustomerId, customers]);
 
-  // Tự động cập nhật email, địa chỉ, ghi chú nếu có
-  setEmail(found?.email || "");
-  setAddress(found?.address || "");
-  setNote(found?.note || "");
-}, [selectedCustomerId, customers]);
-  //coupon
-useEffect(() => {
-  if (!selectedCoupon) {
-    setCouponWarning("");
-    return;
-  }
+  // Coupon warning
+  useEffect(() => {
+    if (!selectedCoupon) return setCouponWarning("");
+    const total = cart.reduce((s, i) => s + i.total, 0);
+    const minTotal = parseFloat(selectedCoupon.min_order_total);
+    if (total < minTotal) {
+      setCouponWarning(`⚠️ Mã "${selectedCoupon.code}" yêu cầu đơn hàng tối thiểu ${minTotal.toLocaleString()}đ.`);
+    } else {
+      setCouponWarning("");
+    }
+  }, [cart, selectedCoupon]);
 
-  const total = cart.reduce((sum, item) => sum + item.total, 0);
-  const minTotal = parseFloat(selectedCoupon.min_order_total);
-
-  if (total < minTotal) {
-    setCouponWarning(`⚠️ Mã "${selectedCoupon.code}" yêu cầu đơn hàng tối thiểu ${minTotal.toLocaleString()}đ.`);
-  } else {
-    setCouponWarning("");
-  }
-}, [cart, selectedCoupon]);
-  // Mở modal sản phẩm
+  // ==== Handlers ====
   const handleAddClick = (product) => {
     setSelectedProduct(product);
     setSelectedSize("");
@@ -131,110 +120,89 @@ useEffect(() => {
     setShowModal(true);
   };
 
-  // Thêm vào giỏ hàng
   const handleConfirmAddToCart = () => {
-  if (!selectedSize) {
-      showErrorToast("Sản phẩm","Vui lòng chọn size trước khi thêm vào giỏ!");
-      return;
-    }
-    if (!selectedColor) {
-      showErrorToast("Sản phẩm","Vui lòng chọn màu trước khi thêm vào giỏ!");
-      return;
-    }
-    if (quantity > selectedProduct.stock) {
-      showErrorToast("Sản phẩm",`Số lượng không đủ! Chỉ còn ${selectedProduct.stock} sản phẩm.`);
-      return;
-    }
+    if (!selectedSize) return showErrorToast("Sản phẩm","Vui lòng chọn size!");
+    if (!selectedColor) return showErrorToast("Sản phẩm","Vui lòng chọn màu!");
+    if (quantity > selectedProduct.stock) return showErrorToast("Sản phẩm",`Số lượng không đủ! Chỉ còn ${selectedProduct.stock}`);
+
     const item = {
       ...selectedProduct,
       size: selectedSize,
       color: selectedColor,
       quantity,
-      total: selectedProduct.price * quantity,
+      total: selectedProduct.price * quantity
     };
-
     setCart([...cart, item]);
     setShowModal(false);
   };
 
-  // Xoá khỏi giỏ
-  const removeItem = (index) => {
-    const updated = [...cart];
-    updated.splice(index, 1);
-    setCart(updated);
+  const removeItem = (idx) => {
+    const newCart = [...cart];
+    newCart.splice(idx, 1);
+    setCart(newCart);
   };
 
-  // Thanh toán
-    const handleCheckout = async () => {
-  setIsSubmitting(true); // 🟢 Bắt đầu loading
+  const handleCheckout = async () => {
+    setIsSubmitting(true);
+    let discount = 0;
+    const total = cart.reduce((s, i) => s + i.total, 0);
 
-let discount = 0;
-const total = cart.reduce((sum, item) => sum + item.total, 0);
-const shipping = 0;
-
-if (selectedCoupon) {
-  const minTotal = parseFloat(selectedCoupon.min_order_total || 0);
-  if (total >= minTotal) {
-    if (selectedCoupon.discount_type === "percent") {
-      discount = Math.floor((selectedCoupon.discount_value / 100) * total);
-    } else {
-      discount = selectedCoupon.discount_value;
+    // Coupon tính toán
+    if (selectedCoupon) {
+      const minTotal = parseFloat(selectedCoupon.min_order_total || 0);
+      if (total >= minTotal) {
+        discount = selectedCoupon.discount_type === "percent"
+          ? Math.floor((selectedCoupon.discount_value / 100) * total)
+          : selectedCoupon.discount_value;
+      } else {
+        showErrorToast("Mã giảm giá", `❗ Mã "${selectedCoupon.code}" yêu cầu đơn hàng tối thiểu ${minTotal.toLocaleString()}đ.`);
+        setIsSubmitting(false);
+        return;
+      }
     }
-  } else {
-    showErrorToast("Mã giảm giá",`❗ Mã "${selectedCoupon.code}" yêu cầu đơn hàng tối thiểu ${minTotal.toLocaleString()}đ.`);
-    setIsSubmitting(false);
-    return;
-  }
-}
 
- if (!selectedCustomerId && (!guestInfo.full_name || !guestInfo.phone || !email || !address)) {
-  showErrorToast("Khách hàng","Vui lòng nhập đầy đủ thông tin khách hàng.");
-  setIsSubmitting(false);
-  return;
-}
+    if (!selectedCustomerId && (!guestInfo.full_name || !guestInfo.phone || !email || !address)) {
+      showErrorToast("Khách hàng","Vui lòng nhập đầy đủ thông tin khách hàng.");
+      setIsSubmitting(false);
+      return;
+    }
 
-  const detailedItems = cart.map(item => ({
-    product_id: item.id,
-    quantity: item.quantity,
-    price: Number(item.price),
-    name: item.name,
-    size: item.size,
-    color: item.color,
-  }));
+    const orderData = {
+      items: cart.map(i => ({
+        product_id: i.id,
+        quantity: i.quantity,
+        price: Number(i.price),
+        name: i.name,
+        size: i.size,
+        color: i.color
+      })),
+      total,
+      discount,
+      shipping: 0,
+      final_total: total - discount,
+      coupon_id: selectedCoupon?.id || null,
+      payment_method: paymentMethod,
+      status: paymentMethod === "COD" ? "Chờ xử lý" : "Đang chờ thanh toán",
+      note,
+      address,
+      customer_email: email,
+      customer_name: selectedCustomerId ? customerInfo?.full_name : guestInfo.full_name,
+      customer_phone: selectedCustomerId ? customerInfo?.phone : guestInfo.phone,
+      customer_id: selectedCustomerId || null
+    };
 
-  const orderData = {
-    items: detailedItems,
-    total,
-    discount,
-    shipping,
-    final_total: total - discount + shipping,
-    coupon_id: selectedCoupon?.id || null,
-    payment_method: paymentMethod,
-    status: paymentMethod === "COD" ? "Chờ xử lý" : "Đang chờ thanh toán",
-    note,
-    address,
-    customer_email: email,
-    customer_name: selectedCustomerId ? customerInfo?.full_name : guestInfo.full_name,
-    customer_phone: selectedCustomerId ? customerInfo?.phone : guestInfo.phone,
-    customer_id: selectedCustomerId || null,
-  };
-
-  try {
-    if (paymentMethod === "COD") {
-      const res = await fetch(`${URL_API}/orders/add`, {
+    try {
+      const url = paymentMethod === "COD" ? `${URL_API}/orders/add` : `${URL_API}/orders/create-vnpay`;
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(orderData)
       });
-
       const data = await res.json();
-
       if (res.ok) {
-        if (selectedCoupon) {
-          await fetch(`${URL_API}/coupons/use/${selectedCoupon.id}`, {
-            method: "PATCH",
-          });
+        if (selectedCoupon && paymentMethod === "COD") {
+          await fetch(`${URL_API}/coupons/use/${selectedCoupon.id}`, { method: "PATCH" });
         }
         setCart([]);
         setSelectedCoupon(null);
@@ -243,99 +211,71 @@ if (selectedCoupon) {
         setEmail("");
         setAddress("");
         setNote("");
-        setCustomerPay(0)
-        showSuccessToast("Đặt hàng","Đơn hàng đã được tạo!");
+        setCustomerPay(0);
+        if (paymentMethod === "VNPAY" && data.paymentUrl) window.location.href = data.paymentUrl;
+        else showSuccessToast("Đặt hàng","Đơn hàng đã được tạo!");
       } else {
-        showSuccessToast("❌ Lỗi khi tạo đơn hàng: " + (data.message || "Không rõ nguyên nhân."));
+        showErrorToast("Lỗi", data.message || "Không rõ nguyên nhân.");
       }
-    } else if (paymentMethod === "VNPAY") {
-      const res = await fetch(`${URL_API}/orders/create-vnpay`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else {
-        showErrorToast("❌ Không tạo được link thanh toán.");
-      }
+    } catch {
+      showErrorToast("Lỗi","Không thể gửi đơn hàng.");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (err) {
-    console.error("❌ Lỗi khi xử lý đơn hàng:", err);
-    showErrorToast("❌ Không thể gửi đơn hàng.");
-  } finally {
-    setIsSubmitting(false); // 🔴 Kết thúc loading
-  }
-};
+  };
 
-console.log(customers);
+  const finalAmount = totalAmount - (selectedCoupon?.discount_type === "percent"
+    ? Math.round((totalAmount * selectedCoupon.discount_value)/100)
+    : selectedCoupon?.discount_value || 0);
+  const refund = customerPay - finalAmount;
 
+  // ==== Render ====
   return (
     <Row className="p-4" style={{height:'100vh'}}>
-      {/* 🔍 Tìm kiếm sản phẩm */}
-      <Col md={7}>
-        <Card className="mb-3 shadow-sm">
-            <Card.Body>
-              <h5>🔍 Tìm kiếm sản phẩm</h5>
-              <Form.Control
-                type="text"
-                placeholder="Nhập tên sản phẩm..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </Card.Body>
-          </Card>
-
-        {loading && (
-          <div className="text-center py-4">
-            <Spinner animation="border" variant="primary" />
-          </div>
-        )}
-
-        <div style={{ maxHeight: "80%", overflowY: "auto" }} className="p-2 border rounded bg-light">
-         <Row xs={2} md={3} className="g-3">
-  {products.map((product) => (
-    <Col key={product.id}>
-      <Card className="h-100 shadow-sm">
-        <Card.Img
-          variant="top"
-          src={`${URL_WEB}/uploads/${product.image}`}
-          style={{ height: 140, objectFit: "cover" }}
-        />
-        <Card.Body>
-          <Card.Title>{product.name}</Card.Title>
-          <Card.Text className="text-success fw-bold">
-            {Number(product.price).toLocaleString()}đ
-          </Card.Text>
-        </Card.Body>
-        <Card.Footer className="text-center">
-          <Button
-            variant="outline-primary"
-            size="sm"
-            onClick={() => handleAddClick(product)}
-          >
-            ➕ Thêm vào giỏ
-          </Button>
-        </Card.Footer>
-      </Card>
-    </Col>
-  ))}
-        </Row>
-
-        </div>
-      </Col>
-
-      {/* 🛒 Giỏ hàng */}
-      <Col md={5}>
+      {/* Danh sách sản phẩm */}
+      <Col md={7} style={{overflowY:'auto', height:'100%'}}>
         <Card className="mb-3 shadow-sm">
           <Card.Body>
-            <h5 className="mb-3">🛒 Giỏ hàng</h5>
-            {cart.length === 0 ? (
-              <p className="text-muted">Chưa có sản phẩm nào trong giỏ</p>
-            ) : (
-              <Table responsive bordered size="sm" className="align-middle text-center">
+            <h5>🔍 Tìm kiếm sản phẩm</h5>
+            <Form.Control
+              type="text"
+              placeholder="Nhập tên sản phẩm..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </Card.Body>
+        </Card>
+
+        {loading && <div className="text-center py-4"><Spinner animation="border" /></div>}
+
+        <Row xs={2} md={3} className="g-3">
+          {products.map((product) => (
+            <Col key={product.id}>
+              <Card className="h-100 shadow-sm" onClick={() => handleAddClick(product)}>
+                <Card.Img
+                  src={`${URL_WEB}/uploads/${product.image}`}
+                  style={{height:140, objectFit:"cover"}}
+                />
+                <Card.Body>
+                  <Card.Title>{product.name}</Card.Title>
+                  <Card.Text className="text-success fw-bold">
+                    {Number(product.price).toLocaleString()}đ
+                  </Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Col>
+
+      {/* Giỏ hàng & khách hàng */}
+      <Col md={5} style={{overflowY:'auto', height:'100%'}}>
+        {/* Giỏ hàng */}
+        <Card className="mb-3 shadow-sm">
+          <Card.Body>
+            <h5>🛒 Giỏ hàng</h5>
+            {cart.length === 0 ? <p className="text-muted">Chưa có sản phẩm</p> : (
+              <Table responsive size="sm" className="text-center align-middle">
                 <thead className="table-light">
                   <tr>
                     <th>Sản phẩm</th>
@@ -346,21 +286,13 @@ console.log(customers);
                   </tr>
                 </thead>
                 <tbody>
-                  {cart.map((item, idx) => (
+                  {cart.map((item, idx)=>(
                     <tr key={idx}>
                       <td>{item.name}</td>
                       <td>{item.quantity}</td>
                       <td>{item.size}/{item.color}</td>
                       <td>{item.total.toLocaleString()}đ</td>
-                      <td>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => removeItem(idx)}
-                        >
-                          ✕
-                        </Button>
-                      </td>
+                      <td><Button size="sm" variant="danger" onClick={()=>removeItem(idx)}>✕</Button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -369,354 +301,116 @@ console.log(customers);
           </Card.Body>
         </Card>
 
-          <Form.Group className="mb-3">
-            <Form.Label>👤 Khách hàng</Form.Label>
-            <Form.Select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-            >
-              <option value="">-- Khách vãng lai --</option>
-              {customers.map((cus) => (
-                <option key={cus.id} value={cus.id}>
-                  {cus.full_name} - {cus.phone}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-           {customerInfo && (
-                    <div className="border p-3 rounded bg-white shadow-sm mt-3">
-                      <h6 className="mb-3 text-primary">
-                        <i className="bi bi-person-lines-fill me-2"></i>Thông tin khách hàng
-                      </h6>
-                      <div className="row mb-2">
-                        <div className="col-12 col-md-6 mb-2">
-                          <i className="bi bi-envelope-fill me-2 text-muted"></i>
-                          <strong>Email:</strong> {customerInfo.email}
-                        </div>
-                        <div className="col-12 col-md-6 mb-2">
-                          <i className="bi bi-geo-alt-fill me-2 text-muted"></i>
-                          <strong>Địa chỉ:</strong> {customerInfo.address}
-                        </div>
-                      </div>
-                      {customerInfo.note && (
-                        <div className="mt-2">
-                          <i className="bi bi-journal-text me-2 text-muted"></i>
-                          <strong>Ghi chú:</strong> {customerInfo.note}
-                        </div>
-                      )}
-                    </div>
-                  )}
+        {/* Khách hàng */}
+        <Card className="mb-3 shadow-sm p-3">
+          <h5>👤 Thông tin khách hàng</h5>
+          <Form.Select
+            value={selectedCustomerId}
+            onChange={(e)=>setSelectedCustomerId(e.target.value)}
+          >
+            <option value="">-- Khách vãng lai --</option>
+            {customers.map(c=>(
+              <option key={c.id} value={c.id}>{c.full_name} - {c.phone}</option>
+            ))}
+          </Form.Select>
 
-
-          {/* Nếu là khách vãng lai thì hiển thị form nhập tên/sđt */}
-                {!selectedCustomerId && (
-                  <>
-                    <Row className="mb-3">
-                      <Col md={6}>
-                        <Form.Floating className="mb-2">
-                          <Form.Control
-                            value={guestInfo.full_name}
-                            onChange={(e) => setGuestInfo({ ...guestInfo, full_name: e.target.value })}
-                            placeholder="👤 Họ tên"
-                          />
-                          <label>👤 Họ tên</label>
-                        </Form.Floating>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Floating className="mb-2">
-                          <Form.Control
-                            value={guestInfo.phone}
-                            onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
-                            placeholder="📱 Số điện thoại"
-                          />
-                          <label>📱 Số điện thoại</label>
-                        </Form.Floating>
-                      </Col>
-                    </Row>
-
-                    <Row className="mb-3">
-                      <Col md={6}>
-                        <Form.Floating className="mb-2">
-                          <Form.Control
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="📧 Email"
-                          />
-                          <label>📧 Email</label>
-                        </Form.Floating>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Floating className="mb-2">
-                          <Form.Control
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                            placeholder="🏠 Địa chỉ"
-                          />
-                          <label>🏠 Địa chỉ</label>
-                        </Form.Floating>
-                      </Col>
-                    </Row>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>📝 Ghi chú</Form.Label>
-                      <Form.Control
-                        as="textarea"
-                        rows={2}
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        placeholder="Nhập ghi chú nếu có..."
-                      />
-                    </Form.Group>
-                  </>
-                )}
-
-                <Form.Group className="mb-4">
-                  <Form.Label className="fw-bold">
-                    🎁 Mã giảm giá
-                  </Form.Label>
-                  <Form.Select
-                    value={selectedCoupon?.id || ""}
-                    onChange={(e) => {
-                      const id = parseInt(e.target.value);
-                      const coupon = coupons.find(c => c.id === id);
-                      setSelectedCoupon(coupon || null);
-                    }}
-                    className="shadow-sm rounded"
-                  >
-                    <option value="">-- Chọn mã giảm giá --</option>
-                    {coupons
-                      ?.filter(
-                        (coupon) =>
-                          coupon.status === "active" &&
-                          coupon.quantity > 0 &&
-                          // total >= coupon.min_order_total &&
-                          new Date(coupon.end_date) >= new Date()
-                      )
-                      .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.code} (
-                        {c.discount_type === "percent"
-                          ? `Giảm ${c.discount_value}%`
-                          : `Giảm ${parseFloat(c.discount_value).toLocaleString()}đ`}
-                        )
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-4">
-                  <Form.Label className="fw-bold">
-                    💳 Phương thức thanh toán
-                  </Form.Label>
-                  <Form.Select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="shadow-sm rounded"
-                  >
-                    <option value="COD">📦 Thanh toán khi nhận hàng (COD)</option>
-                    <option value="MOMO">🏦 Thanh toán qua MOMO</option>
-                  </Form.Select>
-                </Form.Group>
-
-          <Card className="p-3 mt-3 border-0 shadow-sm">
-                <Card.Title>💵 Thanh toán</Card.Title>
-
-                {/* Tổng tiền */}
-                <div className="mb-2">
-                  💰 Tổng tiền:{" "}
-                  <strong>
-                    {cart.reduce((s, i) => s + i.total, 0).toLocaleString()}đ
-                  </strong>
-                </div>
-
-                {/* Giảm giá */}
-                <div className="mb-2">
-                  ➖ Giảm:{" "}
-                  <strong>
-                    {(() => {
-                      const total = cart.reduce((s, i) => s + i.total, 0);
-                      if (!selectedCoupon) return "0đ";
-                      if (selectedCoupon.discount_type === "percent") {
-                        return `${Math.round((total * selectedCoupon.discount_value) / 100).toLocaleString()}đ`;
-                      } else {
-                        return `${parseFloat(selectedCoupon.discount_value).toLocaleString()}đ`;
-                      }
-                    })()}
-                  </strong>
-                </div>
-
-                {/* Thành tiền */}
-                <div className="mb-3">
-                  🧾 Thanh toán:{" "}
-                  <strong>
-                    {(() => {
-                      const total = cart.reduce((s, i) => s + i.total, 0);
-                      let discount = 0;
-                      if (selectedCoupon) {
-                        if (selectedCoupon.discount_type === "percent") {
-                          discount = Math.round((total * selectedCoupon.discount_value) / 100);
-                        } else {
-                          discount = selectedCoupon.discount_value;
-                        }
-                      }
-                      const finalAmount = Math.max(total - discount, 0);
-                      return finalAmount.toLocaleString() + "đ";
-                    })()}
-                  </strong>
-                </div>
-
-                {/* Khách đưa */}
-                <Form.Group className="mb-2">
-                  <Form.Label>💵 Khách đưa</Form.Label>
-                  <Form.Control
-                    type="number"
-                    placeholder="Nhập số tiền khách đưa"
-                    value={customerPay}
-                    onChange={(e) => setCustomerPay(Number(e.target.value))}
-                  />
-                </Form.Group>
-
-                {/* Trả lại */}
-                <div className="mb-0">
-                  🔁 Trả lại:{" "}
-                  <strong style={{ color: (() => {
-                    const total = cart.reduce((s, i) => s + i.total, 0);
-                    let discount = 0;
-                    if (selectedCoupon) {
-                      if (selectedCoupon.discount_type === "percent") {
-                        discount = Math.round((total * selectedCoupon.discount_value) / 100);
-                      } else {
-                        discount = selectedCoupon.discount_value;
-                      }
-                    }
-                    const finalAmount = Math.max(total - discount, 0);
-                    return customerPay - finalAmount < 0 ? "red" : "green";
-                  })() }}>
-                    {(() => {
-                      const total = cart.reduce((s, i) => s + i.total, 0);
-                      let discount = 0;
-                      if (selectedCoupon) {
-                        if (selectedCoupon.discount_type === "percent") {
-                          discount = Math.round((total * selectedCoupon.discount_value) / 100);
-                        } else {
-                          discount = selectedCoupon.discount_value;
-                        }
-                      }
-                      const finalAmount = Math.max(total - discount, 0);
-                      const refund = customerPay - finalAmount;
-                      return refund >= 0 ? refund.toLocaleString() + "đ" : "Chưa đủ";
-                    })()}
-                  </strong>
-                </div>
-              </Card>
- <Button
-          variant="success"
-          className="w-100"
-          disabled={isSubmitting}
-          onClick={handleCheckout}
-        >
-          {isSubmitting ? (
+          {!selectedCustomerId && (
             <>
-              <Spinner animation="border" size="sm" className="me-2" />
-              Đang xử lý...
+              <Form.Control className="mb-2" placeholder="Họ tên" value={guestInfo.full_name} onChange={(e)=>setGuestInfo({...guestInfo, full_name:e.target.value})} />
+              <Form.Control className="mb-2" placeholder="SĐT" value={guestInfo.phone} onChange={(e)=>setGuestInfo({...guestInfo, phone:e.target.value})} />
+              <Form.Control className="mb-2" placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} />
+              <Form.Control className="mb-2" placeholder="Địa chỉ" value={address} onChange={(e)=>setAddress(e.target.value)} />
+              <Form.Control className="mb-2" as="textarea" rows={2} placeholder="Ghi chú" value={note} onChange={(e)=>setNote(e.target.value)} />
             </>
-          ) : (
-            "💰 Xác nhận thanh toán"
           )}
-        </Button>
+        </Card>
+
+       {/* Thanh toán */}
+        <Card className="p-3 shadow-sm mb-3">
+          <h5>💵 Thanh toán</h5>
+
+          {/* Chọn mã giảm giá */}
+          <Form.Select
+            className="mb-2"
+            value={selectedCoupon?.id || ""}
+            onChange={(e) => {
+              const found = coupons.find(c => c.id === parseInt(e.target.value));
+              setSelectedCoupon(found || null);
+            }}
+          >
+            <option value="">-- Chọn mã giảm giá --</option>
+            {coupons.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.code} - {c.discount_type === "percent" ? `${c.discount_value}%` : `${Number(c.discount_value).toLocaleString()}đ`}
+              </option>
+            ))}
+          </Form.Select>
+          {couponWarning && <small className="text-danger">{couponWarning}</small>}
+
+          {/* Tổng tiền */}
+          <div>💰 Tổng: <strong>{totalAmount.toLocaleString()}đ</strong></div>
+          <div>➖ Giảm: <strong>{(totalAmount - finalAmount).toLocaleString()}đ</strong></div>
+          <div>🧾 Thanh toán: <strong>{finalAmount.toLocaleString()}đ</strong></div>
+
+          {/* Khách đưa */}
+          <Form.Control
+            type="number"
+            className="my-2"
+            placeholder="Khách đưa"
+            value={customerPay}
+            onChange={(e) => setCustomerPay(Number(e.target.value))}
+          />
+          <div>🔁 Trả lại: <strong style={{color: refund<0?'red':'green'}}>{refund>=0 ? refund.toLocaleString()+'đ' : "Chưa đủ"}</strong></div>
+
+          <Button variant="success" className="w-100 mt-2" onClick={handleCheckout} disabled={isSubmitting}>
+            {isSubmitting ? "Đang xử lý..." : "💰 Xác nhận thanh toán"}
+          </Button>
+        </Card>
       </Col>
 
-      {/* 📦 Modal thêm vào giỏ */}
-<Modal show={showModal} onHide={() => setShowModal(false)} centered size="md">
-  <Modal.Header closeButton>
-    <Modal.Title>🛒 {selectedProduct?.name}</Modal.Title>
-  </Modal.Header>
-  <Modal.Body>
-    {selectedProduct && (
-      <>
-        {/* Ảnh sản phẩm */}
-        <div className="text-center mb-4">
-          <Image
-            src={`${URL_WEB}/uploads/${selectedProduct?.image}`}
-            fluid
-            className="border rounded shadow-sm"
-            style={{ maxHeight: "220px", objectFit: "contain" }}
-          />
-        </div>
+      {/* Modal thêm sản phẩm */}
+      <Modal show={showModal} onHide={()=>setShowModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>🛒 {selectedProduct?.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedProduct && (
+            <>
+              <div className="text-center mb-3">
+                <Image src={`${URL_WEB}/uploads/${selectedProduct.image}`} fluid style={{maxHeight:200, objectFit:"contain"}} />
+              </div>
 
-        {/* Chọn Size */}
-        <div className="mb-3">
-          <strong>📏 Chọn size:</strong>
-          <div className="d-flex flex-wrap gap-2 mt-2">
-            {selectedProduct.size?.split(",").map((size, idx) => (
-              <Button
-                key={idx}
-                variant={selectedSize === size ? "primary" : "outline-primary"}
-                size="sm"
-                className="rounded-pill px-3"
-                onClick={() => setSelectedSize(size)}
-              >
-                {size}
-              </Button>
-            ))}
-          </div>
-        </div>
+              <div className="mb-3">
+                <strong>📏 Chọn size:</strong>
+                <div className="d-flex flex-wrap gap-2 mt-2">
+                  {selectedProduct.size?.split(",").map((s,idx)=>(
+                    <Button key={idx} size="sm" variant={selectedSize===s?"primary":"outline-primary"} onClick={()=>setSelectedSize(s)}>{s}</Button>
+                  ))}
+                </div>
+              </div>
 
-        {/* Chọn Màu */}
-        <div className="mb-3">
-          <strong>🎨 Chọn màu:</strong>
-          <div className="d-flex flex-wrap gap-2 mt-2">
-            {selectedProduct.color?.split(",").map((color, idx) => (
-              <Button
-                key={idx}
-                variant={selectedColor === color ? "secondary" : "outline-secondary"}
-                size="sm"
-                className="rounded-pill px-3"
-                onClick={() => setSelectedColor(color)}
-              >
-                {color}
-              </Button>
-            ))}
-          </div>
-        </div>
+              <div className="mb-3">
+                <strong>🎨 Chọn màu:</strong>
+                <div className="d-flex flex-wrap gap-2 mt-2">
+                  {selectedProduct.color?.split(",").map((c,idx)=>(
+                    <Button key={idx} size="sm" variant={selectedColor===c?"secondary":"outline-secondary"} onClick={()=>setSelectedColor(c)}>{c}</Button>
+                  ))}
+                </div>
+              </div>
 
-        {/* Nhập số lượng */}
-        <Form.Group>
-          <Form.Label>🔢 Số lượng</Form.Label>
-           <Form.Control
-            type="number"
-            min={1}
-            max={selectedProduct?.stock || 1}
-            value={quantity}
-            onChange={(e) =>
-              setQuantity(
-                Math.min(
-                  selectedProduct?.stock || 1,
-                  Math.max(1, parseInt(e.target.value) || 1)
-                )
-              )
-            }
-                />
-                 <small className="text-muted">
-                Còn lại: {selectedProduct?.stock} sản phẩm
-              </small>
-        </Form.Group>
-      </>
-    )}
-  </Modal.Body>
-  <Modal.Footer>
-    <Button variant="outline-secondary" onClick={() => setShowModal(false)}>
-       Hủy
-    </Button>
-    <Button variant="success" onClick={handleConfirmAddToCart}>
-       Thêm vào giỏ
-    </Button>
-  </Modal.Footer>
-</Modal>
-
+              <Form.Group>
+                <Form.Label>🔢 Số lượng</Form.Label>
+                <Form.Control type="number" min={1} max={selectedProduct.stock} value={quantity} onChange={(e)=>setQuantity(Math.min(selectedProduct.stock, Math.max(1, parseInt(e.target.value)||1)))} />
+                <small className="text-muted">Còn lại: {selectedProduct.stock}</small>
+              </Form.Group>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={()=>setShowModal(false)}>Hủy</Button>
+          <Button variant="success" onClick={handleConfirmAddToCart}>Thêm vào giỏ</Button>
+        </Modal.Footer>
+      </Modal>
     </Row>
   );
 }

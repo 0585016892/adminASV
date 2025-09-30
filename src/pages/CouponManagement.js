@@ -222,8 +222,7 @@ const CouponManagement = () => {
   };
   return (
     <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <Card className="shadow-sm mb-3">
-        <Card.Body>
+      <>
           <Row className="mb-3">
             <Col md={12}>
               <h4>Quản lý khuyến mãi</h4>
@@ -295,121 +294,128 @@ const CouponManagement = () => {
             </Row>
           </Form>
 
-          <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Code</th>
-                <th>Mô tả</th>
-                <th>Loại</th>
-                <th>Giá trị</th>
-                <th>Đơn tối thiểu</th>
-                <th>Lượt dùng</th>
-                <th>Hiệu lực</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+         {loading ? (
+  // Hiển thị spinner loading toàn trang/bảng
+          <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
+            <Spinner animation="border" variant="primary" />
+          </div>
+        ) : (
+          <>
+            <Table striped bordered hover responsive>
+              <thead  className="table-dark">
                 <tr>
-                  <td colSpan="9" className="text-center">
-                    <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
-                      <Spinner animation="border" variant="primary" />
-                    </div>
-                  </td>
+                  <th>ID</th>
+                  <th>Code</th>
+                  <th>Mô tả</th>
+                  <th>Loại</th>
+                  <th>Giá trị</th>
+                  <th>Đơn tối thiểu</th>
+                  <th>Lượt dùng</th>
+                  <th>Hiệu lực</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
                 </tr>
-              ) : coupons.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="text-center">
-                    Không có mã nào.
-                  </td>
-                </tr>
-              ) : (
-                coupons.map((c) => (
-                  <tr key={c.id}>
-                    <td>C{c.id}</td>
-                    <td>{c.code}</td>
-                    <td>
-                      {c.description == 1
-                        ? "Mã giảm giá cho sản phẩm"
-                        : "Mã giảm giá cho tổng hóa đơn"}
-                    </td>
-                    <td>{c.discount_type === "percent" ? "%" : "₫"}</td>
-                    <td>{parseFloat(c.discount_value)}</td>
-                    <td>
-                      {Number(c.min_order_total).toLocaleString("vi-VN")}₫
-                    </td>
-                    <td>{c.quantity}</td>
-                    <td>
-                      {new Date(c.start_date).toLocaleDateString()} –{" "}
-                      {new Date(c.end_date).toLocaleDateString()}
-                    </td>
-                    <td>
-                      <Form.Select
-                        size="sm"
-                        value={c.status}
-                        onChange={(e) => handleStatusChange(e, c.id)}
-                        disabled={
-                          new Date(c.end_date) < new Date() || c.quantity === 0
-                        }
-                      >
-                        <option value="active">Hoạt động</option>
-                        <option value="inactive">Không hoạt động</option>
-                      </Form.Select>
+              </thead>
 
-                      {new Date(c.end_date) < new Date() && (
-                        <div className="text-danger small mt-1">
-                          Hết hạn theo thời gian
-                        </div>
-                      )}
-                      {c.quantity === 0 && (
-                        <div className="text-danger small mt-1">
-                          Đã sử dụng hết
-                        </div>
-                      )}
-                    </td>
-                    <td className="text-center">
-                      <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                        <Button
-                          className="me-2"
-                          size="sm"
-                          variant="outline-primary"
-                          onClick={() => openEditModal(c)}
-                        >
-                          <FaEdit />
-                        </Button>
-                      </OverlayTrigger>
-                      <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                        <Button
-                          size="sm"
-                          variant="outline-danger"
-                          onClick={() => openDeleteModal(c.id)}
-                        >
-                          <FaTrash />
-                        </Button>
-                      </OverlayTrigger>
+              <tbody>
+                {coupons.length === 0 ? (
+                  <tr>
+                    <td colSpan="10" className="text-center">
+                      Không có mã nào.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
+                ) : (
+                  coupons.map((c) => {
+                    const expired = new Date(c.end_date) < new Date();
+                    const outOfStock = c.quantity === 0;
 
-          <Pagination className="d-flex justify-content-center">
-            {[...Array(totalPages).keys()].map((p) => (
-              <Pagination.Item
-                key={p + 1}
-                active={filters.page === p + 1}
-                onClick={() => setFilters({ ...filters, page: p + 1 })}
-              >
-                {p + 1}
-              </Pagination.Item>
-            ))}
-          </Pagination>
-        </Card.Body>
-      </Card>
+                    return (
+                      <tr key={c.id}>
+                        <td>C{c.id}</td>
+                        <td>{c.code}</td>
+                        <td>
+                          {c.description == 1
+                            ? "Mã giảm giá cho sản phẩm"
+                            : "Mã giảm giá cho tổng hóa đơn"}
+                        </td>
+                        <td>{c.discount_type === "percent" ? "%" : "₫"}</td>
+                        <td>
+                          {c.discount_type === "percent"
+                            ? `${c.discount_value}%`
+                            : `${Number(c.discount_value).toLocaleString("vi-VN")}₫`}
+                        </td>
+                        <td>{Number(c.min_order_total).toLocaleString("vi-VN")}₫</td>
+                        <td>{c.quantity}</td>
+                        <td>
+                          {new Date(c.start_date).toLocaleDateString("vi-VN")} –{" "}
+                          {new Date(c.end_date).toLocaleDateString("vi-VN")}
+                        </td>
+                        <td>
+                          <Form.Select
+                            size="sm"
+                            value={c.status}
+                            onChange={(e) => handleStatusChange(e, c.id)}
+                            disabled={expired || outOfStock}
+                          >
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Không hoạt động</option>
+                          </Form.Select>
 
+                          {expired && (
+                            <div className="text-danger small mt-1">
+                              Hết hạn theo thời gian
+                            </div>
+                          )}
+                          {outOfStock && (
+                            <div className="text-danger small mt-1">
+                              Đã sử dụng hết
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-center">
+                          <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
+                            <Button
+                              className="me-2"
+                              size="sm"
+                              variant="outline-primary"
+                              onClick={() => openEditModal(c)}
+                            >
+                              <FaEdit />
+                            </Button>
+                          </OverlayTrigger>
+
+                          <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              onClick={() => openDeleteModal(c.id)}
+                            >
+                              <FaTrash />
+                            </Button>
+                          </OverlayTrigger>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </Table>
+
+            <Pagination className="d-flex justify-content-end">
+              {[...Array(totalPages).keys()].map((p) => (
+                <Pagination.Item
+                  key={p + 1}
+                  active={filters.page === p + 1}
+                  onClick={() => setFilters({ ...filters, page: p + 1 })}
+                >
+                  {p + 1}
+                </Pagination.Item>
+              ))}
+            </Pagination>
+          </>
+        )}
+
+        </>
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>

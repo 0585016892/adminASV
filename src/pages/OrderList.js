@@ -187,143 +187,146 @@ const OrderList = () => {
         </Col>
       </Row>
 
-      <div className="table-responsive">
-        <Table
-          responsive
-          bordered
-          hover
-          className="align-middle text-center table-striped shadow-sm"
-        >
-          <thead className="table-light">
-            <tr>
-              <th>Mã ĐH</th>
-              <th>Khách hàng</th>
-              <th>SĐT</th>
-              <th>Email</th>
-              <th>Địa chỉ</th>
-              <th>Ngày tạo</th>
-              <th>Tổng tiền</th>
-              <th>Hình thức</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody className="table-group-divider">
-            {loading ? (
-              <tr>
-                <td colSpan="9" className="text-center py-4">
-                  <Spinner animation="border" variant="primary" />
-                </td>
-              </tr>
-            ) : orders.length === 0 ? (
-              <tr>
-                <td colSpan="9" className="text-center">
-                  Không có đơn hàng nào.
-                </td>
-              </tr>
-            ) : (
-              orders.map((order) => (
-                <tr key={order.order_id}>
-                  <td>DH{order.order_id.toString().padStart(4, "0")}</td>
-                  <td>{order.customer_name}</td>
-                  <td>{order.customer_phone}</td>
-                  <td>{order.customer_email}</td>
-
-                  <td>
-                    {order.address.length > 15
-                      ? order.address.slice(0, 15) + "..."
-                      : order.address}
-                  </td>
-                  <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                  <td>{Number(order.final_total).toLocaleString()} VND</td>
-                  <td>{order.payment_method}</td>
-                  <td>
-                    <Form.Select
-                      value={order.status || ""}
-                      onChange={(e) =>
-                        handleStatusChange(order.order_id, e.target.value)
-                      }
-                      disabled={
-                        order?.status === "Đã giao" || order?.status === "Đã hủy"
-                      }
-                    >
-                      <option value="Chờ xử lý">Chờ xử lý</option>
-                      <option value="Đang giao">Đang giao</option>
-                      <option value="Đã giao">Đã giao</option>
-                      <option value="Đã hủy">Đã hủy</option>
-                    </Form.Select>
-                  </td>
-                  <td className="d-flex gap-2">
-                    <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        as={Link}
-                        to={`/don-hang/chi-tiet/${order.order_id}`}
-                      >
-                        <FiEye />
-                      </Button>
-                    </OverlayTrigger>
-                    {user?.role === "admin" && (
-                      <OverlayTrigger overlay={<Tooltip>Xóa đơn</Tooltip>}>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => openDeleteModal(order.order_id)}
-                        >
-                          <MdDelete />
-                        </Button>
-                      </OverlayTrigger>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </Table>
-      </div>
-
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 px-2">
-        <div className="mb-2 mb-md-0">
-          <small className="text-muted fw-medium">
-            Tổng cộng <strong>{pagination.totalOrders}</strong> đơn hàng
-          </small>
+     {loading ? (
+        <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
+          <Spinner animation="border" variant="primary" />
         </div>
+      ) : (
+        <>
+          <div className="table-responsive">
+            <Table
+              responsive
+              bordered
+              hover
+              className="align-middle text-center table-striped shadow-sm"
+            >
+              <thead className="table-dark">
+                <tr>
+                  <th>Mã ĐH</th>
+                  <th>Khách hàng</th>
+                  <th>SĐT</th>
+                  <th>Email</th>
+                  <th>Địa chỉ</th>
+                  <th>Ngày tạo</th>
+                  <th>Tổng tiền</th>
+                  <th>Hình thức</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody className="table-group-divider">
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan="10" className="text-center py-4">
+                      Không có đơn hàng nào.
+                    </td>
+                  </tr>
+                ) : (
+                  orders.map((order) => (
+                    <tr key={order.order_id}>
+                      <td>DH{order.order_id.toString().padStart(4, "0")}</td>
+                      <td>{order.customer_name}</td>
+                      <td>{order.customer_phone}</td>
+                      <td>{order.customer_email}</td>
+                      <td>
+                        {order.address.length > 15
+                          ? order.address.slice(0, 15) + "..."
+                          : order.address}
+                      </td>
+                      <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                      <td>{Number(order.final_total).toLocaleString()} VND</td>
+                      <td>{order.payment_method}</td>
+                      <td>
+                        <Form.Select
+                          value={order.status || ""}
+                          onChange={(e) =>
+                            handleStatusChange(order.order_id, e.target.value)
+                          }
+                          disabled={
+                            order.status === "Đã giao" || order.status === "Đã hủy"
+                          }
+                        >
+                          <option value="Chờ xử lý">Chờ xử lý</option>
+                          <option value="Đang giao">Đang giao</option>
+                          <option value="Đã giao">Đã giao</option>
+                          <option value="Đã hủy">Đã hủy</option>
+                        </Form.Select>
+                      </td>
+                      <td className="d-flex gap-2 justify-content-center">
+                        <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            as={Link}
+                            to={`/don-hang/chi-tiet/${order.order_id}`}
+                          >
+                            <FiEye />
+                          </Button>
+                        </OverlayTrigger>
+                        {user?.role === "admin" && (
+                          <OverlayTrigger overlay={<Tooltip>Xóa đơn</Tooltip>}>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => openDeleteModal(order.order_id)}
+                            >
+                              <MdDelete />
+                            </Button>
+                          </OverlayTrigger>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </div>
 
-        <Pagination className="m-0">
-          <Pagination.First
-            onClick={() => handlePageChange(1)}
-            disabled={pagination.currentPage === 1}
-          />
-          <Pagination.Prev
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-          />
+          {/* Phân trang */}
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 px-2">
+            <div className="mb-2 mb-md-0">
+              <small className="text-muted fw-medium">
+                Tổng cộng <strong>{pagination.totalOrders}</strong> đơn hàng
+              </small>
+            </div>
 
-          {Array.from({ length: pagination.totalPages }, (_, idx) => {
-            const page = idx + 1;
-            return (
-              <Pagination.Item
-                key={page}
-                active={page === pagination.currentPage}
-                onClick={() => handlePageChange(page)}
-                className="fw-bold"
-              >
-                {page}
-              </Pagination.Item>
-            );
-          })}
+            <Pagination className="m-0">
+              <Pagination.First
+                onClick={() => handlePageChange(1)}
+                disabled={pagination.currentPage === 1}
+              />
+              <Pagination.Prev
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+              />
 
-          <Pagination.Next
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-          <Pagination.Last
-            onClick={() => handlePageChange(pagination.totalPages)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-        </Pagination>
-      </div>
+              {Array.from({ length: pagination.totalPages }, (_, idx) => {
+                const page = idx + 1;
+                return (
+                  <Pagination.Item
+                    key={page}
+                    active={page === pagination.currentPage}
+                    onClick={() => handlePageChange(page)}
+                    className="fw-bold"
+                  >
+                    {page}
+                  </Pagination.Item>
+                );
+              })}
+
+              <Pagination.Next
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages}
+              />
+              <Pagination.Last
+                onClick={() => handlePageChange(pagination.totalPages)}
+                disabled={pagination.currentPage === pagination.totalPages}
+              />
+            </Pagination>
+          </div>
+        </>
+      )}
+
       <Modal show={showModal} onHide={closeDeleteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Xác nhận xóa đơn hàng</Modal.Title>

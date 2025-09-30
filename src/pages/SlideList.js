@@ -158,131 +158,136 @@ const SlideList = () => {
 
     
 
-      <div className="table-responsive">
-        <Table bordered hover className="text-center table-striped shadow-sm">
-          <thead className="table-light">
-            <tr>
-              <th>ID</th>
-              <th>Tiêu đề</th>
-              <th>Hình ảnh</th>
-              <th>Đường dẫn</th>
-              <th>Khu vực hiển thị</th>
-              <th>Trạng thái</th>
-              <th>Ngày bắt đầu</th>
-              <th>Ngày kết thúc</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
+      {loading ? (
+          <div className="d-flex justify-content-center align-items-center py-5">
+            <Spinner animation="border" variant="primary" />
+          </div>
+        ) : (
+          <>
+            <div className="table-responsive">
+              <Table bordered hover className="text-center table-striped shadow-sm">
+                <thead className="table-dark">
+                  <tr>
+                    <th>ID</th>
+                    <th>Tiêu đề</th>
+                    <th>Hình ảnh</th>
+                    <th>Đường dẫn</th>
+                    <th>Khu vực hiển thị</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày bắt đầu</th>
+                    <th>Ngày kết thúc</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
 
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="8">
-                  <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-                           <Spinner animation="border" variant="primary" />
-                         </div>
-                </td>
-              </tr>
-            ) : slides?.length === 0 ? (
-              <tr>
-                <td colSpan="8">Không có slide nào.</td>
-              </tr>
-            ) : (
-              slides?.map((s) => (
-                <tr key={s.id}>
-                  <td>SL010{s.id}</td>
-                  <td>{s.title}</td>
-                  <td>
-                    <img
-                      src={`${URL_WEB}/uploads/${s.image}`}
-                      alt={s.title}
-                      height={50}
-                    />
-                  </td>
-                  <td>
-                    <a href={s.link} target="_blank" rel="noopener noreferrer">
-                      {s.link}
-                    </a>
-                  </td>
-                  <td>
-                    <Badge bg="info">{s.display_area}</Badge>
-                  </td>
-                  <td>
-                    <Form.Select
-                      size="sm"
-                      value={s.status}
-                      onChange={(e) => handleStatusChange(e, s.id)}
+                <tbody>
+                  {slides?.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="text-center">
+                        Không có slide nào.
+                      </td>
+                    </tr>
+                  ) : (
+                    slides?.map((s) => (
+                      <tr key={s.id}>
+                        <td>SL010{s.id}</td>
+                        <td>{s.title}</td>
+                        <td>
+                          <img
+                            src={`${URL_WEB}/uploads/${s.image}`}
+                            alt={s.title}
+                            height={50}
+                          />
+                        </td>
+                        <td>
+                          <a href={s.link} target="_blank" rel="noopener noreferrer">
+                            {s.link}
+                          </a>
+                        </td>
+                        <td>
+                          <Badge bg="info">{s.display_area}</Badge>
+                        </td>
+                        <td>
+                          <Form.Select
+                            size="sm"
+                            value={s.status}
+                            onChange={(e) => handleStatusChange(e, s.id)}
+                          >
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Không hoạt động</option>
+                          </Form.Select>
+                        </td>
+                        <td>{new Date(s.start_date).toLocaleDateString("vi-VN")}</td>
+                        <td>{new Date(s.end_date).toLocaleDateString("vi-VN")}</td>
+                        <td className="d-flex gap-2 justify-content-center">
+                          <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
+                            <Button
+                              as={Link}
+                              to={`/slides/edit/${s.id}`}
+                              variant="outline-primary"
+                              size="sm"
+                            >
+                              <MdOutlineAutoFixHigh />
+                            </Button>
+                          </OverlayTrigger>
+                          <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => openDeleteModal(s.id)}
+                            >
+                              <MdDelete />
+                            </Button>
+                          </OverlayTrigger>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            </div>
+
+            <div className="d-flex justify-content-between align-items-center mb-3 px-2">
+              <div>
+                <small className="text-muted fw-medium">
+                  Tổng cộng <strong>{pagination.totalSlides}</strong> slide
+                </small>
+              </div>
+
+              <Pagination className="m-0">
+                <Pagination.First
+                  onClick={() => handlePageChange(1)}
+                  disabled={pagination.currentPage === 1}
+                />
+                <Pagination.Prev
+                  onClick={() => handlePageChange(pagination.currentPage - 1)}
+                  disabled={pagination.currentPage === 1}
+                />
+                {Array.from({ length: pagination.totalPages }, (_, idx) => {
+                  const page = idx + 1;
+                  return (
+                    <Pagination.Item
+                      key={page}
+                      active={page === pagination.currentPage}
+                      onClick={() => handlePageChange(page)}
                     >
-                      <option value="active">Hoạt động</option>
-                      <option value="inactive">Không hoạt động</option>
-                    </Form.Select>
-                  </td>
-                  <td>{new Date(s.start_date).toLocaleDateString("vi-VN")}</td>
-                  <td>{new Date(s.end_date).toLocaleDateString("vi-VN")}</td>
-                  <td className="d-flex gap-2 justify-content-center">
-                    <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                      <Button
-                        as={Link}
-                        to={`/slides/edit/${s.id}`}
-                        variant="outline-primary"
-                        size="sm"
-                      >
-                        <MdOutlineAutoFixHigh />
-                      </Button>
-                    </OverlayTrigger>
-                    <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => openDeleteModal(s.id)}
-                      >
-                        <MdDelete />
-                      </Button>
-                    </OverlayTrigger>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </Table>
-      </div>
-      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
-        <div>
-          <small className="text-muted fw-medium">
-            Tổng cộng <strong>{pagination.totalSlides}</strong> slide
-          </small>
-        </div>
-        <Pagination className="m-0">
-          <Pagination.First
-            onClick={() => handlePageChange(1)}
-            disabled={pagination.currentPage === 1}
-          />
-          <Pagination.Prev
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-          />
-          {Array.from({ length: pagination.totalPages }, (_, idx) => {
-            const page = idx + 1;
-            return (
-              <Pagination.Item
-                key={page}
-                active={page === pagination.currentPage}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Pagination.Item>
-            );
-          })}
-          <Pagination.Next
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-          <Pagination.Last
-            onClick={() => handlePageChange(pagination.totalPages)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-        </Pagination>
-      </div>
+                      {page}
+                    </Pagination.Item>
+                  );
+                })}
+                <Pagination.Next
+                  onClick={() => handlePageChange(pagination.currentPage + 1)}
+                  disabled={pagination.currentPage === pagination.totalPages}
+                />
+                <Pagination.Last
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={pagination.currentPage === pagination.totalPages}
+                />
+              </Pagination>
+            </div>
+          </>
+        )}
+
       <Modal show={showModal} onHide={closeDeleteModal}>
         <Modal.Header closeButton>
           <Modal.Title>Xác nhận xóa slide</Modal.Title>

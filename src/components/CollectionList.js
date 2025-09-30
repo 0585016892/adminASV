@@ -8,7 +8,8 @@ import {
   Pagination,
   Badge,
   InputGroup,
-  Modal
+  Modal,
+  Spinner
 } from "react-bootstrap";
 import CollectionModal from "./CollectionModal";
 import {
@@ -30,10 +31,12 @@ const CollectionList = () => {
   const [showModalDe, setShowModalDe] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [bSTToDelete, setBSTToDelete] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Gọi API lấy danh sách bộ sưu tập
   const fetchCollections = async () => {
     try {
+      setLoading(true);
       const res = await getCollections({
         search,
         status: statusFilter,
@@ -42,6 +45,7 @@ const CollectionList = () => {
       });
       setCollections(res.data); // backend nên trả { data, totalPages }
       setTotalPages(res.totalPages || 1);
+      setLoading(false);
     } catch (err) {
       showErrorToast("❌ Lỗi load collections:", err);
     }
@@ -133,8 +137,13 @@ const CollectionList = () => {
         </Col>
       </Row>
     </div>
-
-      {/* Hiển thị danh sách bộ sưu tập */}
+ {loading ? (
+    <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
+      <Spinner animation="border" variant="primary" />
+    </div>
+  ) : (
+      <div>
+        {/* Hiển thị danh sách bộ sưu tập */}
       <Row>
         {collections.map((col) => (
           <Col md={4} key={col.id} className="mb-4">
@@ -208,7 +217,8 @@ const CollectionList = () => {
           />
         </Pagination>
       )}
-
+      </div>
+        )}
       <CollectionModal
         show={showModal}
         onHide={() => setShowModal(false)}

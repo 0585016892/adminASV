@@ -88,7 +88,7 @@ const ChatWidget = () => {
   ];
 
   return (
-    <div style={{ position: "fixed", bottom: "20px", right: "20px", zIndex: 9999 }}>
+    <div style={{ position: "fixed", bottom: "90px", right: "20px", zIndex: 9999 }}>
       {!isOpen && (
         <Button variant="primary" className="rounded-circle p-3 shadow" onClick={() => setIsOpen(true)}>
           <FiMessageCircle size={22} />

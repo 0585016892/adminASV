@@ -181,8 +181,9 @@ const Size = () => {
                  <Spinner animation="border" variant="primary" />
                </div>
       ) : (
-        <Table striped bordered hover responsive className="shadow-sm">
-          <thead className="table-light text-center">
+          <div>
+              <Table striped bordered hover responsive className="shadow-sm">
+          <thead className="table-dark text-center">
             <tr>
               <th>#</th>
               <th>Tên</th>
@@ -239,9 +240,10 @@ const Size = () => {
             )}
           </tbody>
         </Table>
+      {renderPagination()}
+          </div>
       )}
 
-      {renderPagination()}
 
       {/* Modal Thêm / Sửa */}
       <Modal show={showModal} onHide={handleCloseModal} centered>

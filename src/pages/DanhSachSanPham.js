@@ -8,7 +8,8 @@ import {
   OverlayTrigger,
   Col,
   Pagination,
-  Modal,
+  Modal,  
+  Spinner,
 } from "react-bootstrap";
 import { FaPlus, FaFileExport } from "react-icons/fa";
 import {
@@ -176,9 +177,13 @@ const DanhSachSanPham = () => {
         </Col>
         </Row>
       </div>
-
-      {/* Product List */}
-      <Table bordered hover responsive>
+      {loading ? (
+            <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
+                 <Spinner animation="border" variant="primary" />
+               </div>
+          ) : (
+            <div>
+               <Table bordered hover responsive>
         <thead className="table-dark">
           <tr>
             <th>Mã sản phẩm</th>
@@ -193,16 +198,10 @@ const DanhSachSanPham = () => {
             <th>Hành động</th>
           </tr>
         </thead>
-        <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan="9" className="text-center">
-                Đang tải dữ liệu...
-              </td>
-            </tr>
-          ) : (
+        <tbody className="align-middle text-center">
+          {products.length > 0 ? (
             products.map((prod, index) => (
-              <tr key={`${prod.id}-${index}`}>
+               <tr key={`${prod.id}-${index}`}>
                 <td>{`SP180703${prod.id}`}</td>
                 <td>
                   {prod.image && (
@@ -258,11 +257,16 @@ const DanhSachSanPham = () => {
                 </td>
               </tr>
             ))
-          )}
+          ):(
+              <tr>
+                <td colSpan="5" className="text-center text-muted">
+                  Không có dữ liệu
+                </td>
+              </tr>
+            )}
         </tbody>
       </Table>
-
-      {/* Pagination */}
+        {/* Pagination */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <small>{totalProducts} sản phẩm</small>
@@ -289,6 +293,9 @@ const DanhSachSanPham = () => {
           <Pagination.Last onClick={() => handlePageChange(totalPages)} />
         </Pagination>
       </div>
+            </div>
+        )}
+    
 
       {/* Modal xác nhận xóa */}
       <Modal show={showModal} onHide={closeDeleteModal}>

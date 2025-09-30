@@ -8,7 +8,7 @@ import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 
 const EmployeeTable = ({ employees, onEdit, onDelete }) => (
   <table className="table table-bordered">
-    <thead>
+    <thead  className="table-dark">
       <tr>
         <th>Họ tên</th>
         <th>Email</th>

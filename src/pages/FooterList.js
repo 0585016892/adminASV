@@ -312,101 +312,104 @@ const FooterList = () => {
         </Col>
       </Row>
 
-      <div className="table-responsive">
-        <Table bordered hover className="text-center table-striped shadow-sm">
-          <thead className="table-light">
-            <tr>
-              <th>ID</th>
-              <th>Tiêu đề</th>
-              <th>Liên kết</th>
-              <th>Trạng thái</th>
-              <th>Ngày tạo</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6">
-                  <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-                           <Spinner animation="border" variant="primary" />
-                         </div>
-                </td>
-              </tr>
-            ) : footers?.length === 0 ? (
-              <tr>
-                <td colSpan="6">Không có footer nào.</td>
-              </tr>
-            ) : (
-              footers
-                .filter((f) => !f.parent_id)
-                .map((f) => (
-                  <React.Fragment key={f.id}>
-                    {renderFooterRow(f)}
-                    {expandedGroups.includes(f.id) && (
-                      <tr>
-                        <td colSpan="6" className="p-0 bg-light">
-                          <div className="p-2">
-                            <Table bordered size="sm" className="mb-0">
-                              <thead className="table-light">
-                                <tr>
-                                  <th>ID</th>
-                                  <th>Tiêu đề</th>
-                                  <th>Liên kết</th>
-                                  <th>Trạng thái</th>
-                                  <th>Ngày tạo</th>
-                                  <th>Hành động</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {getChildFooters(f.id).map((child) =>
-                                  renderFooterRow(child, true)
-                                )}
-                              </tbody>
-                            </Table>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))
-            )}
-          </tbody>
-        </Table>
-      </div>
-      
-      <div className="d-flex justify-content-between align-items-center mb-3 px-2">
-        <small className="text-muted fw-medium">
-          Tổng cộng <strong>{pagination.totalFooters}</strong> footer
-        </small>
-        <Pagination className="m-0">
-          <Pagination.First
-            onClick={() => handlePageChange(1)}
-            disabled={pagination.currentPage === 1}
-          />
-          <Pagination.Prev
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
-          />
-          {Array.from({ length: pagination.totalPages }, (_, i) => (
-            <Pagination.Item
-              key={i + 1}
-              active={i + 1 === pagination.currentPage}
-              onClick={() => handlePageChange(i + 1)}
-            >
-              {i + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-          <Pagination.Last
-            onClick={() => handlePageChange(pagination.totalPages)}
-            disabled={pagination.currentPage === pagination.totalPages}
-          />
-        </Pagination>
-      </div>
+    {loading ? (
+        <div className="text-center py-5 my-4 d-flex justify-content-center align-items-center">
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : (
+        <>
+          <div className="table-responsive">
+            <Table bordered hover className="text-center table-striped shadow-sm">
+              <thead  className="table-dark">
+                <tr>
+                  <th>ID</th>
+                  <th>Tiêu đề</th>
+                  <th>Liên kết</th>
+                  <th>Trạng thái</th>
+                  <th>Ngày tạo</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {footers?.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center text-muted">
+                      Không có footer nào.
+                    </td>
+                  </tr>
+                ) : (
+                  footers
+                    .filter((f) => !f.parent_id)
+                    .map((f) => (
+                      <React.Fragment key={f.id}>
+                        {renderFooterRow(f)}
+                        {expandedGroups.includes(f.id) && (
+                          <tr>
+                            <td colSpan="6" className="p-0 bg-light">
+                              <div className="p-2">
+                                <Table bordered size="sm" className="mb-0">
+                                  <thead  className="table-dark">
+                                    <tr>
+                                      <th>ID</th>
+                                      <th>Tiêu đề</th>
+                                      <th>Liên kết</th>
+                                      <th>Trạng thái</th>
+                                      <th>Ngày tạo</th>
+                                      <th>Hành động</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {getChildFooters(f.id).map((child) =>
+                                      renderFooterRow(child, true)
+                                    )}
+                                  </tbody>
+                                </Table>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))
+                )}
+              </tbody>
+            </Table>
+          </div>
+
+          <div className="d-flex justify-content-between align-items-center mb-3 px-2">
+            <small className="text-muted fw-medium">
+              Tổng cộng <strong>{pagination.totalFooters}</strong> footer
+            </small>
+            <Pagination className="m-0">
+              <Pagination.First
+                onClick={() => handlePageChange(1)}
+                disabled={pagination.currentPage === 1}
+              />
+              <Pagination.Prev
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
+              />
+              {Array.from({ length: pagination.totalPages }, (_, i) => (
+                <Pagination.Item
+                  key={i + 1}
+                  active={i + 1 === pagination.currentPage}
+                  onClick={() => handlePageChange(i + 1)}
+                >
+                  {i + 1}
+                </Pagination.Item>
+              ))}
+              <Pagination.Next
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages}
+              />
+              <Pagination.Last
+                onClick={() => handlePageChange(pagination.totalPages)}
+                disabled={pagination.currentPage === pagination.totalPages}
+              />
+            </Pagination>
+          </div>
+        </>
+      )}
 
       <Modal
         show={showAddChildModal}

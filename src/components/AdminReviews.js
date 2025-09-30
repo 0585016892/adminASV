@@ -294,7 +294,7 @@ const [filters, setFilters] = useState({ rating: "", status: "all" });
             <p>Chưa có đánh giá nào.</p>
           ) : (
             <Table striped bordered hover responsive>
-              <thead>
+              <thead  className="table-dark">
                 <tr>
                   <th>Người đánh giá</th>
                   <th>Sao</th>
