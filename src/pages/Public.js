@@ -18,7 +18,7 @@ const Public = () => {
         <ChatWidget  />
       </div>
       {/* Main content */}
-      <div className="content-area p-2" style={{marginLeft:220}}>
+      <div className="content-area p-2">
         <Outlet />
       </div>
     </div>

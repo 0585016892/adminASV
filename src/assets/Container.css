@@ -158,21 +158,7 @@
 .profileContainer .menuContainer ul li a:hover {
   color: white;
 }
-@media screen and (max-width: 525px) {
-  .container {
-    width: calc(100% - 68px);
-  }
 
-  .topContainer .inputBox {
-    width: 120px;
-    z-index: 101;
-  }
-
-  .topContainer .inputBox input:focus {
-    width: 320px;
-    transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-}
 /* slideDownFadeIn: từ trên xuống + mờ dần thành rõ */
 /* Nền mờ fullscreen */
 .overlay123 {

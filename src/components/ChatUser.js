@@ -100,7 +100,7 @@ const ChatUser = () => {
 
   const renderAvatar = (username) => (
     <div
-      className="rounded-circle d-flex align-items-center justify-content-center me-2"
+      className="rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
       style={{
         width: 40,
         height: 40,
@@ -129,11 +129,11 @@ const ChatUser = () => {
   });
 
   return (
-    <div className="d-flex vh-100 bg-light" style={{ paddingLeft: "35px" }}>
+    <div className="d-flex flex-column flex-md-row vh-100 bg-light m-md-2">
       {/* Sidebar */}
       <div
-        className="col-3 border-end bg-white shadow-sm d-flex flex-column"
-        style={{ borderRadius: "16px 0 0 16px" }}
+        className="col-12 col-md-3 border-end bg-white shadow-sm d-flex flex-column ms-md-3"
+        style={{ borderRadius: "16px 0 0 16px", minWidth: "250px", maxHeight: "100vh" }}
       >
         <div className="p-3 border-bottom">
           <h5 className="fw-bold text-primary mb-3">💬 Hộp thoại khách hàng</h5>
@@ -149,7 +149,7 @@ const ChatUser = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="mt-2 d-flex gap-2 justify-content-center">
+          <div className="mt-2 d-flex gap-2 flex-wrap justify-content-center">
             <button
               className={`btn btn-sm ${
                 filterStatus === "all" ? "btn-primary" : "btn-outline-primary"
@@ -190,21 +190,23 @@ const ChatUser = () => {
               key={user.userId}
               onClick={() => handleSelectUser(user.userId)}
               className={`d-flex align-items-center justify-content-between p-2 rounded-3 mb-2 ${
-                   user.userId === selectedUser ? "bg-info bg-opacity-25 border border-info" : "bg-white"
-                }`}
-                style={{ cursor: "pointer", transition: "0.3s" }}
+                user.userId === selectedUser
+                  ? "bg-info bg-opacity-25 border border-info"
+                  : "bg-white"
+              }`}
+              style={{ cursor: "pointer", transition: "0.3s" }}
             >
               <div className="d-flex align-items-center">
                 {renderAvatar(user.full_name)}
                 <div>
-                   <strong className={user.userId === selectedUser ? "text-primary" : ""}>
-                      {user.full_name}
-                    </strong>
+                  <strong className={user.userId === selectedUser ? "text-primary" : ""}>
+                    {user.full_name}
+                  </strong>
                   <div style={{ fontSize: "0.8rem", color: "#6c757d" }}>
-                      {onlineUsers.includes(user.userId.toString())
-                        ? "Đang hoạt động"
-                        : "Không hoạt động"}
-                    </div>
+                    {onlineUsers.includes(user.userId.toString())
+                      ? "Đang hoạt động"
+                      : "Không hoạt động"}
+                  </div>
                 </div>
               </div>
               {unreadUsers.includes(user.userId) && (
@@ -217,8 +219,8 @@ const ChatUser = () => {
 
       {/* Chat box */}
       <div
-        className="col-9 d-flex flex-column bg-white shadow-sm"
-        style={{ borderRadius: "0 16px 16px 0" }}
+        className="col-12 col-md-9 d-flex flex-column bg-white shadow-sm"
+        style={{ borderRadius: "0 16px 16px 0", maxHeight: "100vh" }}
       >
         <div className="p-3 border-bottom bg-light d-flex align-items-center">
           <h5 className="mb-0 text-secondary">
@@ -249,7 +251,7 @@ const ChatUser = () => {
                         ? "bg-primary text-white"
                         : "bg-white text-dark"
                     }`}
-                    style={{ maxWidth: "75%" }}
+                    style={{ maxWidth: "100%" }}
                   >
                     <div
                       dangerouslySetInnerHTML={{
@@ -275,17 +277,17 @@ const ChatUser = () => {
         </div>
 
         {selectedUser && (
-          <div className="p-3 border-top bg-white d-flex align-items-center gap-2">
+          <div className="p-3 border-top bg-white d-flex align-items-center gap-2 flex-nowrap">
             <input
               type="text"
-              className="form-control rounded-pill"
+              className="form-control rounded-pill flex-grow-1"
               placeholder="Nhập tin nhắn..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
             <button
-              className="btn btn-primary rounded-circle"
+              className="btn btn-primary rounded-circle flex-shrink-0"
               style={{ width: 45, height: 45 }}
               onClick={sendMessage}
             >

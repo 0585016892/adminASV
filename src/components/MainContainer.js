@@ -102,7 +102,11 @@ export default function Dashboard() {
       socket.off("newMessageNotification");
     };
   }, []);
-
+ const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
   // ✅ Đóng dropdown thông báo khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -232,8 +236,7 @@ export default function Dashboard() {
                 <div className="menuContainer">
                   <ul>
                     <li><a href="/trang-ca-nhan">Trang cá nhân</a></li>
-                    <li><a href="/doi-mat-khau">Đổi mật khẩu</a></li>
-                    <li><a href="/dang-xuat">Đăng xuất</a></li>
+                    <li><a  onClick={handleLogout}>Đăng xuất</a></li>
                   </ul>
                 </div>
               )}

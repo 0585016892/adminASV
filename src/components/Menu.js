@@ -98,16 +98,22 @@ const Menu = () => {
     <>
       {/* Toggle button (mobile) */}
       <button
-        className="toggle-btn d-md-none"
+        className="d-md-none toggle-btn btn btn-primary position-fixed top-3 start-3"
         onClick={() => setSidebarOpen(!isSidebarOpen)}
       >
         ☰
       </button>
-
+      {isSidebarOpen && (
+        <div
+          className="d-md-none position-fixed top-0 start-0 w-100 h-100"
+          style={{ backgroundColor: "rgba(0,0,0,0.3)", zIndex: 1050 }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
         <div className="logo">
-          <Link to="/" onClick={() => setSidebarOpen(false)}>
+          <Link to="/" onClick={() =>  setSidebarOpen(false)}>
             <img src={logo} alt="Logo" />
           </Link>
         </div>

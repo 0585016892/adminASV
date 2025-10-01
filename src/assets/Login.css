@@ -1,7 +1,59 @@
-.login_bg {
-  background-image: url(../img/bgLogin.png);
-  background-size: cover; /* Hoặc contain */
-  background-position: center;
-  background-repeat: no-repeat;
-  padding-left: 250px;
+.login-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f3f4f6;
+  padding: 15px;
+}
+
+.login-box {
+  background: #fff;
+  width: 100%;
+  max-width: 400px;
+  padding: 30px 25px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.login-logo {
+  max-width: 100px;
+  margin-bottom: 15px;
+}
+
+.btn-login {
+  background-color: #4f46e5;
+  border: none;
+  color: #fff;
+  padding: 10px;
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.btn-login:hover {
+  background-color: #4338ca;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  top: 38px;
+  right: 12px;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.shake {
+  animation: shake 0.5s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+}
+
+.form-check-label {
+  font-size: 0.9rem;
 }

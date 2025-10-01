@@ -200,7 +200,7 @@ const DanhSachKhachhang = () => {
                           "Không được xem"
                         )}
                       </td>
-                      <td className="text-center">
+                      <td className="d-flex gap-2 justify-content-center">
                         <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
                           <Button
                             variant="outline-primary"

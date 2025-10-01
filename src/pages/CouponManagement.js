@@ -372,7 +372,7 @@ const CouponManagement = () => {
                             </div>
                           )}
                         </td>
-                        <td className="text-center">
+                        <td className="text-center d-flex gap-2 justify-content-center">
                           <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
                             <Button
                               className="me-2"

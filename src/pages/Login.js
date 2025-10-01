@@ -1,26 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Form, Button, Alert, InputGroup } from "react-bootstrap";
-import { BsEyeFill, BsEyeSlashFill } from "react-icons/bs";
-import { useAuth } from "../contexts/AuthContext"; // import hook
+import { Form, Button, Alert, InputGroup, Image } from "react-bootstrap";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useAuth } from "../contexts/AuthContext";
 import "../assets/Login.css";
-export default function Login() {
-  const API_URL_LOGIN = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
+import logo from "../img/logo.png";
 
-  const { login } = useAuth(); // lấy login từ context
-  const [email, setEmail] = useState(
-    localStorage.getItem("rememberEmail") || ""
-  );
+export default function Login() {
+  const API_URL_LOGIN = process.env.REACT_APP_API_URL;
+  const { login } = useAuth();
+  const [email, setEmail] = useState(localStorage.getItem("rememberEmail") || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [shake, setShake] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setShake(false);
     setIsLoading(true);
 
     try {
@@ -29,60 +30,60 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.message || "Đăng nhập thất bại");
+        setShake(true);
         setIsLoading(false);
         return;
       }
 
-      // Gọi login của context, truyền user + token + role
-      login({
-        user: data.user,
-        token: data.token,
-        role: data.role,
-      });
-
-      // Ghi nhớ email nếu checkbox checked, hoặc xóa nếu không
-      if (remember) {
-        localStorage.setItem("rememberEmail", email);
-      } else {
-        localStorage.removeItem("rememberEmail");
-      }
+      login({ user: data.user, token: data.token, role: data.role });
+      remember ? localStorage.setItem("rememberEmail", email) : localStorage.removeItem("rememberEmail");
       setIsLoading(false);
-      navigate("/"); // chuyển trang
-    } catch (err) {
+      navigate("/");
+    } catch {
       setError("Lỗi mạng hoặc server");
+      setShake(true);
       setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (!shake) return;
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) setShake(false);
+    }, 500);
+    return () => { mounted = false; clearTimeout(timer); };
+  }, [shake]);
+
   return (
-    <div className="d-flex justify-content-start align-items-center vh-100 login_bg">
-      <Form
-        onSubmit={handleSubmit}
-        className="p-4 shadow bg-white rounded"
-        style={{ minWidth: 500, height: 400 }}
-      >
-        <h3 className="text-center mb-4">Đăng nhập quản trị</h3>
+    <div className="login-wrapper">
+      <div className={`login-box shadow-sm ${shake ? "shake" : ""}`}>
+        <div className="text-center mb-4">
+          <Image src={logo} alt="Logo" className="login-logo" />
+          <h3>Quản trị viên</h3>
+          <small className="text-muted">Đăng nhập để quản lý hệ thống</small>
+        </div>
+
         {error && <Alert variant="danger">{error}</Alert>}
 
-        <Form.Group controlId="formEmail" className="mb-4">
-          <Form.Label>Email</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Nhập email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </Form.Group>
+        <Form onSubmit={handleSubmit}>
+          <Form.Group className="mb-3">
+            <Form.Label>Email</Form.Label>
+            <Form.Control
+              type="email"
+              placeholder="Nhập email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </Form.Group>
 
-        <Form.Group controlId="formPassword" className="mb-4">
-          <Form.Label>Mật khẩu</Form.Label>
-          <InputGroup>
+          <Form.Group className="mb-3 position-relative">
+            <Form.Label>Mật khẩu</Form.Label>
             <Form.Control
               type={showPassword ? "text" : "password"}
               placeholder="Nhập mật khẩu"
@@ -90,46 +91,34 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              className="pr-5"
             />
-            <Button
-              variant="toggle-password-icon"
-              onClick={() => setShowPassword(!showPassword)}
-              tabIndex={-1}
-            >
-              {showPassword ? <BsEyeSlashFill /> : <BsEyeFill />}
-            </Button>
-          </InputGroup>
-        </Form.Group>
+            <span className="password-toggle-icon" onClick={() => setShowPassword(!showPassword)}>
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </Form.Group>
 
-        <Form.Group className="mb-4" controlId="formRemember">
-          <Form.Check
-            type="checkbox"
-            label="Ghi nhớ email"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-          />
-        </Form.Group>
+          <Form.Group className="mb-4 d-flex align-items-center justify-content-between">
+            <Form.Check
+              type="checkbox"
+              label="Ghi nhớ email"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+          </Form.Group>
 
-        <button
-          type="submit"
-          className="btn btn-primary w-100"
-          style={{ marginTop: 20 }}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <span
-                className="spinner-border spinner-border-sm"
-                role="status"
-                aria-hidden="true"
-              ></span>{" "}
-              Đang đăng nhập...
-            </>
-          ) : (
-            "Đăng nhập"
-          )}
-        </button>
-      </Form>
+          <Button type="submit" className="w-100 btn-login" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Đang đăng nhập...
+              </>
+            ) : (
+              "Đăng nhập"
+            )}
+          </Button>
+        </Form>
+      </div>
     </div>
   );
 }

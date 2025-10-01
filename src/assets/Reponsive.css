@@ -1,0 +1,40 @@
+.content-area{
+    margin-left: 220px;
+}
+@media (max-width: 768px) {
+ .content-area{
+    margin-left: 0;
+            width: 100%;
+                background-color: #f4f6f9;
+        margin-top: 30px;
+}
+.dashboard-header{
+    flex-direction: column;
+}
+.notification-dropdown{
+    left: 0;
+    width: 325px;
+}
+.chart-header{
+    flex-direction: column;
+}
+.dashboard-container{
+    padding: 0;
+}
+.container {
+    width: 100%;
+  }
+}
+@media screen and (max-width: 525px) {
+  
+
+  .topContainer .inputBox {
+    width: 120px;
+    z-index: 101;
+  }
+
+  .topContainer .inputBox input:focus {
+    width: 320px;
+    transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+}

@@ -52,18 +52,22 @@ const AdminProfile = () => {
   const [otpTimer, setOtpTimer] = useState(600);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (user && user.id) {
-      socket.emit("join-user-room", user.id);
+useEffect(() => {
+  let mounted = true;
+  if (user?.id) {
+    socket.emit("join-user-room", user.id);
 
-      socket.on("attendance-realtime", (data) => {
-        console.log("🟢 Nhận chấm công:", data);
-        // Hiển thị UI thông báo hoặc toast
-      });
+    socket.on("attendance-realtime", (data) => {
+      if (mounted) ;
+    });
 
-      return () => socket.disconnect();
-    }
-  }, [user]);
+    return () => {
+      mounted = false;
+      socket.off("attendance-realtime");
+      socket.disconnect();
+    };
+  }
+}, [user]);
   const formatDateISO = (date) => {
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - offset * 60 * 1000);
@@ -214,15 +218,20 @@ const AdminProfile = () => {
       </div>
     ) : null;
   };
-  useEffect(() => {
-    let interval;
-    if (step === 2 && otpTimer > 0) {
-      interval = setInterval(() => {
-        setOtpTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [step, otpTimer]);
+useEffect(() => {
+  let interval;
+  let mounted = true;
+  if (step === 2 && otpTimer > 0 && showForgotModal) {
+    interval = setInterval(() => {
+      if (mounted) setOtpTimer((prev) => prev - 1);
+    }, 1000);
+  }
+  return () => {
+    mounted = false;
+    clearInterval(interval);
+  };
+}, [step, otpTimer, showForgotModal]);
+
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -418,11 +427,11 @@ if (!user)
       </Modal>
       <Modal
         show={showForgotModal}
-        onHide={() => {
-          setShowForgotModal(false);
+        onHide={() => setShowForgotModal(false)}
+        onExited={() => {
           setStep(1);
           setForgotEmail("");
-          setOtp("");
+          setOtp(Array(6).fill(""));
           setNewForgotPassword("");
           setForgotMsg(null);
         }}

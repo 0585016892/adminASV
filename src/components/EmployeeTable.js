@@ -7,7 +7,8 @@ import {
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 
 const EmployeeTable = ({ employees, onEdit, onDelete }) => (
-  <table className="table table-bordered">
+  <div className="table-responsive">
+     <table className="table table-bordered">
     <thead  className="table-dark">
       <tr>
         <th>Họ tên</th>
@@ -32,7 +33,7 @@ const EmployeeTable = ({ employees, onEdit, onDelete }) => (
           <td>{emp.position}</td>
           <td>{emp.address}</td>
           <td>{emp.status == "active" ? "Hoạt động" : "Không hoạt động"}</td>
-          <td>
+          <td className="d-flex gap-2 justify-content-center">
                      <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
               <Button
                  style={{marginRight:2}}
@@ -57,6 +58,7 @@ const EmployeeTable = ({ employees, onEdit, onDelete }) => (
       ))}
     </tbody>
   </table>
+  </div>
 );
 
 export default EmployeeTable;
