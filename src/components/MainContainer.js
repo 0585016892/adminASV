@@ -8,6 +8,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   LabelList,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
 } from "recharts";
 import {
   markNotificationAsRead,
@@ -28,6 +34,9 @@ import {
   fetchStats,
   fetchRevenueDaily,
   fetchRecentOrders,
+  getRevenueByCategory,
+  getOrderStatusRatio,
+  getRevenueByMonth,
 } from "../api/dashApi";
 import { io } from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
@@ -39,9 +48,9 @@ const URL_WEB = process.env.REACT_APP_WEB_URL;
 const socket = io(`${URL_WEB}`);
 
 export default function Dashboard() {
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AA55DD"];
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const notifRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -56,7 +65,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
-  // ✅ Load dữ liệu thống kê và đơn hàng
+  const [orderStatusData, setOrderStatusData] = useState([]);
+  const [revenueMonthly, setRevenueMonthly] = useState([]);
+  const [data, setData] = useState([]);
+
   useEffect(() => {
     Promise.all([fetchStats(), fetchRecentOrders()])
       .then(([statsRes, ordersRes]) => {
@@ -67,12 +79,29 @@ export default function Dashboard() {
       .catch(console.error);
   }, []);
 
-  // ✅ Biểu đồ doanh thu
   useEffect(() => {
     fetchRevenueDaily(fromDate, toDate).then(setRevenueData);
   }, [fromDate, toDate]);
 
-  // ✅ Lấy thông báo ban đầu
+  useEffect(() => {
+    (async () => {
+      const [statusRes, monthlyRes, categoryRes] = await Promise.all([
+        getOrderStatusRatio(),
+        getRevenueByMonth(),
+        getRevenueByCategory(),
+      ]);
+
+      setOrderStatusData(statusRes || []);
+      setRevenueMonthly(monthlyRes || []);
+      setData(categoryRes || []);
+    })();
+  }, []);
+
+  const pieData = (data || []).map((item) => ({
+    category: item.category,
+    total_revenue: Number(item.total_revenue),
+  }));
+
   useEffect(() => {
     if (!user?.id) return;
     fetchNotifications(user.id)
@@ -83,7 +112,6 @@ export default function Dashboard() {
       .catch(console.error);
   }, [user]);
 
-  // ✅ Socket: Nhận thông báo mới
   useEffect(() => {
     socket.on("newOrderNotification", (data) => {
       const notif = { ...data, type: "order", is_read: 0 };
@@ -102,12 +130,13 @@ export default function Dashboard() {
       socket.off("newMessageNotification");
     };
   }, []);
- const handleLogout = () => {
+
+  const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
   };
-  // ✅ Đóng dropdown thông báo khi click ra ngoài
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
@@ -118,7 +147,6 @@ export default function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Đóng menu user khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -129,14 +157,12 @@ export default function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Format tiền tệ
   const formattedValue = (value) => {
     const num = Number(value);
     if (isNaN(num)) return value;
     return Math.floor(num).toLocaleString("vi-VN") + " đ";
   };
 
-  // ✅ Đánh dấu tất cả thông báo đã đọc
   const handleMarkAllAsRead = async () => {
     if (!user?.id) return;
     try {
@@ -149,189 +175,231 @@ export default function Dashboard() {
   };
 
   const getIconForStat = (label) => {
-    if (label.includes("Doanh thu")) return <FaMoneyBillWave className="stat-icon text-success" />;
-    if (label.includes("Đơn hàng")) return <FaShoppingCart className="stat-icon text-primary" />;
-    if (label.includes("Sản phẩm")) return <FaBoxOpen className="stat-icon text-warning" />;
-    if (label.includes("Khách hàng")) return <FaUsers className="stat-icon text-danger" />;
+    if (label.includes("Doanh thu"))
+      return <FaMoneyBillWave className="stat-icon text-success" />;
+    if (label.includes("Đơn hàng"))
+      return <FaShoppingCart className="stat-icon text-primary" />;
+    if (label.includes("Sản phẩm"))
+      return <FaBoxOpen className="stat-icon text-warning" />;
+    if (label.includes("Khách hàng"))
+      return <FaUsers className="stat-icon text-danger" />;
     return <FaBoxOpen className="stat-icon text-secondary" />;
   };
 
   return (
-    <div className="dashboard-container">
-      {/* Header */}
-      <header className="dashboard-header">
-        <h4 className="dashboard-title">Trung tâm quản lý bán hàng Âm Sắc Việt</h4>
-
+    <div className="dashboard-container bg-light min-vh-100 p-4">
+      {/* 🔹 Header */}
+      <header className="dashboard-header bg-white shadow-sm rounded-3 p-3 mb-4 d-flex justify-content-between align-items-center">
+       <h4 className="dashboard-title">Trung tâm quản lý bán hàng Âm Sắc Việt</h4>
         <div className="header-actions">
-          {/* Thông báo */}
-          <div ref={notifRef} className="notification-wrapper">
-            <button
-              className="btn btn-light rounded-circle shadow-sm position-relative"
-              onClick={() => setShowNotifications((prev) => !prev)}
-            >
-              <FaBell className="fs-5 text-primary" />
-              {unreadCount > 0 && (
-                <Badge bg="danger" className="notif-badge">
-                  {unreadCount}
-                </Badge>
-              )}
-            </button>
-
-            <AnimatePresence>
-              {showNotifications && (
-                <motion.div
-                  className="notification-dropdown"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                >
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h6 className="fw-bold text-primary">Thông báo</h6>
-                    <Button variant="outline-primary" size="sm" onClick={handleMarkAllAsRead}>
-                      Đọc tất cả
-                    </Button>
-                  </div>
-                  <hr />
-                  {notifications.length === 0 ? (
-                    <p className="text-center text-muted">Không có thông báo mới</p>
-                  ) : (
-                    notifications.map((note) => (
-                      <motion.div
-                        key={note.id}
-                        className={`notif-item ${note.is_read ? "read" : "unread"}`}
-                        whileHover={{ scale: 1.03 }}
-                        onClick={async () => {
-                          if (!note.is_read) await markNotificationAsRead(note.id);
-                          navigate(
-                            note.type === "message" ? "/message/danh-sach" : "/don-hang/danh-sach"
-                          );
-                        }}
-                      >
-                        <div className="fw-semibold">{note.message}</div>
-                        <small className="text-muted">
-                          {new Date(note.created_at).toLocaleString("vi-VN")}
-                        </small>
-                      </motion.div>
-                    ))
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Avatar + User menu */}
-          <div className="d-flex align-items-center gap-2" ref={menuRef}>
-            <img
-              src={user?.avatar ? `${URL_WEB}${user.avatar}` : women}
-              alt="avatar"
-              className="avatar1"
-            />
-
-            <div className="user-info" onClick={() => setOpen(!open)}>
-              <strong>{user?.full_name}</strong>
-              <FaChevronDown
-                className={`ms-2 chevron-icon ${open ? "rotate" : ""}`}
-              />
-              {open && (
-                <div className="menuContainer">
-                  <ul>
-                    <li><a href="/trang-ca-nhan">Trang cá nhân</a></li>
-                    <li><a  onClick={handleLogout}>Đăng xuất</a></li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+               {/* 🔔 Thông báo */}
+               <div ref={notifRef} className="notification-wrapper">
+                 <button
+                   className="btn btn-light rounded-circle shadow-sm position-relative"
+                   onClick={() => setShowNotifications((prev) => !prev)}
+                 >
+                   <FaBell className="fs-5 text-primary" />
+                   {unreadCount > 0 && (
+                     <Badge bg="danger" className="notif-badge">
+                       {unreadCount}
+                     </Badge>
+                   )}
+                 </button>
+       
+                 <AnimatePresence>
+                   {showNotifications && (
+                     <motion.div
+                       className="notification-dropdown"
+                       initial={{ opacity: 0, y: -10 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       exit={{ opacity: 0, y: -10 }}
+                     >
+                       <div className="d-flex justify-content-between align-items-center mb-2">
+                         <h6 className="fw-bold text-primary">Thông báo</h6>
+                         <Button variant="outline-primary" size="sm" onClick={handleMarkAllAsRead}>
+                           Đọc tất cả
+                         </Button>
+                       </div>
+                       <hr />
+                       {notifications.length === 0 ? (
+                         <p className="text-center text-muted">Không có thông báo mới</p>
+                       ) : (
+                         notifications.map((note) => (
+                           <motion.div
+                             key={note.id}
+                             className={`notif-item ${note.is_read ? "read" : "unread"}`}
+                             whileHover={{ scale: 1.03 }}
+                             onClick={async () => {
+                               if (!note.is_read) await markNotificationAsRead(note.id);
+                               navigate(
+                                 note.type === "message" ? "/message/danh-sach" : "/don-hang/danh-sach"
+                               );
+                             }}
+                           >
+                             <div className="fw-semibold">{note.message}</div>
+                             <small className="text-muted">
+                               {new Date(note.created_at).toLocaleString("vi-VN")}
+                             </small>
+                           </motion.div>
+                         ))
+                       )}
+                     </motion.div>
+                   )}
+                 </AnimatePresence>
+               </div>
+       
+               {/* 👤 Avatar + User menu */}
+               <div className="d-flex align-items-center gap-2" ref={menuRef}>
+                 <img
+                   src={user?.avatar ? `${URL_WEB}${user.avatar}` : women}
+                   alt="avatar"
+                   className="avatar1"
+                 />
+                 <div className="user-info" onClick={() => setOpen(!open)}>
+                   <strong>{user?.full_name}</strong>
+                   <FaChevronDown className={`ms-2 chevron-icon ${open ? "rotate" : ""}`} />
+                   {open && (
+                     <div className="menuContainer">
+                       <ul className="list-unstyled m-0 p-2">
+                          <li>
+                            <a href="/trang-ca-nhan" className="dropdown-item py-2">
+                              Trang cá nhân
+                            </a>
+                          </li>
+                          <li>
+                            <a onClick={handleLogout} className="dropdown-item py-2 text-danger">
+                              Đăng xuất
+                            </a>
+                          </li>
+                        </ul>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             </div>
       </header>
 
       {/* Nội dung */}
       {loading ? (
-        <div className="loading-container">
+        <div className="d-flex justify-content-center align-items-center py-5">
           <Spinner animation="border" variant="primary" />
         </div>
       ) : (
         <>
-          {/* Thống kê nhanh */}
-          <div className="stats-grid">
+          {/* 1️⃣ Thống kê */}
+          <div className="row g-3 mb-4">
             {stats.map(({ label, number, helpText }, i) => (
-              <motion.div
-                key={i}
-                className="stat-card"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <div className="stat-icon-container">{getIconForStat(label)}</div>
-                <div>
-                  <div className="fw-bold text-secondary">{label}</div>
-                  <div className="fs-4 fw-bold mt-2 text-dark">
-                    {label.includes("Doanh thu") ? formattedValue(number) : number}
+              <div key={i} className="col-md-3">
+                <motion.div
+                  className="bg-white rounded-4 shadow-sm p-3 d-flex align-items-center gap-3 h-100"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <div className="p-3 bg-primary bg-opacity-10 rounded-4">
+                    {getIconForStat(label)}
                   </div>
-                  <small className="text-muted">{helpText}</small>
-                </div>
-              </motion.div>
+                  <div>
+                    <div className="text-secondary small fw-semibold">{label}</div>
+                    <div className="fs-5 fw-bold text-dark mt-1">
+                      {label.includes("Doanh thu") ? formattedValue(number) : number}
+                    </div>
+                    <small className="text-muted">{helpText}</small>
+                  </div>
+                </motion.div>
+              </div>
             ))}
           </div>
 
-          {/* Biểu đồ */}
-          <div className="chart-card shadow-sm">
-            <div className="chart-header d-flex justify-content-between align-items-center mb-3">
-              <h5 className="fw-bold text-primary mb-0">
-                Biểu đồ doanh thu theo ngày
-              </h5>
-
-              <div className="date-filter d-flex align-items-center gap-2">
-                <div className="d-flex flex-column">
-                  <label className="form-label small text-muted mb-1">Từ ngày</label>
-                  <input
-                    type="date"
-                    className="form-control form-control-sm"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                  />
-                </div>
-                <div className="d-flex flex-column">
-                  <label className="form-label small text-muted mb-1">Đến ngày</label>
-                  <input
-                    type="date"
-                    className="form-control form-control-sm"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                  />
-                </div>
+          {/* 2️⃣ Biểu đồ doanh thu */}
+          <div className="bg-white rounded-4 shadow-sm p-4 mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="fw-bold text-primary">📈 Doanh thu theo ngày</h5>
+              <div className="d-flex gap-2">
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                />
               </div>
             </div>
 
-            <div className="chart-body">
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis tickFormatter={formattedValue} />
-                  <Tooltip
-                    formatter={(value) => formattedValue(value)}
-                    labelFormatter={(label) => `Ngày: ${label}`}
-                  />
-                  <Bar dataKey="revenue" fill="#4e73df" radius={[6, 6, 0, 0]}>
-                    <LabelList
-                      dataKey="revenue"
-                      position="top"
-                      formatter={formattedValue}
-                      style={{ fontSize: 10, fill: "#333" }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis tickFormatter={formattedValue} />
+                <Tooltip formatter={(value) => formattedValue(value)} />
+                <Bar dataKey="revenue" fill="#4e73df" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 3️⃣ Nhóm biểu đồ nhỏ */}
+          <div className="row g-3">
+            <div className="col-md-4">
+              <div className="bg-white rounded-4 shadow-sm p-3">
+                <h6 className="fw-bold text-primary mb-3">📊 Tỷ lệ đơn hàng</h6>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={orderStatusData} dataKey="value" nameKey="name" outerRadius={80}>
+                      {orderStatusData.map((entry, index) => (
+                        <Cell
+                          key={index}
+                          fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042"][index % 4]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="col-md-4">
+              <div className="bg-white rounded-4 shadow-sm p-3">
+                <h6 className="fw-bold text-primary mb-3">📆 Doanh thu theo tháng</h6>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={revenueMonthly}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis tickFormatter={formattedValue} />
+                    <Tooltip formatter={formattedValue} />
+                    <Line type="monotone" dataKey="revenue" stroke="#ff7300" strokeWidth={3} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="col-md-4">
+              <div className="bg-white rounded-4 shadow-sm p-3">
+                <h6 className="fw-bold text-primary mb-3">🛍️ Doanh thu theo danh mục</h6>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={pieData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" />
+                    <YAxis tickFormatter={formattedValue} />
+                    <Tooltip formatter={formattedValue} />
+                    <Bar dataKey="total_revenue" fill="#82ca9d" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
-
-          {/* Đơn hàng mới */}
-          <div className="orders-card">
-            <h5 className="fw-bold text-primary mb-3">Đơn hàng mới nhất</h5>
+          {/* 4️⃣ Đơn hàng mới nhất */}
+          <div className="bg-white rounded-4 shadow-sm p-4 mt-4">
+            <h5 className="fw-bold text-primary mb-3">🆕 Đơn hàng mới nhất</h5>
             <div className="table-responsive">
-              <table className="table table-hover align-middle">
+              <table className="table align-middle table-hover">
                 <thead className="table-light">
                   <tr>
                     <th>Mã đơn</th>

@@ -53,3 +53,38 @@ export async function fetchRecentOrders() {
     return [];
   }
 }
+// ✅ Lấy doanh thu theo danh mục
+export const getRevenueByCategory = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard/revenue-category`);
+    const data = await res.json(); // ✅ phải parse JSON
+    return data;
+  } catch (err) {
+    console.error("Lỗi khi lấy dữ liệu doanh thu theo danh mục:", err);
+    return [];
+  }
+};
+
+// ✅ Lấy tỷ lệ trạng thái đơn hàng
+export const getOrderStatusRatio = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard/order-status-ratio`);
+    const data = await res.json(); // ✅
+    return data;
+  } catch (err) {
+    console.error("Lỗi khi lấy dữ liệu trạng thái đơn hàng:", err);
+    return [];
+  }
+};
+
+// ✅ Lấy doanh thu theo tháng
+export const getRevenueByMonth = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard/revenue-monthly`);
+    const data = await res.json(); // ✅
+    return data;
+  } catch (err) {
+    console.error("Lỗi khi lấy dữ liệu doanh thu theo tháng:", err);
+    return [];
+  }
+};
