@@ -123,17 +123,31 @@ const CustomerDetails = () => {
                           </Col>
                           {/* Ảnh sản phẩm bên phải */}
                           <Col
-                            md={4}
-                            className="d-flex justify-content-center align-items-center"
-                          >
+                          md={4}
+                          className="d-flex justify-content-center align-items-center"
+                        >
+                          <div className="image-container" style={{ width: "100%", minHeight: "150px" }}>
+                            {/* Hiển thị loader khi ảnh chưa load */}
+                            {!order.imageLoaded && (
+                              <div className="image-placeholder">
+                              </div>
+                            )}
+
                             <Image
                               src={`${URL_WEB}/uploads/${order.image}`}
                               alt={order.name}
                               fluid
                               rounded
-                              style={{ width: "100%" }}
+                              className={`image-fade ${order.imageLoaded ? "loaded" : ""}`}
+                              style={{ width: "100%", objectFit: "cover" }}
+                              onLoad={() => {
+                                order.imageLoaded = true;
+                                setCustomerData((prev) => ({ ...prev })); // Cập nhật lại UI
+                              }}
                             />
-                          </Col>
+                          </div>
+                        </Col>
+
                         </Row>
                       </Card.Body>
                     </Card>

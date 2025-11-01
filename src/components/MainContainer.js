@@ -53,7 +53,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const notifRef = useRef(null);
   const menuRef = useRef(null);
-
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [stats, setStats] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -101,6 +101,7 @@ export default function Dashboard() {
     category: item.category,
     total_revenue: Number(item.total_revenue),
   }));
+console.log(data);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -250,11 +251,18 @@ export default function Dashboard() {
        
                {/* 👤 Avatar + User menu */}
                <div className="d-flex align-items-center gap-2" ref={menuRef}>
-                 <img
-                   src={user?.avatar ? `${URL_WEB}${user.avatar}` : women}
-                   alt="avatar"
-                   className="avatar1"
-                 />
+                  {!imageLoaded && (
+                  <div className="avatar-placeholder">
+                    <Spinner animation="border" variant="warning" size="sm" />
+                  </div>
+                )}
+                <img
+                  src={user?.avatar ? `${URL_WEB}${user.avatar}` : women}
+                  alt="avatar"
+                  className={`avatar1 fade-avatar ${imageLoaded ? "loaded" : ""}`}
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageLoaded(true)} // nếu lỗi ảnh vẫn bỏ spinner
+                />
                  <div className="user-info" onClick={() => setOpen(!open)}>
                    <strong>{user?.full_name}</strong>
                    <FaChevronDown className={`ms-2 chevron-icon ${open ? "rotate" : ""}`} />
@@ -370,10 +378,10 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={revenueMonthly}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
+                    <XAxis dataKey="month" name="Tháng"/>
                     <YAxis tickFormatter={formattedValue} />
                     <Tooltip formatter={formattedValue} />
-                    <Line type="monotone" dataKey="revenue" stroke="#ff7300" strokeWidth={3} />
+                    <Line type="monotone" name="Doanh thu" dataKey="revenue" stroke="#ff7300" strokeWidth={3} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -383,14 +391,16 @@ export default function Dashboard() {
               <div className="bg-white rounded-4 shadow-sm p-3">
                 <h6 className="fw-bold text-primary mb-3">🛍️ Doanh thu theo danh mục</h6>
                 <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={pieData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
-                    <YAxis tickFormatter={formattedValue} />
-                    <Tooltip formatter={formattedValue} />
-                    <Bar dataKey="total_revenue" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis tickFormatter={formattedValue} />
+                  <Tooltip formatter={formattedValue} />
+                  <Legend />
+                  <Bar dataKey="online" fill="#ffc107" name="Doanh thu Online" />
+                  <Bar dataKey="offline" fill="#82ca9d" name="Doanh thu Offline" />
+                </BarChart>
+              </ResponsiveContainer>
               </div>
             </div>
           </div>

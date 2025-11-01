@@ -192,12 +192,26 @@ const SlideList = () => {
                       <tr key={s.id}>
                         <td>SL010{s.id}</td>
                         <td>{s.title}</td>
-                        <td>
-                          <img
-                            src={`${URL_WEB}/uploads/${s.image}`}
-                            alt={s.title}
-                            height={50}
-                          />
+                        <td >
+                          <td>
+                              <div  className="image-wrapper">
+                                {/* Loader hiển thị khi ảnh chưa load */}
+                                {!s.loaded && (
+                                  <div className="image-placeholder" style={{height:'50px'}}>
+                                  </div>
+                                )}
+                                <img
+                                  src={`${URL_WEB}/uploads/${s.image}`}
+                                  alt={s.title}
+                                  height={50}
+                                  className={`image-fade ${s.loaded ? "loaded" : ""}`}
+                                  onLoad={() => {
+                                    s.loaded = true;
+                                    setSlides((prev) => [...prev]); // Cập nhật lại để trigger re-render
+                                  }}
+                                />
+                              </div>
+                            </td>
                         </td>
                         <td>
                           <a href={s.link} target="_blank" rel="noopener noreferrer">

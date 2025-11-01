@@ -98,7 +98,20 @@ const ChatUser = () => {
       .replace(/\n/g, "<br/>");
   };
 
-  const renderAvatar = (username) => (
+  const renderAvatar = (username) => {
+  // Xử lý nếu không phải string
+  let name = "";
+
+  if (typeof username === "string") {
+    name = username;
+  } else if (typeof username === "object" && username !== null) {
+    // Nếu là object, thử lấy các thuộc tính thường gặp
+    name = username.full_name || username.name || username.username || "";
+  }
+
+  const firstChar = name?.charAt?.(0)?.toUpperCase?.() || "?";
+
+  return (
     <div
       className="rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
       style={{
@@ -110,9 +123,11 @@ const ChatUser = () => {
         fontSize: "1rem",
       }}
     >
-      {username?.charAt(0)?.toUpperCase() || "?"}
+      {firstChar}
     </div>
   );
+};
+
 
   const filteredUsers = users.filter((user) =>
     (user.full_name || "")
@@ -240,14 +255,14 @@ const ChatUser = () => {
               <div
                 key={i}
                 className={`d-flex mb-3 ${
-                  msg.sender === "admin" ? "justify-content-end" : "justify-content-start"
+                   ["admin", "bot"].includes(msg.sender) ? "justify-content-end" : "justify-content-start"
                 }`}
               >
                 {msg.sender !== "admin" && renderAvatar(msg.sender)}
                 <div>
                   <div
                     className={`p-3 rounded-4 shadow-sm ${
-                      msg.sender === "admin"
+                     ["admin", "bot"].includes(msg.sender)
                         ? "bg-primary text-white"
                         : "bg-white text-dark"
                     }`}

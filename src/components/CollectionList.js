@@ -148,15 +148,36 @@ const CollectionList = () => {
         {collections.map((col) => (
           <Col md={4} key={col.id} className="mb-4">
             <Card className="border-0 shadow-sm h-100">
-              <Card.Img
-                variant="top"
-                src={
-                  col.image?.startsWith("http")
-                    ? col.image
-                    : `${process.env.REACT_APP_WEB_URL}/uploads/${col.image}`
-                }
-                style={{ height: "200px", objectFit: "cover" }}
-              />
+              <div style={{ position: "relative", height: "200px", overflow: "hidden" }}>
+            {!col.loaded && <div style={{height:''}} className="image-placeholder" ></div>}
+            <Card.Img
+              variant="top"
+              src={
+                col.image?.startsWith("http")
+                  ? col.image
+                  : `${process.env.REACT_APP_WEB_URL}/uploads/${col.image}`
+              }
+              style={{
+                height: "200px",
+                objectFit: "cover",
+                opacity: col.loaded ? 1 : 0,
+                transition: "opacity 0.4s ease-in-out",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+              }}
+              onLoad={() => {
+                col.loaded = true;
+                setCollections((prev) =>
+                  prev.map((c) => (c.id === col.id ? { ...c, loaded: true } : c))
+                );
+              }}
+            />
+          </div>
+
+
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <Card.Title className="mb-0 fs-5">{col.name}</Card.Title>

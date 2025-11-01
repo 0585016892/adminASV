@@ -38,7 +38,7 @@ const DanhSachSanPham = () => {
   const [message, setMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-
+const [loadedImages, setLoadedImages] = useState({});
   const [filters, setFilters] = useState({
     page: 1,
     limit: 7,
@@ -205,12 +205,29 @@ const DanhSachSanPham = () => {
                 <td>{`SP180703${prod.id}`}</td>
                 <td>
                   {prod.image && (
-                    <img
-                      src={`${URL_WEB}/uploads/${prod.image}`}
-                      alt="Ảnh sản phẩm"
-                      width={70}
-                      className="img-fluid rounded"
-                    />
+                   <div
+                        style={{ width: "70px", height: "70px", borderRadius: "8px", overflow: "hidden" }}
+                      >
+                        {!loadedImages[prod.id] && (
+                          <div className="skeleton-shimmer w-100 h-100 rounded" />
+                        )}
+                        <img
+                          src={`${URL_WEB}/uploads/${prod.image}`}
+                          alt="Ảnh sản phẩm"
+                          onLoad={() =>
+                            setLoadedImages((prev) => ({ ...prev, [prod.id]: true }))
+                          }
+                          style={{
+                            width: "70px",
+                            height: "70px",
+                            objectFit: "cover",
+                            borderRadius: "8px",
+                            display: loadedImages[prod.id] ? "block" : "none",
+                            transition: "opacity 0.5s ease-in-out",
+                          }}
+                        />
+                      </div>
+
                   )}
                 </td>
                 <td>{prod.name}</td>
