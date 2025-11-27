@@ -189,7 +189,7 @@ const DsDanhMuc = () => {
         )}
       </div>
    {/* Pagination */}
-   <div className="d-flex justify-content-between align-items-center">
+   <div className="d-flex justify-content-between align-items-center mt-2">
         <div>{totalDanhMuc} danh mục</div>
         <Pagination>
           <Pagination.First onClick={() => handlePageChange(1)} />

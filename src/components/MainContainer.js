@@ -275,6 +275,11 @@ console.log(data);
                             </a>
                           </li>
                           <li>
+                            <a href="/settings" className="dropdown-item py-2">
+                              Cài đặt
+                            </a>
+                          </li>
+                          <li>
                             <a onClick={handleLogout} className="dropdown-item py-2 text-danger">
                               Đăng xuất
                             </a>

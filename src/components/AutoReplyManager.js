@@ -237,7 +237,7 @@ const AutoReplyManager = () => {
             {filtered.map((r) => (
               <tr key={r.id}>
                 <td>CB821{r.id}</td>
-                <td>{r.keyword}</td>
+                <td>{r.chatbot_replies}</td>
                 <td>{r.reply}</td>
                 <td>
                   <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>

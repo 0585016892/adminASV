@@ -37,6 +37,7 @@ import {
   ChamCongAdmin,
   DanhSachBaiViet,
   POSPage,
+  SettingsPage
 } from "./pages";
 import "./App.css";
 import path from "./ultis/path";
@@ -263,6 +264,14 @@ function App() {
               <Unauthorized />
             </RoleRoute>
           }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RoleRoute allowedRoles={["admin"]}>
+                <SettingsPage />
+              </RoleRoute>
+            }
           />
           <Route path="/ban-hang-off" element={<POSPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
