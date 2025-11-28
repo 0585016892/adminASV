@@ -183,23 +183,25 @@ const DanhSachKhachhang = () => {
                           ? cus.address.slice(0, 30) + "..."
                           : cus.address}
                       </td>
-                      <td>
-                        {user?.role === "admin" ? (
-                          <Form.Control
-                            as="select"
-                            value={cus.status}
-                            onChange={(e) =>
-                              handleStatusChange(cus.id, e.target.value)
-                            }
-                            style={{ maxWidth: "150px" }}
-                          >
-                            <option value="active">Hoạt động</option>
-                            <option value="inactive">Không hoạt động</option>
-                          </Form.Control>
-                        ) : (
-                          "Không được xem"
-                        )}
-                      </td>
+                     <td>
+                      {user?.role === "admin" ? (
+                        <Form.Check 
+                          type="switch"
+                          id={`status-switch-${cus.id}`}
+                          checked={cus.status === "active"}
+                          onChange={() =>
+                            handleStatusChange(
+                              cus.id,
+                              cus.status === "active" ? "inactive" : "active"
+                            )
+                          }
+                          className="custom-switch-lg"
+                          style={{ cursor: "pointer" }}
+                        />
+                      ) : (
+                        "Không được xem"
+                      )}
+                    </td>
                       <td className="d-flex gap-2 justify-content-center">
                         <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
                           <Button

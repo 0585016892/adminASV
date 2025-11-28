@@ -4,6 +4,7 @@ import { Provider } from "react-redux";
 import App from "./App";
 import "./assets/Container.css";
 import "./assets/Reponsive.css";
+import "./assets/Customer.css";
 import { BrowserRouter } from "react-router-dom"; // Chỉ cần BrowserRouter ở đây
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./redux"; // Đảm bảo import đúng

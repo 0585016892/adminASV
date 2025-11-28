@@ -350,16 +350,21 @@ const CouponManagement = () => {
                           {new Date(c.start_date).toLocaleDateString("vi-VN")} –{" "}
                           {new Date(c.end_date).toLocaleDateString("vi-VN")}
                         </td>
-                        <td>
-                          <Form.Select
-                            size="sm"
-                            value={c.status}
-                            onChange={(e) => handleStatusChange(e, c.id)}
+                        <td className="text-center">
+                          <Form.Check 
+                            type="switch"
+                            id={`status-switch-${c.id}`}
+                            checked={c.status === "active"}
+                            onChange={() =>
+                              handleStatusChange(
+                                { target: { value: c.status === "active" ? "inactive" : "active" } },
+                                c.id
+                              )
+                            }
                             disabled={expired || outOfStock}
-                          >
-                            <option value="active">Hoạt động</option>
-                            <option value="inactive">Không hoạt động</option>
-                          </Form.Select>
+                            className="custom-switch-lg"
+
+                          />
 
                           {expired && (
                             <div className="text-danger small mt-1">
@@ -372,6 +377,7 @@ const CouponManagement = () => {
                             </div>
                           )}
                         </td>
+
                         <td className="text-center d-flex gap-2 justify-content-center">
                           <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
                             <Button
@@ -416,7 +422,7 @@ const CouponManagement = () => {
         )}
 
         </>
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             {editingCoupon ? "Cập nhật mã giảm giá" : "Thêm mã giảm giá"}
@@ -424,98 +430,119 @@ const CouponManagement = () => {
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Mã</Form.Label>
-              <Form.Control
-                type="text"
-                name="code"
-                value={formData.code}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Chi tiết</Form.Label>
-              <Form.Select
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-              >
-                <option value="1">Giảm cho sản phẩm</option>
-                <option value="0">Giảm cho hóa đơn</option>
-              </Form.Select>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Loại</Form.Label>
-              <Form.Select
-                name="discount_type"
-                value={formData.discount_type}
-                onChange={handleChange}
-              >
-                <option value="fixed">Giảm cố định</option>
-                <option value="percent">Giảm phần trăm</option>
-              </Form.Select>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Giá trị</Form.Label>
-              <Form.Control
-                type="number"
-                name="discount_value"
-                value={formData.discount_value}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Đơn hàng tối thiểu</Form.Label>
-              <Form.Control
-                type="number"
-                name="min_order_total"
-                value={formData.min_order_total}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Bắt đầu</Form.Label>
-              <Form.Control
-                type="datetime-local"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Kết thúc</Form.Label>
-              <Form.Control
-                type="datetime-local"
-                name="end_date"
-                value={formData.end_date}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Số lượng</Form.Label>
-              <Form.Control
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Check
-                type="checkbox"
-                label="Hoạt động"
-                name="status"
-                checked={formData.status === "active"}
-                onChange={handleChange}
-              />
-            </Form.Group>
-            <Button type="submit">{editingCoupon ? "Cập nhật" : "Thêm"}</Button>
+            <Row>
+              {/* Cột trái */}
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Mã</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="code"
+                    value={formData.code}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Chi tiết</Form.Label>
+                  <Form.Select
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                  >
+                    <option value="1">Giảm cho sản phẩm</option>
+                    <option value="0">Giảm cho hóa đơn</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Loại</Form.Label>
+                  <Form.Select
+                    name="discount_type"
+                    value={formData.discount_type}
+                    onChange={handleChange}
+                  >
+                    <option value="fixed">Giảm cố định</option>
+                    <option value="percent">Giảm phần trăm</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Giá trị</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="discount_value"
+                    value={formData.discount_value}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Đơn hàng tối thiểu</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="min_order_total"
+                    value={formData.min_order_total}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+              </Col>
+
+              {/* Cột phải */}
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Bắt đầu</Form.Label>
+                  <Form.Control
+                    type="datetime-local"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Kết thúc</Form.Label>
+                  <Form.Control
+                    type="datetime-local"
+                    name="end_date"
+                    value={formData.end_date}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Số lượng</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    type="switch"
+                    label="Hoạt động"
+                    name="status"
+                    checked={formData.status === "active"}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <div className="text-end">
+              <Button type="submit">{editingCoupon ? "Cập nhật" : "Thêm"}</Button>
+            </div>
           </Form>
         </Modal.Body>
       </Modal>
+
+
 
       <Modal show={showModalDelete} onHide={closeDeleteModal}>
         <Modal.Header closeButton>

@@ -1,160 +1,121 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom"; // Import useParams to get dynamic route params
-import { getCustomerDetails } from "../api/customerApi"; // Import the API function to get customer data
+import { useParams } from "react-router-dom";
+import { getCustomerDetails } from "../api/customerApi";
 import {
   Card,
-  ListGroup,
+  Table,
   Spinner,
   Alert,
   Row,
   Col,
   Image,
-} from "react-bootstrap"; // Import React-Bootstrap components for styling
-const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
+  Badge,
+} from "react-bootstrap";
 
-const CustomerDetails = () => {
-  const { id } = useParams(); // Use the useParams hook to get the 'id' from the URL
+const URL_WEB = process.env.REACT_APP_WEB_URL;
+
+const CustomerDetailsNew = () => {
+  const { id } = useParams();
   const [customerData, setCustomerData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Function to fetch customer and order details from the API
     const fetchCustomerDetails = async () => {
       try {
-        const data = await getCustomerDetails(id); // Use the dynamic 'id' in the API request
-        setCustomerData(data); // Set the fetched data into state
+        const data = await getCustomerDetails(id);
+        setCustomerData(data);
       } catch (err) {
         setError("Không thể tải dữ liệu khách hàng.");
       } finally {
-        setLoading(false); // End loading state
+        setLoading(false);
       }
     };
+    fetchCustomerDetails();
+  }, [id]);
 
-    fetchCustomerDetails(); // Call the fetch function when the component is mounted or 'id' changes
-  }, [id]); // Re-fetch if 'id' changes
-
-  if (loading) {
+  if (loading)
     return (
-     <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-       <Spinner animation="border" variant="primary" />
+      <div className="text-center py-5 d-flex justify-content-center align-items-center h-100">
+        <Spinner animation="border" variant="primary" />
       </div>
     );
-  }
 
-  if (error) {
-    return <Alert variant="danger">{error}</Alert>;
-  }
+  if (error) return <Alert variant="danger">{error}</Alert>;
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      {/* Customer Info Card */}
-      <Card className="mb-4 shadow-sm">
-        <Card.Header as="h3" className="bg-primary text-white">
-          Thông tin khách hàng
-        </Card.Header>
-        <Card.Body>
-          <ListGroup variant="flush">
-            <ListGroup.Item>
-              <strong>Tên:</strong> {customerData.customer.full_name}
-            </ListGroup.Item>
-            <ListGroup.Item>
+        <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
+      {/* HEADER KHÁCH HÀNG */}
+      <Card className="mb-4 shadow-sm border-0 rounded-3">
+        <Card.Body className="d-flex align-items-center gap-4" style={{ backgroundColor: "#e9f7ef" }}>
+          <Image
+            src={`${URL_WEB}/uploads/avatar.png`}
+            roundedCircle
+            style={{ width: "80px", height: "80px", objectFit: "cover" }}
+          />
+          <div>
+            <h4 className="mb-1">{customerData.customer.full_name}</h4>
+            <p className="mb-1">
               <strong>Email:</strong> {customerData.customer.email}
-            </ListGroup.Item>
-            <ListGroup.Item>
-              <strong>Điện thoại:</strong> {customerData.customer.phone}
-            </ListGroup.Item>
-            <ListGroup.Item>
+            </p>
+            <p className="mb-0">
+              <strong>Điện thoại:</strong> {customerData.customer.phone} |{" "}
               <strong>Địa chỉ:</strong> {customerData.customer.address}
-            </ListGroup.Item>
-          </ListGroup>
+            </p>
+          </div>
         </Card.Body>
       </Card>
 
-      {/* Orders Section */}
-      <Card className="shadow-sm">
-        <Card.Header as="h4" className="bg-success text-white">
-          Danh sách đơn hàng
+      {/* DANH SÁCH ĐƠN HÀNG */}
+      <Card className="shadow-sm border-0 rounded-3">
+        <Card.Header
+          as="h5"
+          className="text-white"
+          style={{ backgroundColor: "#28a745" }}
+        >
+          Danh sách đơn hàng ({customerData.orders.length})
         </Card.Header>
-        <Card.Body>
+        <Card.Body style={{ maxHeight: "500px", overflowY: "auto" }}>
           {customerData.orders.length === 0 ? (
             <Alert variant="info">Khách hàng chưa có đơn hàng nào.</Alert>
           ) : (
-            <div
-              style={{
-                maxHeight: "513px",
-                overflowY: "auto",
-                scrollbarWidth: "none", // Firefox
-                msOverflowStyle: "none", // IE/Edge
-              }}
-              className="custom-scroll-container"
-            >
-              <Row>
+            <Table hover responsive className="mb-0 align-middle">
+              <thead style={{ backgroundColor: "#f0f8ff" }}>
+                <tr>
+                  <th>Mã đơn</th>
+                  <th>Sản phẩm</th>
+                  <th>Ảnh</th>
+                  <th>Giá</th>
+                  <th>Số lượng</th>
+                  <th>Size</th>
+                  <th>Màu</th>
+                  <th>Ngày đặt</th>
+                </tr>
+              </thead>
+              <tbody>
                 {customerData.orders.map((order) => (
-                  <Col key={order.order_id} md={6} className="mb-4">
-                    <Card border="light" className="shadow-sm">
-                      <Card.Body>
-                        <Row>
-                          {/* Thông tin đơn hàng bên trái */}
-                          <Col md={8}>
-                            <h5 className="text-success">
-                              Mã đơn hàng: #{order.order_id}
-                            </h5>
-                            <p>
-                              <strong>Ngày đặt:</strong>{" "}
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </p>
-                            <p>
-                              <strong>Sản phẩm:</strong> {order.name}
-                            </p>
-                            <p>
-                              <strong>Giá:</strong>{" "}
-                              {Number(order.price).toLocaleString("vi-VN")}đ
-                            </p>
-                            <p>
-                              <strong>Số lượng:</strong> {order.quantity}
-                            </p>
-                            <p>
-                              <strong>Size:</strong> {order.size}
-                            </p>
-                            <p>
-                              <strong>Màu:</strong> {order.color}
-                            </p>
-                          </Col>
-                          {/* Ảnh sản phẩm bên phải */}
-                          <Col
-                          md={4}
-                          className="d-flex justify-content-center align-items-center"
-                        >
-                          <div className="image-container" style={{ width: "100%", minHeight: "150px" }}>
-                            {/* Hiển thị loader khi ảnh chưa load */}
-                            {!order.imageLoaded && (
-                              <div className="image-placeholder">
-                              </div>
-                            )}
-
-                            <Image
-                              src={`${URL_WEB}/uploads/${order.image}`}
-                              alt={order.name}
-                              fluid
-                              rounded
-                              className={`image-fade ${order.imageLoaded ? "loaded" : ""}`}
-                              style={{ width: "100%", objectFit: "cover" }}
-                              onLoad={() => {
-                                order.imageLoaded = true;
-                                setCustomerData((prev) => ({ ...prev })); // Cập nhật lại UI
-                              }}
-                            />
-                          </div>
-                        </Col>
-
-                        </Row>
-                      </Card.Body>
-                    </Card>
-                  </Col>
+                  <tr key={order.order_id}>
+                    <td>
+                      <Badge bg="secondary">#{order.order_id}</Badge>
+                    </td>
+                    <td>{order.name}</td>
+                    <td>
+                      <Image
+                        src={`${URL_WEB}/uploads/${order.image}`}
+                        alt={order.name}
+                        rounded
+                        style={{ width: "60px", height: "60px", objectFit: "cover" }}
+                      />
+                    </td>
+                    <td>{Number(order.price).toLocaleString("vi-VN")}đ</td>
+                    <td>{order.quantity}</td>
+                    <td>{order.size}</td>
+                    <td>{order.color}</td>
+                    <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                  </tr>
                 ))}
-              </Row>
-            </div>
+              </tbody>
+            </Table>
           )}
         </Card.Body>
       </Card>
@@ -162,4 +123,4 @@ const CustomerDetails = () => {
   );
 };
 
-export default CustomerDetails;
+export default CustomerDetailsNew;

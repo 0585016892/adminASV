@@ -1,0 +1,10 @@
+/* Switch lớn và màu xanh lá khi bật */
+.custom-switch-lg .form-check-input {
+  width: 50px;
+  height: 25px;
+}
+
+.custom-switch-lg .form-check-input:checked {
+  background-color: #28a745; /* xanh lá */
+  border-color: #28a745;
+}
