@@ -37,7 +37,8 @@ import {
   ChamCongAdmin,
   DanhSachBaiViet,
   POSPage,
-  SettingsPage
+  SettingsPage,
+  LogManagement
 } from "./pages";
 import "./App.css";
 import path from "./ultis/path";
@@ -270,6 +271,14 @@ function App() {
             element={
               <RoleRoute allowedRoles={["admin"]}>
                 <SettingsPage />
+              </RoleRoute>
+            }
+          />
+           <Route
+            path="/systems_log"
+            element={
+              <RoleRoute allowedRoles={["admin"]}>
+                <LogManagement />
               </RoleRoute>
             }
           />

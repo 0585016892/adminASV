@@ -23,10 +23,13 @@ export const filterKhachhang = async (filters) => {
   }
 };
 // API xóa
-export const deleteKhachhang = async (id) => {
+export const deleteKhachhang = async (id,userID) => {
   try {
     const response = await axios.delete(
-      `${API_BASE_URL}/customers/delete/${id}`
+      `${API_BASE_URL}/customers/delete/${id}`,
+      {
+        data: { userID }, // <== BODY ĐỂ GHI LOG
+      }
     );
     return response.data; // Trả về dữ liệu từ server
   } catch (error) {
@@ -35,12 +38,13 @@ export const deleteKhachhang = async (id) => {
   }
 };
 // Cập nhật trạng thái khách hàng
-export const updateCustomerStatus = async (id, status) => {
+export const updateCustomerStatus = async (id, status, userID) => {
   try {
     const response = await axios.patch(
       `${API_BASE_URL}/customers/update_status/${id}`,
       {
         status,
+        userID
       }
     );
     return response.data; // Trả về dữ liệu phản hồi từ API nếu cần

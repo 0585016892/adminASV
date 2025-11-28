@@ -6,8 +6,10 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { useAuth } from "../contexts/AuthContext";
 
 const OrderDetail = () => {
+  const { user } = useAuth();
   const { orderId } = useParams(); // Lấy ID đơn hàng từ URL
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,11 +33,10 @@ const OrderDetail = () => {
 
     fetchOrderDetails();
   }, [orderId]);
-console.log(order);
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(orderId, newStatus,user.id);
       setOrder((prevOrder) => ({
         ...prevOrder,
         status: newStatus,

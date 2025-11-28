@@ -16,4 +16,5 @@ export { default as ChamCongAdmin } from "./ChamCongAdmin";
 export { default as DanhSachBaiViet } from "./DanhSachBaiViet";
 export { default as POSPage } from "./POSPage";
 export { default as SettingsPage } from "./SettingsPage";
+export { default as LogManagement } from "./LogManagement";
  

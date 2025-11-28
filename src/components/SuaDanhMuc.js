@@ -5,8 +5,10 @@ import { useForm, Controller } from "react-hook-form";
 import { Form, Button, Row, Col, Card } from "react-bootstrap";
 import { ClipLoader } from "react-spinners";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { useAuth } from "../contexts/AuthContext";
 
 const SuaDanhMuc = () => {
+    const { user } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,7 @@ const SuaDanhMuc = () => {
       slug: data.slug || "",
       status: data.status || "",
       description: data.description || "",
+      userID:user.id
     };
 
     try {

@@ -13,14 +13,12 @@ export const getAllProducts = async (page, limit) => {
   }
 };
 // Thêm sản phẩm mới
-export const addProduct = async (productData) => {
+export const addProduct = async (productData,user) => {
   try {
     const response = await axios.post(
       `${API_BASE_URL}/products/add`,
-      productData
-      
+      productData,
     );
-    console.log(productData);
 
     return response.data; // Trả về dữ liệu sản phẩm vừa được thêm
   } catch (error) {

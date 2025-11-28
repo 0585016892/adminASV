@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LabelList,
   PieChart,
   Pie,
   Cell,
@@ -53,66 +52,75 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const notifRef = useRef(null);
   const menuRef = useRef(null);
+
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Data
   const [stats, setStats] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [revenueData, setRevenueData] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [orderStatusData, setOrderStatusData] = useState([]);
+  const [revenueMonthly, setRevenueMonthly] = useState([]);
+  const [revenueByCategory, setRevenueByCategory] = useState([]);
+
+  // Notifications
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  // User menu
   const [open, setOpen] = useState(false);
 
-  const [orderStatusData, setOrderStatusData] = useState([]);
-  const [revenueMonthly, setRevenueMonthly] = useState([]);
-  const [data, setData] = useState([]);
-
+  // Gộp tất cả API load 1 lần
   useEffect(() => {
-    Promise.all([fetchStats(), fetchRecentOrders()])
-      .then(([statsRes, ordersRes]) => {
-        setStats(statsRes);
-        setRecentOrders(ordersRes);
+    const fetchAllData = async () => {
+      if (!user?.id) return;
+
+      setLoading(true);
+      try {
+        const [
+          statsRes,
+          ordersRes,
+          revenueDailyRes,
+          orderStatusRes,
+          revenueMonthlyRes,
+          categoryRes,
+          notificationsRes,
+        ] = await Promise.all([
+          fetchStats(),
+          fetchRecentOrders(),
+          fetchRevenueDaily(fromDate, toDate),
+          getOrderStatusRatio(),
+          getRevenueByMonth(),
+          getRevenueByCategory(),
+          fetchNotifications(user.id),
+        ]);
+
+        setStats(statsRes || []);
+        setRecentOrders(ordersRes || []);
+        setRevenueData(revenueDailyRes || []);
+        setOrderStatusData(orderStatusRes || []);
+        setRevenueMonthly(revenueMonthlyRes || []);
+        setRevenueByCategory(categoryRes || []);
+
+        setNotifications(notificationsRes || []);
+        setUnreadCount(
+          (notificationsRes || []).filter((n) => !n.is_read).length
+        );
+      } catch (err) {
+        console.error(err);
+      } finally {
         setLoading(false);
-      })
-      .catch(console.error);
-  }, []);
+      }
+    };
 
-  useEffect(() => {
-    fetchRevenueDaily(fromDate, toDate).then(setRevenueData);
-  }, [fromDate, toDate]);
+    fetchAllData();
+  }, [user, fromDate, toDate]);
 
-  useEffect(() => {
-    (async () => {
-      const [statusRes, monthlyRes, categoryRes] = await Promise.all([
-        getOrderStatusRatio(),
-        getRevenueByMonth(),
-        getRevenueByCategory(),
-      ]);
-
-      setOrderStatusData(statusRes || []);
-      setRevenueMonthly(monthlyRes || []);
-      setData(categoryRes || []);
-    })();
-  }, []);
-
-  const pieData = (data || []).map((item) => ({
-    category: item.category,
-    total_revenue: Number(item.total_revenue),
-  }));
-console.log(data);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    fetchNotifications(user.id)
-      .then((data) => {
-        setNotifications(data);
-        setUnreadCount(data.filter((n) => !n.is_read).length);
-      })
-      .catch(console.error);
-  }, [user]);
-
+  // Socket notifications realtime
   useEffect(() => {
     socket.on("newOrderNotification", (data) => {
       const notif = { ...data, type: "order", is_read: 0 };
@@ -132,24 +140,12 @@ console.log(data);
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
-        setShowNotifications(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
+  // Click outside notification dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpen(false);
       }
@@ -171,8 +167,14 @@ console.log(data);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
       setUnreadCount(0);
     } catch (err) {
-      console.error("Lỗi khi đánh dấu tất cả đã đọc:", err);
+      console.error(err);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   const getIconForStat = (label) => {
@@ -189,107 +191,119 @@ console.log(data);
 
   return (
     <div className="dashboard-container bg-light min-vh-100 p-4">
-      {/* 🔹 Header */}
+      {/* Header */}
       <header className="dashboard-header bg-white shadow-sm rounded-3 p-3 mb-4 d-flex justify-content-between align-items-center">
-       <h4 className="dashboard-title">Trung tâm quản lý bán hàng Âm Sắc Việt</h4>
-        <div className="header-actions">
-               {/* 🔔 Thông báo */}
-               <div ref={notifRef} className="notification-wrapper">
-                 <button
-                   className="btn btn-light rounded-circle shadow-sm position-relative"
-                   onClick={() => setShowNotifications((prev) => !prev)}
-                 >
-                   <FaBell className="fs-5 text-primary" />
-                   {unreadCount > 0 && (
-                     <Badge bg="danger" className="notif-badge">
-                       {unreadCount}
-                     </Badge>
-                   )}
-                 </button>
-       
-                 <AnimatePresence>
-                   {showNotifications && (
-                     <motion.div
-                       className="notification-dropdown"
-                       initial={{ opacity: 0, y: -10 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       exit={{ opacity: 0, y: -10 }}
-                     >
-                       <div className="d-flex justify-content-between align-items-center mb-2">
-                         <h6 className="fw-bold text-primary">Thông báo</h6>
-                         <Button variant="outline-primary" size="sm" onClick={handleMarkAllAsRead}>
-                           Đọc tất cả
-                         </Button>
-                       </div>
-                       <hr />
-                       {notifications.length === 0 ? (
-                         <p className="text-center text-muted">Không có thông báo mới</p>
-                       ) : (
-                         notifications.map((note) => (
-                           <motion.div
-                             key={note.id}
-                             className={`notif-item ${note.is_read ? "read" : "unread"}`}
-                             whileHover={{ scale: 1.03 }}
-                             onClick={async () => {
-                               if (!note.is_read) await markNotificationAsRead(note.id);
-                               navigate(
-                                 note.type === "message" ? "/message/danh-sach" : "/don-hang/danh-sach"
-                               );
-                             }}
-                           >
-                             <div className="fw-semibold">{note.message}</div>
-                             <small className="text-muted">
-                               {new Date(note.created_at).toLocaleString("vi-VN")}
-                             </small>
-                           </motion.div>
-                         ))
-                       )}
-                     </motion.div>
-                   )}
-                 </AnimatePresence>
-               </div>
-       
-               {/* 👤 Avatar + User menu */}
-               <div className="d-flex align-items-center gap-2" ref={menuRef}>
-                  {!imageLoaded && (
-                  <div className="avatar-placeholder">
-                    <Spinner animation="border" variant="warning" size="sm" />
+        <h4 className="dashboard-title">
+          Trung tâm quản lý bán hàng Âm Sắc Việt
+        </h4>
+        <div className="header-actions d-flex align-items-center gap-3">
+          {/* Notifications */}
+          <div ref={notifRef} className="notification-wrapper">
+            <button
+              className="btn btn-light rounded-circle position-relative"
+              onClick={() => setShowNotifications((prev) => !prev)}
+            >
+              <FaBell className="fs-5 text-primary" />
+              {unreadCount > 0 && (
+                <Badge bg="danger" className="notif-badge">
+                  {unreadCount}
+                </Badge>
+              )}
+            </button>
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  className="notification-dropdown"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="fw-bold text-primary">Thông báo</h6>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={handleMarkAllAsRead}
+                    >
+                      Đọc tất cả
+                    </Button>
                   </div>
-                )}
-                <img
-                  src={user?.avatar ? `${URL_WEB}${user.avatar}` : women}
-                  alt="avatar"
-                  className={`avatar1 fade-avatar ${imageLoaded ? "loaded" : ""}`}
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => setImageLoaded(true)} // nếu lỗi ảnh vẫn bỏ spinner
-                />
-                 <div className="user-info" onClick={() => setOpen(!open)}>
-                   <strong>{user?.full_name}</strong>
-                   <FaChevronDown className={`ms-2 chevron-icon ${open ? "rotate" : ""}`} />
-                   {open && (
-                     <div className="menuContainer">
-                       <ul className="list-unstyled m-0 p-2">
-                          <li>
-                            <a href="/trang-ca-nhan" className="dropdown-item py-2">
-                              Trang cá nhân
-                            </a>
-                          </li>
-                          <li>
-                            <a href="/settings" className="dropdown-item py-2">
-                              Cài đặt
-                            </a>
-                          </li>
-                          <li>
-                            <a onClick={handleLogout} className="dropdown-item py-2 text-danger">
-                              Đăng xuất
-                            </a>
-                          </li>
-                        </ul>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
+                  <hr />
+                  {notifications.length === 0 ? (
+                    <p className="text-center text-muted">Không có thông báo mới</p>
+                  ) : (
+                    notifications.map((note) => (
+                      <motion.div
+                        key={note.id}
+                        className={`notif-item ${note.is_read ? "read" : "unread"}`}
+                        whileHover={{ scale: 1.03 }}
+                        onClick={async () => {
+                          if (!note.is_read) await markNotificationAsRead(note.id);
+                          navigate(
+                            note.type === "message"
+                              ? "/message/danh-sach"
+                              : "/don-hang/danh-sach"
+                          );
+                        }}
+                      >
+                        <div className="fw-semibold">{note.message}</div>
+                        <small className="text-muted">
+                          {new Date(note.created_at).toLocaleString("vi-VN")}
+                        </small>
+                      </motion.div>
+                    ))
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* User menu */}
+          <div className="d-flex align-items-center gap-2" ref={menuRef}>
+            {!imageLoaded && (
+              <div className="avatar-placeholder">
+                <Spinner animation="border" variant="warning" size="sm" />
+              </div>
+            )}
+            <img
+              src={user?.avatar ? `${URL_WEB}${user.avatar}` : women}
+              alt="avatar"
+              className={`avatar1 fade-avatar ${imageLoaded ? "loaded" : ""}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageLoaded(true)}
+            />
+            <div className="user-info" onClick={() => setOpen(!open)}>
+              <strong>{user?.full_name}</strong>
+              <FaChevronDown className={`ms-2 chevron-icon ${open ? "rotate" : ""}`} />
+              {open && (
+                <div className="menuContainer">
+                  <ul className="list-unstyled m-0 p-2">
+                    <li>
+                      <a href="/trang-ca-nhan" className="dropdown-item py-2">
+                        Trang cá nhân
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/settings" className="dropdown-item py-2">
+                        Cài đặt
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/systems_log" className="dropdown-item py-2">
+                        Log / Audit
+                      </a>
+                    </li>
+                    <li>
+                      <a onClick={handleLogout} className="dropdown-item py-2 text-danger">
+                        Đăng xuất
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* Nội dung */}
@@ -299,7 +313,7 @@ console.log(data);
         </div>
       ) : (
         <>
-          {/* 1️⃣ Thống kê */}
+          {/* Stats */}
           <div className="row g-3 mb-4">
             {stats.map(({ label, number, helpText }, i) => (
               <div key={i} className="col-md-3">
@@ -324,10 +338,10 @@ console.log(data);
             ))}
           </div>
 
-          {/* 2️⃣ Biểu đồ doanh thu */}
+          {/* Biểu đồ doanh thu theo ngày */}
           <div className="bg-white rounded-4 shadow-sm p-4 mb-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="fw-bold text-primary">📈 Doanh thu theo ngày</h5>
+              <h5 className="fw-bold text-primary">Doanh thu theo ngày</h5>
               <div className="d-flex gap-2">
                 <input
                   type="date"
@@ -349,25 +363,28 @@ console.log(data);
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis tickFormatter={formattedValue} />
-                <Tooltip formatter={(value) => formattedValue(value)} />
+                <Tooltip formatter={formattedValue} />
                 <Bar dataKey="revenue" fill="#4e73df" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 3️⃣ Nhóm biểu đồ nhỏ */}
+          {/* Biểu đồ nhỏ */}
           <div className="row g-3">
+            {/* Tỷ lệ đơn hàng */}
             <div className="col-md-4">
               <div className="bg-white rounded-4 shadow-sm p-3">
-                <h6 className="fw-bold text-primary mb-3">📊 Tỷ lệ đơn hàng</h6>
+                <h6 className="fw-bold text-primary mb-3"> Tỷ lệ đơn hàng</h6>
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
-                    <Pie data={orderStatusData} dataKey="value" nameKey="name" outerRadius={80}>
+                    <Pie
+                      data={orderStatusData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={80}
+                    >
                       {orderStatusData.map((entry, index) => (
-                        <Cell
-                          key={index}
-                          fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042"][index % 4]}
-                        />
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -377,42 +394,50 @@ console.log(data);
               </div>
             </div>
 
+            {/* Doanh thu theo tháng */}
             <div className="col-md-4">
               <div className="bg-white rounded-4 shadow-sm p-3">
-                <h6 className="fw-bold text-primary mb-3">📆 Doanh thu theo tháng</h6>
+                <h6 className="fw-bold text-primary mb-3"> Doanh thu theo tháng</h6>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={revenueMonthly}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" name="Tháng"/>
+                    <XAxis dataKey="month" />
                     <YAxis tickFormatter={formattedValue} />
                     <Tooltip formatter={formattedValue} />
-                    <Line type="monotone" name="Doanh thu" dataKey="revenue" stroke="#ff7300" strokeWidth={3} />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#ff7300"
+                      strokeWidth={3}
+                      name="Doanh thu"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
+            {/* Doanh thu theo danh mục */}
             <div className="col-md-4">
               <div className="bg-white rounded-4 shadow-sm p-3">
-                <h6 className="fw-bold text-primary mb-3">🛍️ Doanh thu theo danh mục</h6>
+                <h6 className="fw-bold text-primary mb-3"> Doanh thu theo danh mục</h6>
                 <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="category" />
-                  <YAxis tickFormatter={formattedValue} />
-                  <Tooltip formatter={formattedValue} />
-                  <Legend />
-                  <Bar dataKey="online" fill="#ffc107" name="Doanh thu Online" />
-                  <Bar dataKey="offline" fill="#82ca9d" name="Doanh thu Offline" />
-                </BarChart>
-              </ResponsiveContainer>
+                  <BarChart data={revenueByCategory}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" />
+                    <YAxis tickFormatter={formattedValue} />
+                    <Tooltip formatter={formattedValue} />
+                    <Legend />
+                    <Bar dataKey="online" fill="#ffc107" name="Doanh thu Online" />
+                    <Bar dataKey="offline" fill="#82ca9d" name="Doanh thu Offline" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
 
-          {/* 4️⃣ Đơn hàng mới nhất */}
+          {/* Đơn hàng mới nhất */}
           <div className="bg-white rounded-4 shadow-sm p-4 mt-4">
-            <h5 className="fw-bold text-primary mb-3">🆕 Đơn hàng mới nhất</h5>
+            <h5 className="fw-bold text-primary mb-3"> Đơn hàng mới nhất</h5>
             <div className="table-responsive">
               <table className="table align-middle table-hover">
                 <thead className="table-light">

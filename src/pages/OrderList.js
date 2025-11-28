@@ -104,7 +104,7 @@ const OrderList = () => {
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(orderId, newStatus, user.id);
       showSuccessToast("Đơn hàng","Trạng thái đơn hàng đã được cập nhật.");
       fetchOrders();
     } catch (err) {

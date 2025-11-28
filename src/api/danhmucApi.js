@@ -48,17 +48,22 @@ export const filterDanhmuc = async (filters) => {
   }
 };
 // API xóa dm
-export const deleteDanhMuc = async (id) => {
+export const deleteDanhMuc = async (id, userID) => {
   try {
     const response = await axios.delete(
-      `${API_BASE_URL}/categories/delete/${id}`
+      `${API_BASE_URL}/categories/delete/${id}`,
+      {
+        data: { userID }, // <== BODY ĐỂ GHI LOG
+      }
     );
-    return response.data; // Trả về dữ liệu từ server
+    return response.data;
   } catch (error) {
-    console.error("Lỗi khi xóa danh mục :", error);
-    throw new Error("❌ Lỗi khi xóa danh mục ");
+    console.error("Lỗi khi xóa danh mục:", error);
+    throw new Error("❌ Lỗi khi xóa danh mục");
   }
 };
+
+
 // Thêm  mới
 export const addDanhmuc = async (data) => {
   try {

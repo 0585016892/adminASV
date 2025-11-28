@@ -58,9 +58,10 @@ export const deleteOrderById = async (id) => {
   return res.data;
 };
 // ✅ Cập nhật trạng thái đơn hàng
-export const updateOrderStatus = async (orderId, newStatus) => {
+export const updateOrderStatus = async (orderId, newStatus,user) => {
   const response = await axios.put(`${API_BASE_URL}/orders/${orderId}/status`, {
     status: newStatus,
+    userID:user
   });
   return response.data;
 };

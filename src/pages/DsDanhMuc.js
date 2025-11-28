@@ -59,7 +59,7 @@ const DsDanhMuc = () => {
     if (!danhmucToDelete) return;
 
     try {
-      const result = await deleteDanhMuc(danhmucToDelete);
+      const result = await deleteDanhMuc(danhmucToDelete,user.id);
       setDanhmuc((prevDanhmuc) =>
         prevDanhmuc.filter((prod) => prod.id !== danhmucToDelete)
       );

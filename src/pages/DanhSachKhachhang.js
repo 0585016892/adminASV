@@ -63,7 +63,7 @@ const DanhSachKhachhang = () => {
     if (!khachhangToDelete) return;
 
     try {
-      const result = await deleteKhachhang(khachhangToDelete);
+      const result = await deleteKhachhang(khachhangToDelete,user.id);
       setCustomers((prevDanhmuc) =>
         prevDanhmuc.filter((cus) => cus.id !== khachhangToDelete)
       );
@@ -93,7 +93,7 @@ const DanhSachKhachhang = () => {
   const handleStatusChange = async (id, newStatus) => {
     try {
       // Gọi API để cập nhật trạng thái khách hàng
-      await updateCustomerStatus(id, newStatus);
+      await updateCustomerStatus(id, newStatus, user.id);
 
       // Cập nhật trạng thái của khách hàng trong state
       setCustomers((prevCustomers) =>

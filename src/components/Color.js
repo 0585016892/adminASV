@@ -25,8 +25,10 @@ import {
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { useAuth } from "../contexts/AuthContext";
 
 const Color = () => {
+  const { user } = useAuth();
   const [colors, setColors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1); // Đã khai báo page
@@ -81,10 +83,10 @@ const Color = () => {
   const handleSubmit = async () => {
     try {
       if (editMode) {
-        await updateColor(token, currentColor.id, currentColor);
+        await updateColor(token, currentColor.id, currentColor, user.id);
         showSuccessToast("Màu !","Cập nhật màu thành công!");
       } else {
-        await createColor(token, currentColor);
+        await createColor(token, currentColor , user.id);
         showSuccessToast("Màu !","Thêm màu thành công!");
       }
       setShowModal(false);
@@ -101,7 +103,7 @@ const Color = () => {
 
   const handleDelete = async () => {
     try {
-      await deleteColor(token, colorToDelete);
+      await deleteColor(token, colorToDelete, user.id);
       showSuccessToast("Màu !","Xoá màu thành công!");
       fetchColors();
     } catch (error) {

@@ -12,7 +12,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaImage, FaTags } from "react-icons/fa";
 import { BsFillFileTextFill } from "react-icons/bs";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
-
+import { useAuth } from "../contexts/AuthContext";
 // Loại bỏ thẻ HTML để sinh slug
 const stripHtml = (html) => html.replace(/<[^>]*>/g, "").trim();
 
@@ -33,6 +33,7 @@ const generateSlug = (text) =>
     .replace(/[^a-z0-9-]/g, "");
 
 const DanhSachSanPhamAdd = () => {
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -149,6 +150,7 @@ const DanhSachSanPhamAdd = () => {
         "color",
         JSON.stringify(productData.color.map((c) => c.name))
       );
+      formData.append("userId", user.id);
       if (productData.couponId) {
         formData.append("couponId", productData.couponId);
       } // Thêm mã giảm giá vào form data

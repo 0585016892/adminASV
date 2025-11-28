@@ -6,6 +6,7 @@ import { addDanhmuc, getParentCategories } from "../api/danhmucApi";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { useAuth } from "../contexts/AuthContext";
 
 const stripHtml = (html) => html.replace(/<[^>]*>/g, "").trim();
 const removeVietnameseTones = (str) => {
@@ -22,6 +23,7 @@ const generateSlug = (text) =>
     .replace(/[^a-z0-9-]/g, "");
 
 const DanhMucAdd = () => {
+  const { user } = useAuth();
   const [parentId, setParentId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [parentCategories, setParentCategories] = useState([]);
@@ -75,6 +77,7 @@ const DanhMucAdd = () => {
         status: danhMucData.status,
         description: danhMucData.description,
         parent_id: danhMucData.parent_id,
+        userID:user.id
       };
       await addDanhmuc(dataToSend);
       showSuccessToast("Danh mục","Thêm danh mục thành công!");

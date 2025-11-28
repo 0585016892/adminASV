@@ -18,22 +18,24 @@ export const getAllColors = (token) => {
 };
 
 // Tạo mới màu
-export const createColor = (token, colorData) => {
-  return axios.post(`${API_URL}/colors/`, colorData, {
+export const createColor = (token, colorData, userID) => {
+  const data = { ...colorData, userID }; // gộp userID vào body
+  return axios.post(`${API_URL}/colors/`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
 
 // Cập nhật màu
-export const updateColor = (token, id, colorData) => {
-  return axios.put(`${API_URL}/colors/${id}`, colorData, {
+export const updateColor = (token, id, colorData, userID) => {
+  const data = { ...colorData, userID }; // gộp userID vào body
+  return axios.put(`${API_URL}/colors/${id}`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
-
 // Xóa màu
-export const deleteColor = (token, id) => {
+export const deleteColor = (token, id, userID) => {
   return axios.delete(`${API_URL}/colors/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
+    data: { userID },   // body DELETE phải nằm trong config.data
   });
 };
