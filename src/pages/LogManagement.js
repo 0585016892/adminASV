@@ -7,6 +7,7 @@ const roleMap = { admin: "Quản trị viên", staff: "Nhân viên", hr: "Nhân 
 const actionColors = { create: "success", update: "warning", delete: "danger", login: "primary" };
 
 const LogManagement = () => {
+  const API_URL_LOGIN = process.env.REACT_APP_API_URL;
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
@@ -30,7 +31,7 @@ const LogManagement = () => {
   const fetchLogs = async (pageNumber = 1) => {
     setLoading(true);
     try {
-      const { data } = await axios.get("http://localhost:5000/api/log/logs", { params: { ...filters, page: pageNumber, limit } });
+      const { data } = await axios.get(`${API_URL_LOGIN}/log/logs`, { params: { ...filters, page: pageNumber, limit } });
       if (data.success) {
         setLogs(data.data);
         setTotal(data.total);
