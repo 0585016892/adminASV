@@ -43,8 +43,8 @@ const Menu = () => {
       text: "Quản lý danh mục & bộ sưu tập",
       roles: ["admin", "staff"],
       children: [
-        { path: "/danh-muc/danh-sach", text: "Danh mục chính" },
-        { path: "/bo-sieu-tap/danh-sach", text: "Bộ sưu tập theo mùa" },
+        { path: "/danh-muc/danh-sach", text: "Danh mục " },
+        { path: "/bo-sieu-tap/danh-sach", text: "Bộ sưu tập " },
       ],
     },
     {

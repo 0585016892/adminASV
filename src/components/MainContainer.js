@@ -416,10 +416,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Doanh thu theo danh mục */}
+            {/* Doanh thu online/offline */}
             <div className="col-md-4">
               <div className="bg-white rounded-4 shadow-sm p-3">
-                <h6 className="fw-bold text-primary mb-3"> Doanh thu theo danh mục</h6>
+                <h6 className="fw-bold text-primary mb-3"> Doanh thu tại cửa hàng / Website</h6>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={revenueByCategory}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -427,8 +427,8 @@ export default function Dashboard() {
                     <YAxis tickFormatter={formattedValue} />
                     <Tooltip formatter={formattedValue} />
                     <Legend />
-                    <Bar dataKey="online" fill="#ffc107" name="Doanh thu Online" />
-                    <Bar dataKey="offline" fill="#82ca9d" name="Doanh thu Offline" />
+                    <Bar dataKey="online" fill="#ffc107" name="Doanh thu Offline" />
+                    <Bar dataKey="offline" fill="#82ca9d" name="Doanh thu Online" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

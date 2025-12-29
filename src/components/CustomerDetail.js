@@ -42,6 +42,7 @@ const CustomerDetailsNew = () => {
     );
 
   if (error) return <Alert variant="danger">{error}</Alert>;
+console.log(customerData.customer);
 
   return (
         <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
@@ -49,7 +50,7 @@ const CustomerDetailsNew = () => {
       <Card className="mb-4 shadow-sm border-0 rounded-3">
         <Card.Body className="d-flex align-items-center gap-4" style={{ backgroundColor: "#e9f7ef" }}>
           <Image
-            src={`${URL_WEB}/uploads/avatar.png`}
+            src={`${URL_WEB}/uploads/customers/${customerData.customer.images}`}
             roundedCircle
             style={{ width: "80px", height: "80px", objectFit: "cover" }}
           />
@@ -75,7 +76,7 @@ const CustomerDetailsNew = () => {
         >
           Danh sách đơn hàng ({customerData.orders.length})
         </Card.Header>
-        <Card.Body style={{ maxHeight: "500px", overflowY: "auto" }}>
+        <Card.Body style={{ maxHeight: "650px", overflowY: "auto" }}>
           {customerData.orders.length === 0 ? (
             <Alert variant="info">Khách hàng chưa có đơn hàng nào.</Alert>
           ) : (

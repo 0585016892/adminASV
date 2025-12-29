@@ -333,7 +333,7 @@ const DanhSachSanPhamAdd = () => {
             </Col>
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>Size</Form.Label>
+                <Form.Label>Hình thức</Form.Label>
                 <div>
                   {sizes.map((size) => (
                     <Form.Check

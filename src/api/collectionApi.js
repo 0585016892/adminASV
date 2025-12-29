@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL; 
-// 👉 Thêm bộ sưu tập
+// Thêm bộ sưu tập
 export const createCollection = async (formData) => {
   const data = new FormData();
   data.append("name", formData.name);
@@ -19,7 +19,7 @@ export const createCollection = async (formData) => {
   return res.data;
 };
 
-// 👉 Cập nhật bộ sưu tập
+// Cập nhật bộ sưu tập
 export const updateCollection = async (id, formData) => {
   const data = new FormData();
   data.append("name", formData.name);
@@ -37,13 +37,13 @@ export const updateCollection = async (id, formData) => {
   return res.data;
 };
 
-// 👉 Xoá bộ sưu tập
+// Xoá bộ sưu tập
 export const deleteCollection = async (id) => {
   const res = await axios.delete(`${API_URL}/collections/delete/${id}`);
   return res.data;
 };
 
-// 👉 Lấy danh sách bộ sưu tập (có lọc, phân trang)
+// Lấy danh sách bộ sưu tập (có lọc, phân trang)
 export const getCollections = async ({ search = "", status = "", page = 1, limit = 6 }) => {
   const res = await axios.get(`${API_URL}/collections`, {
     params: { search, status, page, limit },

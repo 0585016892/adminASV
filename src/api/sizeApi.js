@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL; // Cập nhật URL nếu khác
 
-// ✅ Lấy danh sách size có phân trang
+// Lấy danh sách size có phân trang
 export const getSizes = (token, page = 1, limit = 5) => {
   return axios.get(`${API_URL}/size?page=${page}&limit=${limit}`, {
     headers: {
@@ -11,7 +11,7 @@ export const getSizes = (token, page = 1, limit = 5) => {
   });
 };
 
-// ✅ Thêm size mới
+// Thêm size mới
 export const createSize = (token, data) => {
   return axios.post(`${API_URL}/size`, data, {
     headers: {
@@ -20,7 +20,7 @@ export const createSize = (token, data) => {
   });
 };
 
-// ✅ Cập nhật size theo ID
+// Cập nhật size theo ID
 export const updateSize = (token, id, data) => {
   return axios.put(`${API_URL}/size/${id}`, data, {
     headers: {
@@ -29,7 +29,7 @@ export const updateSize = (token, id, data) => {
   });
 };
 
-// ✅ Xoá size theo ID
+// Xoá size theo ID
 export const deleteSize = (token, id) => {
   return axios.delete(`${API_URL}/size/${id}`, {
     headers: {
@@ -38,7 +38,7 @@ export const deleteSize = (token, id) => {
   });
 };
 
-// ✅ Import danh sách size từ file Excel
+// Import danh sách size từ file Excel
 export const importSizes = (token, sizesArray) => {
   return axios.post(
     `${API_URL}/size/import`,
