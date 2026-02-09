@@ -3,7 +3,7 @@ import axios from "axios";
 import io from "socket.io-client";
 import { 
   Layout, List, Avatar, Input, Button, Badge, 
-  Tag, Typography, Space, Tooltip, Empty 
+  Tag, Typography, Space,  Empty 
 } from "antd";
 import { 
   SearchOutlined, 
@@ -11,7 +11,6 @@ import {
   UserOutlined, 
   MessageOutlined,
   CheckCircleOutlined,
-  MinusCircleOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 

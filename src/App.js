@@ -44,7 +44,7 @@ import "./App.css";
 import path from "./ultis/path";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleRoute from "./routes/RoleRoute";
-import { Routes, Route, usePaRams } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { io } from "socket.io-client";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Toaster } from 'react-hot-toast';

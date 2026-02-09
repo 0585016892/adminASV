@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Button, Card, Input, Avatar, 
-  Badge, Dropdown, Space, Typography, ConfigProvider 
+ Dropdown, Space, Typography, ConfigProvider 
 } from "antd";
 import { 
   MessageFilled, CloseOutlined, SendOutlined, 

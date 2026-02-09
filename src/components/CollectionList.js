@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { 
   Table, Input, Select, Button, Tag, Typography, 
-  Space, Spin, Breadcrumb, ConfigProvider, Tooltip, 
+  Space,  Breadcrumb, ConfigProvider, Tooltip, 
   Avatar, Modal, Badge
 } from "antd";
 import { 
   SearchOutlined, PlusOutlined, EditOutlined, 
   DeleteOutlined, ExclamationCircleOutlined, 
-  FolderOpenOutlined, FilterOutlined, 
+  FolderOpenOutlined, 
   CalendarOutlined, PictureOutlined
 } from "@ant-design/icons";
 import CollectionModal from "./CollectionModal";

@@ -1,16 +1,26 @@
-import React, { useState } from "react";
-import { 
-  Form, Input, Button, DatePicker, Select, 
-  Upload, Card, Row, Col, Typography, 
-  Breadcrumb, Space, InputNumber, Alert 
+import React, { useState, useEffect } from "react";
+import {
+  Form,
+  Input,
+  Button,
+  DatePicker,
+  Select,
+  Upload,
+  Card,
+  Row,
+  Col,
+  Typography,
+  Breadcrumb,
+  Space,
+  InputNumber,
+  Alert,
+  message,
 } from "antd";
-import { 
-  PlusOutlined, 
-  LinkOutlined, 
-  PictureOutlined, 
+import {
+  LinkOutlined,
   InboxOutlined,
   SaveOutlined,
-  ArrowLeftOutlined
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -23,127 +33,156 @@ const { Dragger } = Upload;
 const AddSlide = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [loading, setLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const API_URL = process.env.REACT_APP_API_URL;
 
+  // Cleanup preview URL tránh memory leak
+  useEffect(() => {
+    return () => {
+      if (previewImage) URL.revokeObjectURL(previewImage);
+    };
+  }, [previewImage]);
+
+  // ================= SUBMIT =================
   const onFinish = async (values) => {
-    setIsLoading(true);
+    setLoading(true);
     try {
       const formData = new FormData();
-      
-      // Xử lý dữ liệu text
+
       formData.append("title", values.title);
       formData.append("link", values.link || "");
       formData.append("position", values.position || 0);
       formData.append("status", values.status);
       formData.append("display_area", values.display_area);
-      
-      // Xử lý ngày tháng từ RangePicker
+
+      // Date range
       if (values.date_range) {
         formData.append("start_date", values.date_range[0].format("YYYY-MM-DD"));
         formData.append("end_date", values.date_range[1].format("YYYY-MM-DD"));
       }
 
-      // Xử lý File ảnh
-      if (values.image && values.image.file) {
+      // Image
+      if (values.image?.file) {
         formData.append("image", values.image.file);
       }
 
-      await axios.post(`${API_URL}/slides/add`, formData);
+      await axios.post(`${API_URL}/slides/add`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      showSuccessToast("Thành công", "Đã thêm slide mới vào hệ thống!");
-      setTimeout(() => navigate("/slide-banner/danh-sach"), 1000);
+      showSuccessToast("Slide", "Thêm slide thành công!");
+      navigate("/slide-banner/danh-sach");
     } catch (err) {
-      showErrorToast("Lỗi", "Không thể thêm slide. Vui lòng thử lại.");
+      console.error("❌ Add slide error:", err);
+      showErrorToast("Slide", "Không thể thêm slide");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="p-4" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
-      {/* 1. Header & Điều hướng */}
-      <div className="mb-4">
-        <Breadcrumb items={[
-          { title: 'Website' },
-          { title: 'Quản lý Banner' },
-          { title: 'Thêm mới' }
-        ]} />
-        <Space align="center" style={{ marginTop: 12 }}>
-          <Button 
-            icon={<ArrowLeftOutlined />} 
-            onClick={() => navigate(-1)} 
-            type="text"
-          />
-          <Title level={3} style={{ margin: 0 }}>Tạo Slide Mới</Title>
-        </Space>
-      </div>
+  // ================= VALIDATE IMAGE =================
+  const beforeUpload = (file) => {
+    const isImage = ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+    if (!isImage) {
+      message.error("Chỉ cho phép JPG, PNG, WEBP!");
+      return Upload.LIST_IGNORE;
+    }
 
-      <Form 
-        form={form} 
-        layout="vertical" 
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      message.error("Ảnh phải nhỏ hơn 5MB!");
+      return Upload.LIST_IGNORE;
+    }
+
+    setPreviewImage(URL.createObjectURL(file));
+    return false; // không auto upload
+  };
+
+  // ================= UI =================
+  return (
+    <div style={{ background: "#f8f9fa", minHeight: "100vh", padding: 20 }}>
+      {/* HEADER */}
+      <Breadcrumb
+        items={[
+          { title: "Website" },
+          { title: "Quản lý Banner" },
+          { title: "Thêm mới" },
+        ]}
+      />
+
+      <Space align="center" style={{ marginTop: 12 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} type="text" />
+        <Title level={3} style={{ margin: 0 }}>
+          Tạo Slide Mới
+        </Title>
+      </Space>
+
+      <Form
+        form={form}
+        layout="vertical"
         onFinish={onFinish}
-        initialValues={{ 
-          status: 'active', 
-          display_area: 'home_banner',
+        initialValues={{
+          status: "active",
+          display_area: "home_banner",
           position: 0,
-          date_range: [dayjs(), dayjs().add(1, 'year')]
+          date_range: [dayjs(), dayjs().add(1, "year")],
         }}
       >
         <Row gutter={24}>
-          {/* Cột trái: Nội dung chính */}
+          {/* LEFT COLUMN */}
           <Col xs={24} lg={16}>
-            <Card title="Thông tin hiển thị" className="shadow-sm border-0" style={{ borderRadius: 16 }}>
+            <Card title="Thông tin hiển thị" bordered={false} style={{ borderRadius: 16 }}>
               <Row gutter={16}>
                 <Col span={24}>
-                  <Form.Item 
-                    name="title" 
-                    label="Tiêu đề Slide" 
-                    rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
+                  <Form.Item
+                    name="title"
+                    label="Tiêu đề Slide"
+                    rules={[{ required: true, message: "Nhập tiêu đề!" }]}
                   >
-                    <Input placeholder="Ví dụ: Ưu đãi mùa hè 2026" size="large" />
+                    <Input size="large" placeholder="Ưu đãi mùa hè 2026" />
                   </Form.Item>
                 </Col>
-                
+
                 <Col span={24}>
-                  <Form.Item name="link" label="Đường dẫn khi click (URL)">
-                    <Input prefix={<LinkOutlined />} placeholder="https://acoustic-harmony.com/san-pham" size="large" />
+                  <Form.Item name="link" label="URL khi click">
+                    <Input
+                      prefix={<LinkOutlined />}
+                      size="large"
+                      placeholder="https://domain.com/san-pham"
+                    />
                   </Form.Item>
                 </Col>
 
                 <Col span={12}>
                   <Form.Item name="display_area" label="Vị trí hiển thị">
                     <Select size="large">
-                      <Select.Option value="home_banner">Banner Trang chủ (Lớn)</Select.Option>
-                      <Select.Option value="sidebar">Thanh bên (Sidebar)</Select.Option>
-                      <Select.Option value="popup">BST nổi bật (Popup)</Select.Option>
-                      <Select.Option value="footer">Chân trang (Footer)</Select.Option>
+                      <Select.Option value="home_banner">Trang chủ</Select.Option>
+                      <Select.Option value="sidebar">Sidebar</Select.Option>
+                      <Select.Option value="popup">Popup</Select.Option>
+                      <Select.Option value="footer">Footer</Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>
 
                 <Col span={12}>
                   <Form.Item name="date_range" label="Thời hạn hiển thị">
-                    <DatePicker.RangePicker 
-                      className="w-100" 
-                      size="large" 
-                      format="DD/MM/YYYY"
-                    />
+                    <DatePicker.RangePicker size="large" className="w-100" />
                   </Form.Item>
                 </Col>
 
                 <Col span={12}>
                   <Form.Item name="position" label="Thứ tự ưu tiên">
-                    <InputNumber min={0} className="w-100" size="large" />
+                    <InputNumber min={0} size="large" className="w-100" />
                   </Form.Item>
                 </Col>
 
                 <Col span={12}>
                   <Form.Item name="status" label="Trạng thái">
                     <Select size="large">
-                      <Select.Option value="active">Hiển thị ngay</Select.Option>
-                      <Select.Option value="inactive">Lưu bản nháp (Ẩn)</Select.Option>
+                      <Select.Option value="active">Hiển thị</Select.Option>
+                      <Select.Option value="inactive">Ẩn</Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>
@@ -151,72 +190,67 @@ const AddSlide = () => {
             </Card>
 
             <Alert
-              className="mt-4"
-              message="Lưu ý kích thước ảnh"
-              description="Để banner hiển thị đẹp nhất, hãy sử dụng ảnh có tỉ lệ 16:9 cho Trang chủ và tỉ lệ 1:1 cho Sidebar."
-              type="info"
+              style={{ marginTop: 20, borderRadius: 12 }}
               showIcon
-              style={{ borderRadius: 12 }}
+              type="info"
+              message="Khuyến nghị ảnh"
+              description="Trang chủ: 1920x1080 (16:9). Sidebar: 600x600 (1:1). Dung lượng < 5MB."
             />
           </Col>
 
-          {/* Cột phải: Upload Ảnh & Submit */}
+          {/* RIGHT COLUMN */}
           <Col xs={24} lg={8}>
-            <Card title="Hình ảnh Banner" className="shadow-sm border-0 mb-4" style={{ borderRadius: 16 }}>
-              <Form.Item 
-                name="image" 
-                rules={[{ required: true, message: 'Vui lòng chọn ảnh cho slide' }]}
+            <Card title="Ảnh Banner" bordered={false} style={{ borderRadius: 16 }}>
+              <Form.Item
+                name="image"
+                rules={[{ required: true, message: "Chọn ảnh slide!" }]}
               >
-                <Dragger 
-                  maxCount={1} 
-                  beforeUpload={() => false}
-                  onChange={(info) => {
-                    if (info.file) {
-                      setPreviewImage(URL.createObjectURL(info.file));
-                    }
-                  }}
+                <Dragger
+                  maxCount={1}
+                  beforeUpload={beforeUpload}
                   showUploadList={false}
                 >
                   <p className="ant-upload-drag-icon">
-                    <InboxOutlined style={{ color: '#5d4037' }} />
+                    <InboxOutlined style={{ color: "#5d4037" }} />
                   </p>
-                  <p className="ant-upload-text">Kéo thả hoặc nhấp để tải ảnh</p>
-                  <p className="ant-upload-hint">PNG, JPG, WEBP (Tối đa 5MB)</p>
+                  <p>Kéo thả hoặc click để upload</p>
+                  <p>JPG, PNG, WEBP - Max 5MB</p>
                 </Dragger>
               </Form.Item>
 
               {previewImage && (
-                <div style={{ marginTop: 16, textAlign: 'center' }}>
-                  <Text type="secondary" block className="mb-2">Xem trước ảnh:</Text>
-                  <img 
-                    src={previewImage} 
-                    alt="Preview" 
-                    style={{ maxWidth: '100%', borderRadius: 12, border: '1px solid #f0f0f0' }} 
+                <div style={{ textAlign: "center", marginTop: 12 }}>
+                  <Text type="secondary">Preview:</Text>
+                  <img
+                    src={previewImage}
+                    alt="Preview"
+                    style={{
+                      width: "100%",
+                      borderRadius: 12,
+                      border: "1px solid #eee",
+                      marginTop: 8,
+                    }}
                   />
                 </div>
               )}
             </Card>
 
-            <Card className="shadow-sm border-0" style={{ borderRadius: 16, background: '#fafafa' }}>
+            <Card bordered={false} style={{ marginTop: 20, borderRadius: 16 }}>
               <Space direction="vertical" className="w-100">
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  size="large" 
-                  block 
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
                   icon={<SaveOutlined />}
-                  loading={isLoading}
-                  style={{ background: '#5d4037', borderColor: '#5d4037', height: '50px' }}
+                  loading={loading}
+                  block
+                  style={{ background: "#5d4037", borderColor: "#5d4037", height: 50 }}
                 >
-                  Xác nhận thêm Slide
+                  Thêm Slide
                 </Button>
-                <Button 
-                  size="large" 
-                  block 
-                  onClick={() => navigate(-1)}
-                  disabled={isLoading}
-                >
-                  Hủy bỏ
+
+                <Button block size="large" disabled={loading} onClick={() => navigate(-1)}>
+                  Hủy
                 </Button>
               </Space>
             </Card>
