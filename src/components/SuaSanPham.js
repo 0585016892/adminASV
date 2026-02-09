@@ -1,332 +1,233 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { 
+  Form, Input, Button, Row, Col, Card, Select, 
+  InputNumber, Upload, Typography, Space, Spin, 
+  ConfigProvider, Divider, Breadcrumb 
+} from "antd";
+import { 
+  UploadOutlined, SaveOutlined, ArrowLeftOutlined, 
+  EditOutlined, LoadingOutlined 
+} from "@ant-design/icons";
 import { getProductById, updateProduct } from "../api/productAPI";
-import { useForm, Controller } from "react-hook-form";
-import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
-import { ClipLoader } from "react-spinners";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const SuaSanPham = () => {
   const WEB_URL = process.env.REACT_APP_WEB_URL;
   const navigate = useNavigate();
   const { id } = useParams();
+  const [form] = Form.useForm();
+  
   const [loading, setLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [errorMessage, setErrorMessage] = useState("");
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [fileList, setFileList] = useState([]);
 
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
+  // Load dữ liệu sản phẩm
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
         const productData = await getProductById(id);
-        setValue("name", productData.name);
-        setValue("slug", productData.slug);
-        setValue("price", productData.price);
-        setValue("status", productData.status);
-        setValue("brand", productData.brand);
-        setValue("description", productData.description);
-        setValue("size", productData.size);
-        setValue("color", productData.color);
+        
+        // Convert string thành mảng cho Select tags
+        const sizeArray = productData.size ? productData.size.split(",") : [];
+        const colorArray = productData.color ? productData.color.split(",") : [];
+
+        form.setFieldsValue({
+          ...productData,
+          size: sizeArray,
+          color: colorArray,
+        });
 
         if (productData.image) {
-          setImagePreview(`/uploads/${productData.image}`);
+          setImagePreview(`${WEB_URL}/uploads/${productData.image}`);
         }
       } catch (error) {
-        setErrorMessage(error.message || "Lỗi khi lấy sản phẩm.");
-        console.error("Lỗi khi lấy sản phẩm:", error);
+        showErrorToast("Lỗi", "Không thể lấy thông tin sản phẩm.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchProduct();
-  }, [id, setValue]);
+  }, [id, form, WEB_URL]);
 
-  const onSubmit = async (data) => {
-    const sizeValue = Array.isArray(data.size)
-      ? data.size.join(",")
-      : data.size || "";
-    const colorValue = Array.isArray(data.color)
-      ? data.color.join(",")
-      : data.color || "";
-
-    const formData = new FormData();
-    formData.append("name", data.name || "");
-    formData.append("slug", data.slug || "");
-    formData.append("price", data.price || "");
-    formData.append("status", data.status || "");
-    formData.append("brand", data.brand || "");
-    formData.append("description", data.description || "");
-    formData.append("size", sizeValue);
-    formData.append("color", colorValue);
-
-    if (data.image && data.image[0]) {
-      formData.append("image", data.image[0]);
-    }
-
-    try {
-      setIsLoading(true);
-      await updateProduct(id, formData);
-              showSuccessToast("Sản phẩm","Cập nhật sản phẩm thành công!");
-      setTimeout(() => {
-        setIsLoading(false); // Dừng loading sau 2 giây
-        
-        navigate("/san-pham/danh-sach");
-      }, 2000);
-    } catch (error) {
-      setErrorMessage(error.message || "Có lỗi xảy ra khi sửa sản phẩm.");
-      console.error("Lỗi khi sửa sản phẩm:", error);
+  // Xử lý khi chọn ảnh mới
+  const handleImageChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList);
+    if (newFileList.length > 0) {
+      const file = newFileList[0].originFileObj;
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target.result);
+      reader.readAsDataURL(file);
     }
   };
 
+  const onFinish = async (values) => {
+    setIsSubmitting(true);
+    const formData = new FormData();
+    
+    // Append các field cơ bản
+    Object.keys(values).forEach(key => {
+      if (key !== 'image') {
+        // Chuyển mảng Size/Color về lại dạng string
+        if (Array.isArray(values[key])) {
+          formData.append(key, values[key].join(","));
+        } else {
+          formData.append(key, values[key] || "");
+        }
+      }
+    });
+
+    // Append ảnh nếu có thay đổi
+    if (fileList.length > 0) {
+      formData.append("image", fileList[0].originFileObj);
+    }
+
+    try {
+      await updateProduct(id, formData);
+      showSuccessToast("Thành công", "Cập nhật sản phẩm hoàn tất!");
+      setTimeout(() => navigate("/san-pham/danh-sach"), 1500);
+    } catch (error) {
+      showErrorToast("Lỗi", error.message || "Có lỗi xảy ra.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="d-flex justify-content-center align-items-center" style={{ height: "80vh" }}>
+      <Spin indicator={<LoadingOutlined style={{ fontSize: 40 }} spin />} tip="Đang tải dữ liệu..." />
+    </div>
+  );
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <h3 className="mb-4">Sửa sản phẩm</h3>
-      {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
-      {isLoading ? (
-        <div className="loading-container d-flex justify-content-center">
-          <ClipLoader color="#3498db" loading={isLoading} size={50} />
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 12 } }}>
+      <div className="container-fluid p-4">
+        <style>{`
+          .edit-card { border-radius: 20px; border: 1px solid #f0ece1; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+          .image-preview-box { width: 100%; height: 250px; border: 2px dashed #d9d9d9; border-radius: 15px; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #fafafa; }
+          .ant-form-item-label label { font-weight: 600; color: #555; }
+        `}</style>
+
+        {/* Breadcrumb & Header */}
+        <div className="mb-4 d-flex justify-content-between align-items-center">
+          <Breadcrumb
+            items={[
+              { title: "Dashboard" },
+              { title: <a onClick={() => navigate("/san-pham/danh-sach")}>Sản phẩm</a> },
+              { title: "Chỉnh sửa" },
+            ]}
+          />
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>Quay lại</Button>
         </div>
-      ) : (
-        <Card>
-          <Card.Body>
-            <Form onSubmit={handleSubmit(onSubmit)}>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group controlId="name">
-                    <Form.Label>Tên sản phẩm</Form.Label>
-                    <Controller
-                      control={control}
-                      name="name"
-                      rules={{ required: "Tên sản phẩm là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Nhập tên sản phẩm"
-                          isInvalid={!!errors.name}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.name?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group controlId="slug">
-                    <Form.Label>Slug</Form.Label>
-                    <Controller
-                      control={control}
-                      name="slug"
-                      rules={{ required: "Slug là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Nhập slug"
-                          isInvalid={!!errors.slug}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.slug?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-              </Row>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group controlId="price">
-                    <Form.Label>Giá</Form.Label>
-                    <Controller
-                      control={control}
-                      name="price"
-                      rules={{ required: "Giá là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="number"
-                          placeholder="Nhập giá sản phẩm"
-                          isInvalid={!!errors.price}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.price?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group controlId="image">
-                    <Form.Label>Hình ảnh</Form.Label>
-                    <Form.Control
-                      type="file"
-                      onChange={handleImageChange}
-                      isInvalid={!!errors.image}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.image?.message}
-                    </Form.Control.Feedback>
-                    {imagePreview && (
-                      <div className="mt-2">
-                        <img
-                          src={`${WEB_URL}${imagePreview}`}
-                          alt="Xem trước"
-                          style={{ maxHeight: "150px" }}
-                        />
-                      </div>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
+        <Form form={form} layout="vertical" onFinish={onFinish} requiredMark="optional">
+          <Row gutter={24}>
+            {/* CỘT TRÁI: THÔNG TIN CƠ BẢN */}
+            <Col xs={24} lg={16}>
+              <Card className="edit-card mb-4">
+                <Title level={4} className="mb-4"><EditOutlined /> Thông tin cơ bản</Title>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="name" label="Tên sản phẩm" rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}>
+                      <Input size="large" placeholder="Ví dụ: Giày Sneaker Acoustic" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="slug" label="Đường dẫn (Slug)" rules={[{ required: true }]}>
+                      <Input size="large" placeholder="giay-sneaker-acoustic" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="price" label="Giá bán (VNĐ)" rules={[{ required: true }]}>
+                      <InputNumber 
+                        className="w-100" size="large" 
+                        formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="brand" label="Thương hiệu" rules={[{ required: true }]}>
+                      <Input size="large" placeholder="Nhập hãng sản xuất" />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group controlId="status">
-                    <Form.Label>Trạng thái</Form.Label>
-                    <Controller
-                      control={control}
-                      name="status"
-                      rules={{ required: "Trạng thái là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          as="select"
-                          isInvalid={!!errors.status}
-                        >
-                          <option value="active">Kích hoạt</option>
-                          <option value="inactive">Không kích hoạt</option>
-                        </Form.Control>
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.status?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group controlId="brand">
-                    <Form.Label>Thương hiệu</Form.Label>
-                    <Controller
-                      control={control}
-                      name="brand"
-                      rules={{ required: "Thương hiệu là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Nhập thương hiệu"
-                          isInvalid={!!errors.brand}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.brand?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-              </Row>
+                <Form.Item name="description" label="Mô tả chi tiết">
+                  <TextArea rows={6} placeholder="Nhập đặc điểm nổi bật của sản phẩm..." />
+                </Form.Item>
+              </Card>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group controlId="description">
-                    <Form.Label>Mô tả</Form.Label>
-                    <Controller
-                      control={control}
-                      name="description"
-                      rules={{ required: "Mô tả là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          as="textarea"
-                          rows={3}
-                          placeholder="Nhập mô tả sản phẩm"
-                          isInvalid={!!errors.description}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.description?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group controlId="size">
-                    <Form.Label>Kích cỡ</Form.Label>
-                    <Controller
-                      control={control}
-                      name="size"
-                      rules={{ required: "Kích cỡ là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Nhập kích cỡ (ngăn cách bởi dấu phẩy)"
-                          isInvalid={!!errors.size}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.size?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-              </Row>
+              <Card className="edit-card">
+                <Title level={4} className="mb-4">Phân loại & Thuộc tính</Title>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="size" label="Kích cỡ (Size)" help="Gõ và nhấn Enter để thêm">
+                      <Select mode="tags" size="large" placeholder="38, 39, 40..." style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="color" label="Màu sắc" help="Gõ và nhấn Enter để thêm">
+                      <Select mode="tags" size="large" placeholder="Trắng, Đen, Nâu..." style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
 
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group controlId="color">
-                    <Form.Label>Màu sắc</Form.Label>
-                    <Controller
-                      control={control}
-                      name="color"
-                      rules={{ required: "Màu sắc là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Nhập màu sắc"
-                          isInvalid={!!errors.color}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.color?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-              </Row>
+            {/* CỘT PHẢI: TRẠNG THÁI & HÌNH ẢNH */}
+            <Col xs={24} lg={8}>
+              <Card className="edit-card mb-4">
+                <Title level={4} className="mb-4">Trạng thái</Title>
+                <Form.Item name="status" label="Hiển thị sản phẩm">
+                  <Select size="large">
+                    <Select.Option value="active">Đang kinh doanh (Active)</Select.Option>
+                    <Select.Option value="inactive">Tạm ẩn (Inactive)</Select.Option>
+                  </Select>
+                </Form.Item>
+                <Divider />
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  block 
+                  icon={<SaveOutlined />} 
+                  htmlType="submit" 
+                  loading={isSubmitting}
+                  style={{ height: 50, fontSize: 16 }}
+                >
+                  LƯU THAY ĐỔI
+                </Button>
+              </Card>
 
-              <Button variant="primary" type="submit" className="w-100">
-                Cập nhật sản phẩm
-              </Button>
-            </Form>
-          </Card.Body>
-        </Card>
-      )}
-    </div>
+              <Card className="edit-card text-center">
+                <Title level={4} className="mb-4">Hình ảnh đại diện</Title>
+                <div className="image-preview-box mb-3">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <Text type="secondary">Chưa có ảnh</Text>
+                  )}
+                </div>
+                <Upload
+                  listType="picture"
+                  beforeUpload={() => false} // Không upload ngay
+                  maxCount={1}
+                  onChange={handleImageChange}
+                  showUploadList={false}
+                >
+                  <Button icon={<UploadOutlined />} size="large">Thay đổi ảnh</Button>
+                </Upload>
+              </Card>
+            </Col>
+          </Row>
+        </Form>
+      </div>
+    </ConfigProvider>
   );
 };
 

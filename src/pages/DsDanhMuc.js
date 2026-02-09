@@ -1,234 +1,207 @@
 import React, { useEffect, useState } from "react";
-import {
-  Table,
-  Button,
-  Form,
-  Row,
-  Col,
-  Pagination,
-  Modal,
-  Spinner,
-  Card,
-} from "react-bootstrap";
-import { getAllDanhMuc, filterDanhmuc, deleteDanhMuc } from "../api/danhmucApi";
-import { Link } from "react-router-dom";
-import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
+import { 
+  Row, Col, Card, Input, Select, Button, Pagination, 
+  Modal, Tag, Typography, Space, Empty, Spin, 
+  Breadcrumb, ConfigProvider, Tooltip, Divider
+} from "antd";
+import { 
+  SearchOutlined, PlusOutlined, EditOutlined, 
+  DeleteOutlined, ExclamationCircleOutlined, 
+  AppstoreOutlined, FilterOutlined 
+} from "@ant-design/icons";
+import { filterDanhmuc, deleteDanhMuc } from "../api/danhmucApi";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
-import { FaPlus, FaFileExport } from "react-icons/fa";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text, Paragraph } = Typography;
+const { confirm } = Modal;
 
 const DsDanhMuc = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [message, setMessage] = useState("");
   const [danhmuc, setDanhmuc] = useState([]);
-  const [danhmucToDelete, setDanhMucToDelete] = useState(null);
   const [totalDanhMuc, setTotalDanhMuc] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1);
-  const { user } = useAuth();
+  
   const [filters, setFilters] = useState({
     page: 1,
     limit: 12,
     keyword: "",
     status: "",
-    seoScore: "",
   });
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const data = await filterDanhmuc(filters); // Gọi API lọc
-
-      setDanhmuc(data.categories);
-      setTotalDanhMuc(data.totalCategories);
-      setTotalPages(data.totalPages);
-      setLoading(false);
+      try {
+        const data = await filterDanhmuc(filters);
+        setDanhmuc(data.categories);
+        setTotalDanhMuc(data.totalCategories);
+        setTotalPages(data.totalPages);
+      } catch (error) {
+        showErrorToast("Lỗi", "Không thể tải danh sách danh mục.");
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [filters]);
 
-  const handlePageChange = (pageNumber) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      page: pageNumber,
-    }));
+  const handlePageChange = (page) => {
+    setFilters(prev => ({ ...prev, page }));
   };
 
-  const handleDelete = async () => {
-    if (!danhmucToDelete) return;
-
-    try {
-      const result = await deleteDanhMuc(danhmucToDelete,user.id);
-      setDanhmuc((prevDanhmuc) =>
-        prevDanhmuc.filter((prod) => prod.id !== danhmucToDelete)
-      );
-      showSuccessToast("Danh mục",result.message);
-      setShowModal(false);
-    } catch (error) {
-      showErrorToast("Danh mục",error.message || "Lỗi khi xóa sản phẩm.");
-    }
+  const handleSearchChange = (e) => {
+    setFilters(prev => ({ ...prev, keyword: e.target.value, page: 1 }));
   };
 
-  const openDeleteModal = (id) => {
-    setDanhMucToDelete(id);
-    setShowModal(true);
+  const handleStatusChange = (value) => {
+    setFilters(prev => ({ ...prev, status: value, page: 1 }));
   };
 
-  const closeDeleteModal = () => {
-    setShowModal(false);
-    setDanhMucToDelete(null);
-  };
-
-  const handleFilterChange = (e) => {
-    setFilters({
-      ...filters,
-      [e.target.name]: e.target.value,
+  const showDeleteConfirm = (id) => {
+    confirm({
+      title: 'Xóa danh mục này?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Tất cả các sản phẩm thuộc danh mục này có thể bị ảnh hưởng. Bạn vẫn muốn tiếp tục?',
+      okText: 'Xóa ngay',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          const result = await deleteDanhMuc(id, user.id);
+          showSuccessToast("Thành công", result.message);
+          setDanhmuc(prev => prev.filter(item => item.id !== id));
+        } catch (error) {
+          showErrorToast("Lỗi", error.message || "Không thể xóa danh mục.");
+        }
+      },
     });
   };
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <Row className="align-items-center mb-3">
-        <Col>
-          <h4 className="fw-bold text-primary">Danh Mục</h4>
-        </Col>
-      
-      </Row>
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 12 } }}>
+      <div className="container-fluid p-4">
+        <style>{`
+          .category-card { border-radius: 16px; transition: all 0.3s ease; border: 1px solid #f0ece1; height: 100%; }
+          .category-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+          .filter-bar { background: #fff; padding: 20px; border-radius: 16px; border: 1px solid #f0ece1; margin-bottom: 24px; }
+          .ant-card-actions { background: #fdfcf8 !important; border-top: 1px solid #f0ece1 !important; }
+        `}</style>
 
-      {/* Filter Form */}
-      <div>
-        <Row className="mb-3">
-          <Col md={3}>
-            <Form.Control
-              type="text"
-              placeholder="Từ khóa"
-              name="keyword"
-              value={filters.keyword}
-              onChange={handleFilterChange}
-              className="shadow-sm"
-            />
+        {/* Header Section */}
+        <Row className="mb-4 align-items-center" gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <Breadcrumb items={[{ title: 'Quản lý' }, { title: 'Cửa hàng' }, { title: 'Danh mục' }]} className="mb-2" />
+            <Title level={3} className="m-0"><AppstoreOutlined /> Quản lý Danh mục</Title>
           </Col>
-          <Col md={3}>
-            <Form.Select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className="shadow-sm"
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="active">Kích hoạt</option>
-              <option value="inactive">Không kích hoạt</option>
-            </Form.Select>
-          </Col>
+          <Col xs={24} md={12} className="text-md-end">
             {user?.role === "admin" && (
-          <Col md={6} className="text-end">
-            <Button variant="primary" className="shadow-sm">
-              <Link
-                to={"/danh-muc/them"}
-                style={{ textDecoration: "none", color: "white" }}
-                >
-                <FaPlus className="me-1" /> 
-                Thêm danh mục
-              </Link>
-            </Button>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<PlusOutlined />} 
+                onClick={() => navigate("/danh-muc/them")}
+              >
+                Thêm danh mục mới
+              </Button>
+            )}
           </Col>
-        )}
         </Row>
-      </div>
 
-   
+        {/* Filter Bar */}
+        <div className="filter-bar">
+          <Row gutter={16}>
+            <Col xs={24} md={10} lg={8}>
+              <Text strong><SearchOutlined /> Tìm kiếm</Text>
+              <Input 
+                placeholder="Nhập tên danh mục..." 
+                className="mt-2" 
+                size="large"
+                allowClear
+                value={filters.keyword}
+                onChange={handleSearchChange}
+              />
+            </Col>
+            <Col xs={24} md={8} lg={6}>
+              <Text strong><FilterOutlined /> Trạng thái</Text>
+              <Select 
+                className="w-100 mt-2" 
+                size="large"
+                placeholder="Lọc theo trạng thái"
+                value={filters.status}
+                onChange={handleStatusChange}
+              >
+                <Select.Option value="">Tất cả trạng thái</Select.Option>
+                <Select.Option value="active">Đang kích hoạt</Select.Option>
+                <Select.Option value="inactive">Tạm ngưng</Select.Option>
+              </Select>
+            </Col>
+          </Row>
+        </div>
 
-      {/* Danh sách danh mục */}
-      <div className="row row-cols-1 row-cols-md-3 g-4">
-        {loading ? (
-            <div className="text-center py-5 w-100  d-flex justify-content-center align-items-center h-100">
-            <Spinner animation="border" variant="primary" />
-          </div>
-        ) : (
-          danhmuc?.map((prod) => (
-            <div className="col" key={prod.id}>
-              <Card className="shadow-sm">
-                <Card.Body>
-                  <Card.Title>{prod.name}</Card.Title>
-                  <Card.Text>{prod.description}</Card.Text>
-                  <div>
-                    <strong>Trạng thái:</strong>{" "}
-                    <span
-                      style={{
-                        color: prod.status === "active" ? "green" : "red",
-                      }}
-                    >
-                      {prod.status === "active"
-                        ? "Kích hoạt"
-                        : "Không kích hoạt"}
-                    </span>
-                  </div>
-                  {user?.role === "admin" && (
-                    <div className="mt-3">
-                      <Button
-                        variant="outline-primary"
-                        as={Link}
-                        to={`/danh-muc/sua/${prod.id}`}
-                        className="me-2"
-                      >
-                        <MdOutlineAutoFixHigh /> Chỉnh sửa
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        onClick={() => openDeleteModal(prod.id)}
-                      >
-                        <MdDelete /> Xóa
-                      </Button>
+        {/* Content Section */}
+        <Spin spinning={loading} tip="Đang tải dữ liệu...">
+          {danhmuc.length > 0 ? (
+            <Row gutter={[24, 24]}>
+              {danhmuc.map((item) => (
+                <Col xs={24} sm={12} lg={8} xl={6} key={item.id}>
+                  <Card
+                    className="category-card"
+                    actions={user?.role === "admin" ? [
+                      <Tooltip title="Chỉnh sửa">
+                        <EditOutlined key="edit" style={{ color: '#c19a6b' }} onClick={() => navigate(`/danh-muc/sua/${item.id}`)} />
+                      </Tooltip>,
+                      <Tooltip title="Xóa danh mục">
+                        <DeleteOutlined key="delete" style={{ color: '#ff4d4f' }} onClick={() => showDeleteConfirm(item.id)} />
+                      </Tooltip>
+                    ] : []}
+                  >
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <Tag color={item.status === "active" ? "green" : "red"}>
+                        {item.status === "active" ? "KÍCH HOẠT" : "TẠM ẨN"}
+                      </Tag>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>ID: {item.id}</Text>
                     </div>
-                  )}
-                </Card.Body>
-              </Card>
-            </div>
-          ))
-        )}
+                    <Title level={5} className="mb-2">{item.name}</Title>
+                    <Paragraph 
+                      ellipsis={{ rows: 2 }} 
+                      type="secondary" 
+                      style={{ height: '44px', marginBottom: 0 }}
+                    >
+                      {item.description || "Không có mô tả cho danh mục này."}
+                    </Paragraph>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          ) : (
+            <Card className="category-card py-5">
+              <Empty description="Không tìm thấy danh mục nào phù hợp" />
+            </Card>
+          )}
+
+          {/* Pagination Section */}
+          <Divider />
+          <Row className="align-items-center mb-5">
+            <Col xs={24} md={12}>
+              <Text type="secondary">Tìm thấy <b>{totalDanhMuc}</b> danh mục tổng cộng</Text>
+            </Col>
+            <Col xs={24} md={12} className="text-md-end mt-3 mt-md-0">
+              <Pagination 
+                current={filters.page}
+                pageSize={filters.limit}
+                total={totalDanhMuc}
+                onChange={handlePageChange}
+                showSizeChanger={false}
+              />
+            </Col>
+          </Row>
+        </Spin>
       </div>
-   {/* Pagination */}
-   <div className="d-flex justify-content-between align-items-center mt-2">
-        <div>{totalDanhMuc} danh mục</div>
-        <Pagination>
-          <Pagination.First onClick={() => handlePageChange(1)} />
-          <Pagination.Prev
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          />
-          {[...Array(totalPages).keys()]?.map((page) => (
-            <Pagination.Item
-              key={page + 1}
-              active={currentPage === page + 1}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              {page + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-        </Pagination>
-      </div>
-      {/* Modal xác nhận xóa */}
-      <Modal show={showModal} onHide={closeDeleteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa danh mục</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xóa danh mục này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xóa
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+    </ConfigProvider>
   );
 };
 

@@ -1,63 +1,58 @@
 import React, { useEffect, useState } from "react";
-import {
-  Table,
-  Button,
-  Form,
-  Row,
-  Col,
-  Pagination,
-  Modal,
-  Spinner,
-  OverlayTrigger,
-  Tooltip,
-  Badge,
-} from "react-bootstrap";
+import { 
+  Table, Button, Input, Select, Space, Tag, Typography, 
+  Tooltip, Modal, Breadcrumb, ConfigProvider, Card, 
+  Row, Col, Spin, Empty, Pagination, Divider 
+} from "antd";
+import { 
+  SearchOutlined, DeleteOutlined, EyeOutlined, 
+  FileExcelOutlined, ShoppingCartOutlined, 
+  ExclamationCircleOutlined, UserOutlined,
+  ClockCircleOutlined, CheckCircleOutlined,
+  CloseCircleOutlined, CarOutlined
+} from "@ant-design/icons";
 import { Link } from "react-router-dom";
-import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
-import {
-  filterOrders,
-  deleteOrderById,
-  updateOrderStatus,
+import { 
+  filterOrders, 
+  deleteOrderById, 
+  updateOrderStatus 
 } from "../api/orderApi";
 import * as XLSX from "xlsx";
-import { FiEye } from "react-icons/fi";
 import { useAuth } from "../contexts/AuthContext";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const OrderList = () => {
   const { user } = useAuth();
-
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    current: 1,
+    pageSize: 10,
+  });
+
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 12,
+    limit: 10,
     keyword: "",
     status: "",
   });
-  const [pagination, setPagination] = useState({
-    totalPages: 1,
-    totalOrders: 0,
-    currentPage: 1,
-  });
-  const [loading, setLoading] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [message, setMessage] = useState("");
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
       const data = await filterOrders(filters);
-      console.log(data);
-      
       setOrders(data.orders);
       setPagination({
-        totalPages: data.totalPages,
-        totalOrders: data.totalOrders,
-        currentPage: data.currentPage,
+        total: data.totalOrders,
+        current: data.currentPage,
+        pageSize: filters.limit,
       });
     } catch (err) {
-      console.error("Lỗi khi tải đơn hàng:", err);
+      showErrorToast("Lỗi", "Không thể tải danh sách đơn hàng.");
     } finally {
       setLoading(false);
     }
@@ -67,281 +62,226 @@ const OrderList = () => {
     fetchOrders();
   }, [filters]);
 
-  const handlePageChange = (page) => {
-    setFilters((prev) => ({ ...prev, page }));
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-      page: 1,
-    }));
-  };
-
-  const openDeleteModal = (orderId) => {
-    setOrderToDelete(orderId);
-    setShowModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowModal(false);
-    setOrderToDelete(null);
-  };
-
-  const handleDelete = async () => {
-    try {
-      await deleteOrderById(orderToDelete);
-      showSuccessToast("Đơn hàng","🗑️ Đơn hàng đã được xóa.");
-      fetchOrders();
-    } catch {
-      showErrorToast("Đơn hàng","Xóa đơn hàng thất bại.");
-    } finally {
-      closeDeleteModal();
-    }
-  };
-
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       await updateOrderStatus(orderId, newStatus, user.id);
-      showSuccessToast("Đơn hàng","Trạng thái đơn hàng đã được cập nhật.");
+      showSuccessToast("Thành công", "Đã cập nhật trạng thái đơn hàng.");
       fetchOrders();
     } catch (err) {
-      showErrorToast("Đơn hàng","Lỗi khi cập nhật trạng thái.");
+      showErrorToast("Lỗi", "Cập nhật trạng thái thất bại.");
     }
+  };
+
+  const showDeleteConfirm = (id) => {
+    confirm({
+      title: 'Xóa đơn hàng này?',
+      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      content: 'Hành động này sẽ xóa vĩnh viễn dữ liệu đơn hàng.',
+      okText: 'Xác nhận xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await deleteOrderById(id);
+          showSuccessToast("Thành công", "Đã xóa đơn hàng.");
+          fetchOrders();
+        } catch {
+          showErrorToast("Thất bại", "Không thể xóa đơn hàng.");
+        }
+      },
+    });
   };
 
   const handleExportToExcel = () => {
+    const dataToExport = orders.map((order) => ({
+      "Mã ĐH": `DH${order.order_id.toString().padStart(4, "0")}`,
+      "Khách hàng": order.customer_name,
+      "SĐT": order.customer_phone,
+      "Tổng tiền": order.final_total,
+      "Trạng thái": order.status,
+      "Ngày tạo": new Date(order.created_at).toLocaleDateString(),
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(
-      orders.map((order) => ({
-        "Mã ĐH": `DH${order.order_id.toString().padStart(4, "0")}`,
-        "Khách hàng": order.customer_name,
-        SĐT: order.customer_phone,
-        Email: order.customer_email,
-        "Địa chỉ": order.address,
-        "Ngày tạo": new Date(order.created_at).toLocaleDateString(),
-        "Tổng tiền": `${Number(order.final_total).toLocaleString()} VND`,
-        "Trạng thái": order.status,
-      }))
-    );
-    XLSX.utils.book_append_sheet(wb, ws, "Đơn hàng");
-    XLSX.writeFile(wb, "don_hang.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Orders");
+    XLSX.writeFile(wb, "Danh_sach_don_hang.xlsx");
   };
 
-  const renderStatusBadge = (status) => {
-    let variant = "secondary";
-    switch (status) {
-      case "Chờ xử lý":
-        variant = "warning";
-        break;
-      case "Đang giao":
-        variant = "info";
-        break;
-      case "Đã giao":
-        variant = "success";
-        break;
-      case "Đã hủy":
-        variant = "danger";
-        break;
-    }
-    return <Badge bg={variant}>{status}</Badge>;
+  const getStatusTag = (status) => {
+    const statusMap = {
+      "Chờ xử lý": { color: "warning", icon: <ClockCircleOutlined /> },
+      "Đang giao": { color: "processing", icon: <CarOutlined /> },
+      "Đã giao": { color: "success", icon: <CheckCircleOutlined /> },
+      "Đã hủy": { color: "error", icon: <CloseCircleOutlined /> },
+    };
+    const config = statusMap[status] || { color: "default", icon: null };
+    return <Tag icon={config.icon} color={config.color}>{status.toUpperCase()}</Tag>;
   };
+
+  const columns = [
+    {
+      title: 'MÃ ĐƠN',
+      dataIndex: 'order_id',
+      key: 'order_id',
+      width: 100,
+      render: (id) => <Text strong color="#5d4037">#{id.toString().padStart(4, "0")}</Text>,
+    },
+    {
+      title: 'KHÁCH HÀNG',
+      key: 'customer',
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{record.customer_name}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>{record.customer_phone}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'TỔNG TIỀN',
+      dataIndex: 'final_total',
+      key: 'final_total',
+      render: (total) => (
+        <Text strong style={{ color: '#b35d33' }}>
+          {Number(total).toLocaleString()}đ
+        </Text>
+      ),
+    },
+    {
+      title: 'NGÀY TẠO',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => <Text type="secondary">{new Date(date).toLocaleDateString()}</Text>,
+    },
+    {
+      title: 'TRẠNG THÁI',
+      key: 'status',
+      width: 180,
+      render: (_, record) => (
+        <Select
+          value={record.status}
+          onChange={(val) => handleStatusChange(record.order_id, val)}
+          disabled={record.status === "Đã giao" || record.status === "Đã hủy"}
+          style={{ width: '100%' }}
+          status={record.status === "Đã hủy" ? "error" : ""}
+        >
+          <Select.Option value="Chờ xử lý">Chờ xử lý</Select.Option>
+          <Select.Option value="Đang giao">Đang giao</Select.Option>
+          <Select.Option value="Đã giao">Đã giao</Select.Option>
+          <Select.Option value="Đã hủy">Đã hủy</Select.Option>
+        </Select>
+      ),
+    },
+    {
+      title: 'HÀNH ĐỘNG',
+      key: 'actions',
+      align: 'right',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Xem chi tiết">
+            <Link to={`/don-hang/chi-tiet/${record.order_id}`}>
+              <Button type="text" icon={<EyeOutlined style={{ color: '#5d4037' }} />} />
+            </Link>
+          </Tooltip>
+          {user?.role === "admin" && (
+            <Tooltip title="Xóa đơn">
+              <Button 
+                type="text" 
+                danger 
+                icon={<DeleteOutlined />} 
+                onClick={() => showDeleteConfirm(record.order_id)} 
+              />
+            </Tooltip>
+          )}
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <Row className="align-items-center mb-3">
-        <Col>
-          <h4>📦 Danh sách đơn hàng</h4>
-        </Col>
-      </Row>
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 8 } }}>
+      <div className="p-4 bg-light min-vh-100">
+        <style>{`
+          .order-table .ant-table-thead > tr > th { background: #fdfcf8; font-weight: 700; text-transform: uppercase; font-size: 12px; }
+          .filter-card { border-radius: 12px; border: 1px solid #f0ece1; margin-bottom: 24px; }
+          .export-btn:hover { background: #27ae60 !important; border-color: #27ae60 !important; }
+        `}</style>
 
-      <Row className="mb-3">
-        <Col md={4}>
-          <Form.Control
-            type="text"
-            placeholder="🔍 Tìm tên / email / SĐT"
-            name="keyword"
-            value={filters.keyword}
-            onChange={handleFilterChange}
-          />
-        </Col>
-        <Col md={3}>
-          <Form.Select
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
-          >
-            <option value="">-- Tất cả trạng thái --</option>
-            <option value="Chờ xử lý">Chờ xử lý</option>
-            <option value="Đang giao">Đang giao</option>
-            <option value="Đã giao">Đã giao</option>
-            <option value="Đã hủy">Đã hủy</option>
-          </Form.Select>
-        </Col>
-        <Col className="text-end">
-          <Button variant="success" onClick={handleExportToExcel}>
-            📄 Xuất Excel
-          </Button>
-        </Col>
-      </Row>
-
-     {loading ? (
-        <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
-          <Spinner animation="border" variant="primary" />
-        </div>
-      ) : (
-        <>
-          <div className="table-responsive">
-            <Table
-              responsive
-              bordered
-              hover
-              className="align-middle text-center table-striped shadow-sm"
+        {/* Header Section */}
+        <Row justify="space-between" align="middle" className="mb-4">
+          <Col>
+            <Breadcrumb items={[{ title: "Quản trị" }, { title: "Giao dịch" }, { title: "Đơn hàng" }]} className="mb-2" />
+            <Title level={3}><ShoppingCartOutlined /> Quản lý Đơn hàng</Title>
+          </Col>
+          <Col>
+            <Button 
+              type="primary" 
+              icon={<FileExcelOutlined />} 
+              onClick={handleExportToExcel}
+              className="export-btn"
+              style={{ background: '#2ecc71', borderColor: '#2ecc71' }}
             >
-              <thead className="table-dark">
-                <tr>
-                  <th>Mã ĐH</th>
-                  <th>Khách hàng</th>
-                  <th>SĐT</th>
-                  <th>Email</th>
-                  <th>Địa chỉ</th>
-                  <th>Ngày tạo</th>
-                  <th>Tổng tiền</th>
-                  <th>Hình thức</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="table-group-divider">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan="10" className="text-center py-4">
-                      Không có đơn hàng nào.
-                    </td>
-                  </tr>
-                ) : (
-                  orders.map((order) => (
-                    <tr key={order.order_id}>
-                      <td>DH{order.order_id.toString().padStart(4, "0")}</td>
-                      <td>{order.customer_name}</td>
-                      <td>{order.customer_phone}</td>
-                      <td>{order.customer_email}</td>
-                      <td>
-                        {order.address.length > 15
-                          ? order.address.slice(0, 15) + "..."
-                          : order.address}
-                      </td>
-                      <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                      <td>{Number(order.final_total).toLocaleString()} VND</td>
-                      <td>{order.payment_method}</td>
-                      <td>
-                        <Form.Select
-                          value={order.status || ""}
-                          onChange={(e) =>
-                            handleStatusChange(order.order_id, e.target.value)
-                          }
-                          disabled={
-                            order.status === "Đã giao" || order.status === "Đã hủy"
-                          }
-                        >
-                          <option value="Chờ xử lý">Chờ xử lý</option>
-                          <option value="Đang giao">Đang giao</option>
-                          <option value="Đã giao">Đã giao</option>
-                          <option value="Đã hủy">Đã hủy</option>
-                        </Form.Select>
-                      </td>
-                      <td className="d-flex gap-2 justify-content-center">
-                        <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            as={Link}
-                            to={`/don-hang/chi-tiet/${order.order_id}`}
-                          >
-                            <FiEye />
-                          </Button>
-                        </OverlayTrigger>
-                        {user?.role === "admin" && (
-                          <OverlayTrigger overlay={<Tooltip>Xóa đơn</Tooltip>}>
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => openDeleteModal(order.order_id)}
-                            >
-                              <MdDelete />
-                            </Button>
-                          </OverlayTrigger>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
-          </div>
+              Xuất báo cáo Excel
+            </Button>
+          </Col>
+        </Row>
 
-          {/* Phân trang */}
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 px-2">
-            <div className="mb-2 mb-md-0">
-              <small className="text-muted fw-medium">
-                Tổng cộng <strong>{pagination.totalOrders}</strong> đơn hàng
-              </small>
-            </div>
-
-            <Pagination className="m-0">
-              <Pagination.First
-                onClick={() => handlePageChange(1)}
-                disabled={pagination.currentPage === 1}
+        {/* Filters Area */}
+        <Card className="filter-card shadow-sm">
+          <Row gutter={16}>
+            <Col xs={24} md={12} lg={8}>
+              <Text strong>Tìm kiếm thông minh</Text>
+              <Input 
+                prefix={<SearchOutlined />} 
+                placeholder="Mã ĐH, Tên, Số điện thoại..." 
+                className="mt-2"
+                size="large"
+                allowClear
+                value={filters.keyword}
+                onChange={(e) => setFilters(prev => ({ ...prev, keyword: e.target.value, page: 1 }))}
               />
-              <Pagination.Prev
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1}
+            </Col>
+            <Col xs={24} md={12} lg={6}>
+              <Text strong>Lọc theo trạng thái</Text>
+              <Select 
+                className="w-100 mt-2" 
+                size="large"
+                value={filters.status}
+                onChange={(val) => setFilters(prev => ({ ...prev, status: val, page: 1 }))}
+                options={[
+                  { label: "Tất cả đơn hàng", value: "" },
+                  { label: "Chờ xử lý", value: "Chờ xử lý" },
+                  { label: "Đang giao", value: "Đang giao" },
+                  { label: "Đã giao", value: "Đã giao" },
+                  { label: "Đã hủy", value: "Đã hủy" },
+                ]}
               />
+            </Col>
+          </Row>
+        </Card>
 
-              {Array.from({ length: pagination.totalPages }, (_, idx) => {
-                const page = idx + 1;
-                return (
-                  <Pagination.Item
-                    key={page}
-                    active={page === pagination.currentPage}
-                    onClick={() => handlePageChange(page)}
-                    className="fw-bold"
-                  >
-                    {page}
-                  </Pagination.Item>
-                );
-              })}
-
-              <Pagination.Next
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.totalPages}
-              />
-              <Pagination.Last
-                onClick={() => handlePageChange(pagination.totalPages)}
-                disabled={pagination.currentPage === pagination.totalPages}
-              />
-            </Pagination>
-          </div>
-        </>
-      )}
-
-      <Modal show={showModal} onHide={closeDeleteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa đơn hàng</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xóa đơn hàng này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xóa
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+        {/* Main Table */}
+        <div className="bg-white p-3 rounded-4 border shadow-sm">
+          <Table 
+            className="order-table"
+            columns={columns} 
+            dataSource={orders} 
+            rowKey="order_id"
+            loading={loading}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              onChange: (p) => setFilters(prev => ({ ...prev, page: p })),
+              position: ['bottomCenter'],
+              showSizeChanger: false
+            }}
+            locale={{ emptyText: <Empty description="Không có đơn hàng nào" /> }}
+          />
+          <Divider />
+          <Text type="secondary">Tổng số đơn hàng: <b>{pagination.total}</b> đơn hàng</Text>
+        </div>
+      </div>
+    </ConfigProvider>
   );
 };
 

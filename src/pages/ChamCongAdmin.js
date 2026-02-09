@@ -1,355 +1,310 @@
-import React, { useState, useEffect } from "react";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
-import {
-  Container,
-  Table,
-  Button,
-  Form,
-  Row,
-  Col,
-  Spinner,
-  Card,
-  Modal,
-  Alert,
-} from "react-bootstrap";
-import {
-  getChamCongByDate,
-  exportChamCongByMonth,
-  getSalarySummary,
-  saveSalary,
-  checkSalarySaved,
+import React, { useState, useEffect, useCallback } from "react";
+import { 
+  Card, Row, Col, DatePicker, Button, Table, 
+  Tag, Space, Modal, Statistic, Divider, 
+  Typography, Breadcrumb, App, Spin, List 
+} from "antd";
+import { 
+  CalendarOutlined, 
+  FileExcelOutlined, 
+  DollarCircleOutlined, 
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  ExportOutlined,
+  InfoCircleOutlined
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import { 
+  getChamCongByDate, 
+  exportChamCongByMonth, 
+  getSalarySummary, 
+  saveSalary, 
+  checkSalarySaved 
 } from "../api/chamcongApi";
 import { saveAs } from "file-saver";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
-import "../assets/ChamCongAdmin.css";
-const formatDate = (date) => date.toISOString().split("T")[0];
-const formatDisplayDate = (date) => date.toLocaleDateString("vi-VN");
+const { Title, Text } = Typography;
+
 const ChamCongAdmin = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(dayjs());
   const [chamCongData, setChamCongData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [exporting, setExporting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}`;
-  });
+  
+  const [selectedMonth, setSelectedMonth] = useState(dayjs());
+  const [salaryDetail, setSalaryDetail] = useState(null);
+  const [showSalaryModal, setShowSalaryModal] = useState(false);
 
-  const formatDateTime = (isoString) => {
-    const date = new Date(isoString);
-    return date.toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Ho_Chi_Minh",
-    });
-  };
-
-  const fetchData = async (date) => {
+  // Lấy dữ liệu chấm công theo ngày
+  const fetchData = useCallback(async (date) => {
     setLoading(true);
-    const res = await getChamCongByDate(formatDate(date));
-    if (res.success) setChamCongData(res.data);
-    else setChamCongData([]);
-    setLoading(false);
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    const res = await exportChamCongByMonth(selectedMonth);
-    if (res) {
-      const filename = `ChamCong_${selectedMonth}.xlsx`;
-      saveAs(new Blob([res.data]), filename);
-    } else {
-      alert("Không thể xuất file Excel.");
+    try {
+      const formattedDate = date.format("YYYY-MM-DD");
+      const res = await getChamCongByDate(formattedDate);
+      if (res.success) setChamCongData(res.data);
+      else setChamCongData([]);
+    } catch (err) {
+      showErrorToast("Lỗi", "Không thể lấy dữ liệu chấm công");
+    } finally {
+      setLoading(false);
     }
-    setExporting(false);
-  };
+  }, []);
 
   useEffect(() => {
     fetchData(selectedDate);
-  }, [selectedDate]);
+  }, [selectedDate, fetchData]);
 
-  const [salaryDetail, setSalaryDetail] = useState(null);
-  const [showSalaryDetailModal, setShowSalaryDetailModal] = useState(false);
-  const [selectedEmployeeName, setSelectedEmployeeName] = useState("");
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-  const [selectedEmployeeEmail, setSelectedEmployeeEmail] = useState("");
-
-  const handleViewSalaryDetail = async (emp) => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-
+  // Xuất file Excel
+  const handleExport = async () => {
+    setExporting(true);
+    const monthStr = selectedMonth.format("YYYY-MM");
     try {
-      const res = await getSalarySummary(emp.id, year, month);
-      const check = await checkSalarySaved(emp.id, year, month);
+      const res = await exportChamCongByMonth(monthStr);
+      if (res) {
+        saveAs(new Blob([res.data]), `ChamCong_${monthStr}.xlsx`);
+        showSuccessToast("Thành công", "Đã xuất file báo cáo tháng");
+      }
+    } catch {
+      showErrorToast("Lỗi", "Không thể xuất file Excel");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Xem chi tiết lương
+  const handleViewSalaryDetail = async (emp) => {
+    const year = dayjs().year();
+    const month = dayjs().month() + 1;
+    try {
+      const [salaryRes, checkRes] = await Promise.all([
+        getSalarySummary(emp.id, year, month),
+        checkSalarySaved(emp.id, year, month)
+      ]);
 
       setSalaryDetail({
-        ...res.data,
+        ...salaryRes.data,
         user_id: emp.id,
         full_name: emp.full_name,
         email: emp.email,
         year,
         month,
-        saved: check.saved,
+        saved: checkRes.saved,
       });
-
-      setSelectedEmployeeName(emp.full_name);
-      setShowSalaryDetailModal(true);
-    } catch (err) {
-      alert("Không thể lấy dữ liệu lương");
+      setShowSalaryModal(true);
+    } catch {
+      showErrorToast("Lỗi", "Không thể lấy bảng tính lương");
     }
   };
-  // const handleSaveSalary = async () => {
-  //   const now = new Date();
-  //   const year = now.getFullYear();
-  //   const month = now.getMonth() + 1;
 
-  //   try {
-  //     await saveSalary({
-  //       ...salaryDetail,
-  //       user_id: selectedEmployeeId,
-  //       full_name: selectedEmployeeName,
-  //       email: selectedEmployeeEmail,
-  //       year,
-  //       month,
-  //     });
-  //     alert("✅ Đã lưu lương vào hệ thống");
-  //   } catch (err) {
-  //     alert("❌ Lỗi khi lưu lương");
-  //   }
-  // };
+  // Lưu lương
   const handleSaveSalary = async () => {
-    if (saving || salaryDetail?.saved) return; // tránh double-click
-
     setSaving(true);
-    
-
     try {
-      const res = await saveSalary(salaryDetail);
-      showSuccessToast("Lương nhân viên","Lưu lương thành công!");
-      setSalaryDetail((prev) => ({ ...prev, saved: true }));
-      setShowSalaryDetailModal(false);
+      await saveSalary(salaryDetail);
+      showSuccessToast("Thành công", "Đã lưu bảng lương vào hệ thống");
+      setSalaryDetail(prev => ({ ...prev, saved: true }));
+      setShowSalaryModal(false);
     } catch (err) {
-      if (err.response?.status === 409) {
-        showSuccessToast("Lương nhân viên","⚠️ Lương đã được lưu trước đó.");
-      } else {
-        showErrorToast("Lương nhân viên","Lỗi khi lưu lương");
-      }
+      showErrorToast("Lỗi", "Không thể lưu bảng lương");
     } finally {
       setSaving(false);
     }
   };
-  // useEffect(() => {
-  //   if (message) {
-  //     const timer = setTimeout(() => setMessage(""), 3000);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [message]);
+
+  const columns = [
+    { title: 'STT', key: 'index', width: 60, render: (_, __, i) => i + 1 },
+    { 
+      title: 'Nhân viên', 
+      key: 'name', 
+      render: (record) => (
+        <div>
+          <Text strong>{record.full_name}</Text><br/>
+          <Text type="secondary" style={{ fontSize: '12px' }}>{record.position}</Text>
+        </div>
+      ) 
+    },
+    { title: 'Phòng ban', dataIndex: 'department', key: 'dept' },
+    { 
+      title: 'Check-in', 
+      key: 'in',
+      render: (record) => record.check_in_time ? (
+        <Tag color="blue">{dayjs(record.check_in_time).format("HH:mm:ss")}</Tag>
+      ) : <Tag color="default">Vắng</Tag>
+    },
+    { 
+      title: 'Check-out', 
+      key: 'out',
+      render: (record) => record.check_out_time ? (
+        <Tag color="cyan">{dayjs(record.check_out_time).format("HH:mm:ss")}</Tag>
+      ) : <Tag color="default">--:--</Tag>
+    },
+    {
+      title: 'Hành động',
+      key: 'action',
+      align: 'center',
+      render: (record) => (
+        <Button 
+          type="primary" 
+          ghost 
+          icon={<DollarCircleOutlined />} 
+          onClick={() => handleViewSalaryDetail(record)}
+        >
+          Tính lương
+        </Button>
+      )
+    }
+  ];
+
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <h3 className="mb-4 text-primary">📅 Quản lý chấm công</h3>
-      {/* {message && (
-        <Alert variant="info" className="mt-2">
-          {message}
-        </Alert>
-      )} */}
-      <Row>
-        {/* Cột lịch */}
-        <Col md={8}>
-          <Card className="mb-4 shadow-sm">
-            <Card.Body>
-              <Card.Title>Chọn ngày</Card.Title>
-              <Calendar
-                onChange={setSelectedDate}
-                value={selectedDate}
-                locale="vi-VN"
-              />
-            </Card.Body>
+    <div className="p-4" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
+      <Row justify="space-between" align="middle" className="mb-4">
+        <Col>
+          <Breadcrumb items={[{ title: 'Nhân sự' }, { title: 'Quản lý chấm công' }]} />
+          <Title level={3} style={{ marginTop: 8 }}><CalendarOutlined /> Chấm công & Lương</Title>
+        </Col>
+      </Row>
+
+      <Row gutter={[20, 20]}>
+        {/* Cột điều khiển trái */}
+        <Col xs={24} lg={7}>
+          <Card title="Bộ lọc & Tiện ích" bordered={false} className="shadow-sm mb-4">
+            <Space direction="vertical" className="w-100" size="large">
+              <div>
+                <Text strong><CalendarOutlined /> Chọn ngày xem dữ liệu:</Text>
+                <DatePicker 
+                  className="w-100 mt-2" 
+                  value={selectedDate} 
+                  onChange={(d) => d && setSelectedDate(d)}
+                  format="DD/MM/YYYY"
+                />
+              </div>
+              <Divider style={{ margin: '12px 0' }} />
+              <div>
+                <Text strong><FileExcelOutlined /> Xuất báo cáo tháng:</Text>
+                <DatePicker 
+                  picker="month" 
+                  className="w-100 mt-2 mb-2" 
+                  value={selectedMonth}
+                  onChange={(m) => m && setSelectedMonth(m)}
+                />
+                <Button 
+                  block 
+                  icon={<ExportOutlined />} 
+                  loading={exporting} 
+                  onClick={handleExport}
+                  style={{ background: '#5d4037', color: '#fff' }}
+                >
+                  Xuất file Excel
+                </Button>
+              </div>
+            </Space>
+          </Card>
+
+          <Card className="shadow-sm" bordered={false}>
+            <Statistic 
+              title="Tổng số nhân viên đi làm hôm nay" 
+              value={chamCongData.length} 
+              prefix={<CheckCircleOutlined />} 
+              valueStyle={{ color: '#3f8600' }}
+            />
           </Card>
         </Col>
 
-        {/* Cột dữ liệu phụ */}
-        <Col md={4}>
-          <Card className="shadow-sm">
-            <Card.Body>
-              <Form>
-                <Form.Group controlId="monthExport">
-                  <Form.Label>📤 Xuất Excel theo tháng:</Form.Label>
-                  <Form.Control
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                  />
-                </Form.Group>
-                <Button
-                  variant="success"
-                  className="mt-3 w-100"
-                  onClick={handleExport}
-                  disabled={exporting}
-                >
-                  {exporting ? "Đang xuất..." : "Xuất file Excel"}
-                </Button>
-              </Form>
-            </Card.Body>
+        {/* Cột bảng dữ liệu phải */}
+        <Col xs={24} lg={17}>
+          <Card 
+            title={<span>Dữ liệu ngày: <Text type="danger">{selectedDate.format("DD/MM/YYYY")}</Text></span>}
+            bordered={false} 
+            className="shadow-sm"
+          >
+            <Table 
+              columns={columns} 
+              dataSource={chamCongData} 
+              loading={loading}
+              rowKey="id"
+              pagination={{ pageSize: 8 }}
+            />
           </Card>
         </Col>
       </Row>
-      <Card className="shadow-sm">
-        <Card.Body>
-          <h5>
-            Dữ liệu ngày: <strong>{formatDisplayDate(selectedDate)}</strong>
-          </h5>
 
-          {loading ? (
-            <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-                     <Spinner animation="border" variant="primary" />
-                   </div>
-          ) : (
-            <Table striped bordered hover responsive className="mt-3">
-              <thead className="table-dark">
-                <tr>
-                  <th>STT</th>
-                  <th>Họ tên</th>
-                  <th>Phòng ban</th>
-                  <th>Vị trí</th>
-                  <th>Check-in</th>
-                  <th>Check-out</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {chamCongData.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center">
-                      Không có dữ liệu
-                    </td>
-                  </tr>
-                ) : (
-                  chamCongData.map((nv, index) => (
-                    <tr key={nv.id}>
-                      <td>{index + 1}</td>
-                      <td>{nv.full_name}</td>
-                      <td>{nv.department}</td>
-                      <td>{nv.position}</td>
-                      <td>
-                        {nv.check_in_time
-                          ? formatDateTime(nv.check_in_time)
-                          : "Chưa check-in"}
-                      </td>
-                      <td>
-                        {nv.check_out_time
-                          ? formatDateTime(nv.check_out_time)
-                          : "Chưa check-out"}
-                      </td>
-                      <td>
-                        <Button
-                          variant="info"
-                          size="sm"
-                          onClick={() => handleViewSalaryDetail(nv)}
-                        >
-                          💰 Xem lương
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
-          )}
-        </Card.Body>
-      </Card>
-      {/* Modal chi tiết lương */}
+      {/* Modal Chi tiết lương */}
       <Modal
-        show={showSalaryDetailModal}
-        onHide={() => setShowSalaryDetailModal(false)}
+        title={<Space><DollarCircleOutlined /> Quyết toán lương tháng {salaryDetail?.month}</Space>}
+        open={showSalaryModal}
+        onCancel={() => setShowSalaryModal(false)}
+        width={500}
         centered
-        className="salary-modal "
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            💼 Lương tháng hiện tại - {selectedEmployeeName}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {salaryDetail ? (
-            <ul>
-              <li>
-                👨‍💼 <strong>Ngày công:</strong>{" "}
-                <strong>{salaryDetail.soNgayCong} ngày</strong>
-              </li>
-              <li>
-                ⏱️ <strong>Tổng giờ làm:</strong>{" "}
-                <strong>{salaryDetail.tongGio}h</strong>
-              </li>
-              <li>
-                🐌 <strong>Đi trễ:</strong>{" "}
-                <strong>{salaryDetail.soLanTre} lần</strong>
-              </li>
-              <li>
-                🏃‍♂️ <strong>Về sớm:</strong>{" "}
-                <strong>{salaryDetail.soLanVeSom} lần</strong>
-              </li>
-              <li>
-                🕗 <strong>Tăng ca:</strong>{" "}
-                <strong>{salaryDetail.tongGioTangCa}h</strong>
-              </li>
-              <li>
-                💰 <strong>Lương chính:</strong>{" "}
-                <strong>{salaryDetail.luongNgay.toLocaleString()}đ</strong>
-              </li>
-              <li>
-                ⚡ <strong>Lương tăng ca:</strong>{" "}
-                <strong>{salaryDetail.luongTangCa.toLocaleString()}đ</strong>
-              </li>
-              <li>
-                🏆 <strong>Tổng lương:</strong>{" "}
-                <strong>{salaryDetail.tongLuong.toLocaleString()}đ</strong>
-              </li>
-            </ul>
-          ) : (
-            <p>Không có dữ liệu</p>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant={salaryDetail?.saved ? "success" : "primary"}
+        footer={[
+          <Button key="back" onClick={() => setShowSalaryModal(false)}>Đóng</Button>,
+          <Button 
+            key="save" 
+            type="primary" 
+            loading={saving} 
+            disabled={salaryDetail?.saved}
             onClick={handleSaveSalary}
-            disabled={saving || salaryDetail?.saved}
+            style={salaryDetail?.saved ? {} : { background: '#5d4037' }}
           >
-            {saving ? (
-              <>
-                <Spinner
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  className="me-2"
-                />
-                Đang lưu...
-              </>
-            ) : salaryDetail?.saved ? (
-              "✅ Đã lưu"
-            ) : (
-              "💾 Lưu lương"
-            )}
+            {salaryDetail?.saved ? "Đã lưu vào hệ thống" : "Xác nhận & Lưu lương"}
           </Button>
+        ]}
+      >
+        {salaryDetail && (
+          <div className="py-2">
+            <div className="text-center mb-4">
+              <Title level={4} style={{ margin: 0 }}>{salaryDetail.full_name}</Title>
+              <Text type="secondary">{salaryDetail.email}</Text>
+            </div>
+            
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Card size="small" className="bg-light">
+                  <Statistic title="Ngày công" value={salaryDetail.soNgayCong} suffix="/ 26" />
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card size="small" className="bg-light">
+                  <Statistic title="Tổng giờ" value={salaryDetail.tongGio} suffix="h" />
+                </Card>
+              </Col>
+            </Row>
 
-          <Button
-            variant="secondary"
-            onClick={() => setShowSalaryDetailModal(false)}
-          >
-            Đóng
-          </Button>
-        </Modal.Footer>
+            <Divider orientation="left" style={{ fontSize: '12px' }}>Chi tiết vi phạm & tăng ca</Divider>
+            
+            <List size="small">
+              <List.Item>
+                <Space><ClockCircleOutlined /> Đi trễ / Về sớm:</Space>
+                <Text type="danger">{salaryDetail.soLanTre} lần / {salaryDetail.soLanVeSom} lần</Text>
+              </List.Item>
+              <List.Item>
+                <Space><InfoCircleOutlined /> Tăng ca (OT):</Space>
+                <Text strong>{salaryDetail.tongGioTangCa} giờ</Text>
+              </List.Item>
+            </List>
+
+            <Divider orientation="left" style={{ fontSize: '12px' }}>Tổng hợp thu nhập</Divider>
+            
+            <div style={{ padding: '15px', background: '#f0ece1', borderRadius: '8px' }}>
+              <Row justify="space-between" className="mb-2">
+                <Text>Lương chính:</Text>
+                <Text strong>{salaryDetail.luongNgay.toLocaleString()} đ</Text>
+              </Row>
+              <Row justify="space-between" className="mb-2">
+                <Text>Thưởng OT:</Text>
+                <Text strong>{salaryDetail.luongTangCa.toLocaleString()} đ</Text>
+              </Row>
+              <Divider style={{ margin: '10px 0' }} />
+              <Row justify="space-between">
+                <Title level={4} style={{ color: '#5d4037', margin: 0 }}>THỰC NHẬN:</Title>
+                <Title level={4} style={{ color: '#5d4037', margin: 0 }}>
+                  {salaryDetail.tongLuong.toLocaleString()} đ
+                </Title>
+              </Row>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

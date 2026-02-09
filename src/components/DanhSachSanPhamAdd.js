@@ -1,459 +1,261 @@
 import React, { useEffect, useState } from "react";
-import { Button, Form, Row, Col } from "react-bootstrap";
+import { 
+  Form, Input, Button, Row, Col, Card, Select, 
+  InputNumber, Upload, Typography, Space, Checkbox, 
+  Divider, ConfigProvider, Breadcrumb, Spin 
+} from "antd";
+import { 
+  PlusOutlined, UploadOutlined, InfoCircleOutlined, 
+  DatabaseOutlined, PictureOutlined, LoadingOutlined 
+} from "@ant-design/icons";
 import {
-  addProduct,
-  getCategories,
-  getCoupons,
-  getAllSizes,
-  getAllColors,
+  addProduct, getCategories, getCoupons,
+  getAllSizes, getAllColors,
 } from "../api/productAPI";
-import { ClipLoader } from "react-spinners";
-import { useParams, useNavigate } from "react-router-dom";
-import { FaImage, FaTags } from "react-icons/fa";
-import { BsFillFileTextFill } from "react-icons/bs";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { useNavigate } from "react-router-dom";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 import { useAuth } from "../contexts/AuthContext";
-// Loại bỏ thẻ HTML để sinh slug
-const stripHtml = (html) => html.replace(/<[^>]*>/g, "").trim();
 
-// Chuyển tiếng Việt có dấu sang không dấu
-const removeVietnameseTones = (str) => {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D");
-};
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
-// Sinh slug từ text thuần không dấu
-const generateSlug = (text) =>
-  removeVietnameseTones(stripHtml(text))
-    .toLowerCase()
+// Helper: Chuyển tiếng Việt có dấu sang không dấu & tạo slug
+const generateSlug = (text) => {
+  if (!text) return "";
+  const from = "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ";
+  const to = "aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyydD";
+  let str = text.split("").map((c, i) => {
+    const idx = from.indexOf(c);
+    return idx > -1 ? to[idx] : c;
+  }).join("");
+
+  return str.toLowerCase()
+    .trim()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "");
+};
 
 const DanhSachSanPhamAdd = () => {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  const [productData, setProductData] = useState({
-    name: "",
-    slug: "",
-    price: "",
-    image: null,
-    subImages: [],
-    status: "",
-    brand: "",
-    description: "",
-    quantity: "",
-    size: [],
-    color: [],
-    categoryId: "",
-    couponId: "", // Mã giảm giá đã chọn
-  });
-  const token = localStorage.getItem("token");
-
-  const [message, setMessage] = useState("");
+  const [form] = Form.useForm();
+  
+  const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [coupons, setCoupons] = useState([]); // Danh sách mã giảm giá
+  const [coupons, setCoupons] = useState([]);
   const [sizes, setSizes] = useState([]);
   const [colorList, setColorList] = useState([]);
+  const token = localStorage.getItem("token");
 
-  // Lấy danh sách danh mục từ API khi component mount
+  // Fetch dữ liệu ban đầu
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const categoryList = await getCategories(); // Lấy danh mục
-        setCategories(categoryList); // Lưu danh mục vào state
+        const [catList, coupList, sizeRes, colorRes] = await Promise.all([
+          getCategories(),
+          getCoupons(),
+          getAllSizes(token),
+          getAllColors(token)
+        ]);
 
-        const couponList = await getCoupons(); // Lấy mã giảm giá
-
-        const response = await getAllSizes(token);
-        const data = response.data;
-        setSizes(data);
-
-        const response_color = await getAllColors(token);
-        const data_color = response_color.data;
-        setColorList(data_color);
-
-        // Truy cập vào coupons trong đối tượng trả về
-        if (couponList && Array.isArray(couponList.coupons)) {
-          setCoupons(couponList.coupons); // Lưu mã giảm giá vào state
-        } else {
-          showErrorToast("Lỗi dữ liệu mã giảm giá :", couponList);
-        }
+        setCategories(catList);
+        setSizes(sizeRes.data || []);
+        setColorList(colorRes.data || []);
+        if (coupList?.coupons) setCoupons(coupList.coupons);
       } catch (error) {
-        showErrorToast("Lỗi khi lấy danh mục:", error);
+        showErrorToast("Lỗi", "Không thể tải dữ liệu khởi tạo.");
       }
     };
+    fetchData();
+  }, [token]);
 
-    fetchCategories();
-  }, []);
-
-  const handleFieldChange = (field, value) => {
-    const newData = { ...productData, [field]: value };
-    if (field === "name") {
-      newData.slug = generateSlug(value);
-    }
-    setProductData(newData);
-  };
-  const handleColorChange = (color) => {
-    setProductData((prevData) => {
-      const isSelected = prevData.color.some((item) => item.id === color.id);
-      const updatedColors = isSelected
-        ? prevData.color.filter((item) => item.id !== color.id) // bỏ nếu đã chọn
-        : [...prevData.color, { id: color.id, name: color.name }]; // thêm nếu chưa có
-
-      return {
-        ...prevData,
-        color: updatedColors,
-      };
-    });
+  // Xử lý tự động sinh Slug
+  const handleNameChange = (e) => {
+    const name = e.target.value;
+    form.setFieldsValue({ slug: generateSlug(name) });
   };
 
-  const handleSizeChange = (a) => {
-    const size = [...productData.size];
-    if (size.includes(a)) {
-      setProductData({
-        ...productData,
-        size: size.filter((s) => s !== a),
-      });
-    } else {
-      setProductData({ ...productData, size: [...size, a] });
-    }
-  };
-
-  const handleFileChange = (e) => {
-    setProductData({ ...productData, image: e.target.files[0] });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onFinish = async (values) => {
+    setLoading(true);
     try {
-      setIsLoading(true);
       const formData = new FormData();
-      formData.append("name", productData.name);
-      formData.append("slug", productData.slug);
-      formData.append("price", productData.price);
-      formData.append("image", productData.image);
-      productData.subImages.forEach((file) => {
-        formData.append("subImages", file); // ảnh phụ
-      });
-      formData.append("status", productData.status);
-      formData.append("brand", productData.brand);
-      formData.append("categoryId", productData.categoryId);
-      formData.append("description", productData.description);
-      formData.append("quantity", productData.quantity);
-      formData.append("size", JSON.stringify(productData.size));
-      formData.append(
-        "color",
-        JSON.stringify(productData.color.map((c) => c.name))
-      );
-      formData.append("userId", user.id);
-      if (productData.couponId) {
-        formData.append("couponId", productData.couponId);
-      } // Thêm mã giảm giá vào form data
       
+      // Append các field cơ bản
+      formData.append("name", values.name);
+      formData.append("slug", values.slug);
+      formData.append("price", values.price);
+      formData.append("brand", values.brand || "");
+      formData.append("categoryId", values.categoryId);
+      formData.append("description", values.description || "");
+      formData.append("quantity", values.quantity);
+      formData.append("status", values.status);
+      formData.append("userId", user.id);
+      if (values.couponId) formData.append("couponId", values.couponId);
+
+      // Xử lý Size & Color (Convert mảng sang JSON string cho API)
+      formData.append("size", JSON.stringify(values.size || []));
+      formData.append("color", JSON.stringify(values.color || []));
+
+      // Append File
+      if (values.image?.file) {
+        formData.append("image", values.image.file);
+      }
+      if (values.subImages?.fileList) {
+        values.subImages.fileList.forEach(item => {
+          formData.append("subImages", item.originFileObj);
+        });
+      }
+
       await addProduct(formData);
-      showSuccessToast("Sản phẩm","Thêm sản phẩm thành công!");
-      setProductData({
-        name: "",
-        slug: "",
-        price: "",
-        image: null,
-        status: "",
-        brand: "",
-        description: "",
-        quantity: "",
-        size: [],
-        color: [],
-        categoryId: "",
-        couponId: "",
-        subImages: [],
-      });
-      setTimeout(() => {
-        setIsLoading(false); // Dừng loading sau 2 giây
-        navigate("/san-pham/danh-sach");
-      }, 2000);
-    } catch {
-      showErrorToast("Sản phẩm","❌ Có lỗi khi thêm sản phẩm.");
+      showSuccessToast("Thành công", "Đã thêm sản phẩm mới vào cửa hàng!");
+      setTimeout(() => navigate("/san-pham/danh-sach"), 1500);
+    } catch (error) {
+      showErrorToast("Lỗi", "Có lỗi khi thêm sản phẩm.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <h4 className="text-primary mb-4">Thêm Sản Phẩm</h4>
-      {/* {message && <div className="alert alert-info">{message}</div>} */}
-      {isLoading ? (
-        <div className="loading-container d-flex justify-content-center">
-          <ClipLoader color="#3498db" loading={isLoading} size={50} />
-        </div>
-      ) : (
-        <Form onSubmit={handleSubmit}>
-          <Row>
-            <Col xs={12} md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Tên sản phẩm</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={productData.name}
-                  onChange={(e) => handleFieldChange("name", e.target.value)}
-                  required
-                  placeholder="Nhập tên sản phẩm"
-                  className="shadow-sm"
-                />
-              </Form.Group>
-            </Col>
-            <Col xs={12} md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Slug (tự động)</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={productData.slug}
-                  readOnly
-                  className="shadow-sm"
-                />
-              </Form.Group>
-            </Col>
-          </Row>
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 12 } }}>
+      <div className="container-fluid p-4">
+        <style>{`
+          .add-card { border-radius: 16px; border: 1px solid #f0ece1; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+          .section-title { color: #5d4037; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+          .ant-form-item-label label { font-weight: 600; }
+        `}</style>
 
-          <Row className="mt-3">
-            <Col xs={12} md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Danh mục</Form.Label>
-                <Form.Control
-                  as="select"
-                  value={productData.categoryId}
-                  onChange={(e) =>
-                    handleFieldChange("categoryId", e.target.value)
-                  }
-                  className="shadow-sm"
-                >
-                  <option value="">Chọn danh mục</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </Form.Control>
-              </Form.Group>
-            </Col>
-            <Col xs={12} md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Thương hiệu</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={productData.brand}
-                  onChange={(e) => handleFieldChange("brand", e.target.value)}
-                  className="shadow-sm"
-                  placeholder="Nhập tên thương hiệu"
-                />
-              </Form.Group>
-            </Col>
-          </Row>
+        <Breadcrumb className="mb-3" items={[{ title: "Quản lý" }, { title: "Sản phẩm" }, { title: "Thêm mới" }]} />
+        <Title level={3} className="mb-4">Tạo sản phẩm mới</Title>
 
-          <Row className="mt-3">
-            <Col xs={12} md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label>Giá sản phẩm</Form.Label>
-                <Form.Control
-                  type="number"
-                  value={productData.price}
-                  onChange={(e) => handleFieldChange("price", e.target.value)}
-                  required
-                  className="shadow-sm"
-                  placeholder="Nhập giá sản phẩm"
-                />
-              </Form.Group>
-            </Col>
-            <Col xs={12} md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label>Hình ảnh chính</Form.Label>
-                <Form.Control
-                  type="file"
-                  onChange={handleFileChange}
-                  required
-                  className="shadow-sm"
-                />
-              </Form.Group>
-            </Col>
-            <Col xs={12} md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label>Hình ảnh phụ</Form.Label>
-                <Form.Control
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) =>
-                    setProductData({
-                      ...productData,
-                      subImages: Array.from(e.target.files),
-                    })
-                  }
-                  className="shadow-sm"
-                />
-              </Form.Group>
-            </Col>
-          </Row>
+        <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ status: 'active' }}>
+          <Row gutter={24}>
+            {/* CỘT TRÁI: THÔNG TIN CHI TIẾT */}
+            <Col xs={24} lg={16}>
+              <Card className="add-card">
+                <Title level={5} className="section-title"><InfoCircleOutlined /> Thông tin chung</Title>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="name" label="Tên sản phẩm" rules={[{ required: true, message: 'Nhập tên sản phẩm' }]}>
+                      <Input size="large" onChange={handleNameChange} placeholder="Tên sản phẩm..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="slug" label="Slug (Tự động)">
+                      <Input size="large" readOnly className="bg-light" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="categoryId" label="Danh mục" rules={[{ required: true }]}>
+                      <Select size="large" placeholder="Chọn danh mục">
+                        {categories.map(cat => <Select.Option key={cat.id} value={cat.id}>{cat.name}</Select.Option>)}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="brand" label="Thương hiệu">
+                      <Input size="large" placeholder="Ví dụ: Nike, Adidas..." />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Form.Item name="description" label="Mô tả">
+                  <TextArea rows={4} placeholder="Nhập mô tả sản phẩm..." />
+                </Form.Item>
+              </Card>
 
-          <Row className="mt-3">
-            <Col>
-              <Form.Group className="mb-3">
-                <Form.Label>Mô tả</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={5}
-                  value={productData.description}
-                  onChange={(e) =>
-                    handleFieldChange("description", e.target.value)
-                  }
-                  placeholder="Nhập mô tả sản phẩm"
-                  className="shadow-sm"
-                />
-              </Form.Group>
+              <Card className="add-card">
+                <Title level={5} className="section-title"><DatabaseOutlined /> Thuộc tính sản phẩm</Title>
+                <Row gutter={16}>
+                  <Col span={24}>
+                    <Form.Item name="size" label="Kích cỡ khả dụng">
+                      <Checkbox.Group className="w-100">
+                        <Row>
+                          {sizes.map(s => (
+                            <Col span={6} key={s.id} className="mb-2">
+                              <Checkbox value={s.name}>{s.name}</Checkbox>
+                            </Col>
+                          ))}
+                        </Row>
+                      </Checkbox.Group>
+                    </Form.Item>
+                  </Col>
+                  <Divider />
+                  <Col span={24}>
+                    <Form.Item name="color" label="Màu sắc khả dụng">
+                      <Checkbox.Group className="w-100">
+                        <Row>
+                          {colorList.map(c => (
+                            <Col span={6} key={c.id} className="mb-2">
+                              <Checkbox value={c.name}>
+                                <Space>
+                                  <div style={{ width: 12, height: 12, backgroundColor: c.code, border: '1px solid #ddd' }} />
+                                  {c.name}
+                                </Space>
+                              </Checkbox>
+                            </Col>
+                          ))}
+                        </Row>
+                      </Checkbox.Group>
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Card>
             </Col>
-          </Row>
 
-          <Row className="mt-3">
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Status</Form.Label>
-                <Form.Control
-                  as="select"
-                  value={productData.status}
-                  onChange={(e) => handleFieldChange("status", e.target.value)}
-                  className="shadow-sm"
-                >
-                  <option value="">-- Chọn chế độ --</option>
-                  <option value="active">Hiển thị</option>
-                  <option value="inactive">Ẩn</option>
-                </Form.Control>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Hình thức</Form.Label>
-                <div>
-                  {sizes.map((size) => (
-                    <Form.Check
-                      key={size.id}
-                      inline
-                      label={size.name} // ✅ Đúng: hiển thị tên
-                      type="checkbox"
-                      checked={productData.size.includes(size.name)}
-                      onChange={() => handleSizeChange(size.name)}
-                      className="shadow-sm"
-                      style={{ minWidth: "140px", marginBottom: "5px" }}
-                    />
-                  ))}
-                </div>
-              </Form.Group>
-            </Col>
-            <Col md={12}>
-              <Form.Group controlId="formColors">
-                <Form.Label>Màu sắc</Form.Label>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "10px 20px", // hàng cách hàng 10px, cột cách 20px
-                  }}
-                >
-                  {colorList.map((color) => (
-                    <Form.Check
-                      key={color.id}
-                      type="checkbox"
-                      inline
-                      label={
-                        <span>
-                          <span
-                            style={{
-                              display: "inline-block",
-                              width: 15,
-                              height: 15,
-                              backgroundColor: color.code,
-                              border: "1px solid #ccc",
-                              marginRight: 5,
-                            }}
-                          ></span>
-                          {color.name}
-                        </span>
-                      }
-                      checked={
-                        Array.isArray(productData.color) &&
-                        productData.color.some((item) => item.id === color.id)
-                      }
-                      onChange={() => handleColorChange(color)}
-                      style={{ minWidth: "150px" }} // chỉnh mỗi ô checkbox có cùng độ rộng
-                    />
-                  ))}
-                </div>
-              </Form.Group>
+            {/* CỘT PHẢI: GIÁ & HÌNH ẢNH */}
+            <Col xs={24} lg={8}>
+              <Card className="add-card">
+                <Title level={5} className="section-title"><DatabaseOutlined /> Kho hàng & Giá</Title>
+                <Form.Item name="price" label="Giá bán (VNĐ)" rules={[{ required: true }]}>
+                  <InputNumber 
+                    className="w-100" size="large" min={0}
+                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  />
+                </Form.Item>
+                <Form.Item name="quantity" label="Số lượng nhập kho" rules={[{ required: true }]}>
+                  <InputNumber className="w-100" size="large" min={1} />
+                </Form.Item>
+                <Form.Item name="status" label="Trạng thái hiển thị">
+                  <Select size="large">
+                    <Select.Option value="active">Hiển thị ngay</Select.Option>
+                    <Select.Option value="inactive">Ẩn sản phẩm</Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item name="couponId" label="Mã giảm giá áp dụng">
+                  <Select size="large" allowClear placeholder="Chọn mã">
+                    {coupons.filter(c => c.status === "active").map(c => (
+                      <Select.Option key={c.id} value={c.id}>{c.code} (-{c.discount_percent}%)</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Card>
+
+              <Card className="add-card">
+                <Title level={5} className="section-title"><PictureOutlined /> Hình ảnh</Title>
+                <Form.Item name="image" label="Ảnh đại diện (Bắt buộc)" rules={[{ required: true, message: 'Chọn ảnh chính' }]}>
+                  <Upload maxCount={1} listType="picture" beforeUpload={() => false}>
+                    <Button icon={<UploadOutlined />} block size="large">Chọn ảnh chính</Button>
+                  </Upload>
+                </Form.Item>
+                <Form.Item name="subImages" label="Ảnh phụ (Nhiều ảnh)">
+                  <Upload multiple listType="picture" beforeUpload={() => false}>
+                    <Button icon={<PlusOutlined />} block size="large">Thêm ảnh phụ</Button>
+                  </Upload>
+                </Form.Item>
+              </Card>
+
+              <Button 
+                type="primary" size="large" block 
+                htmlType="submit" loading={loading}
+                style={{ height: 50, fontSize: 18, fontWeight: 600 }}
+              >
+                {loading ? "ĐANG LƯU..." : "HOÀN TẤT THÊM MỚI"}
+              </Button>
             </Col>
           </Row>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Mã giảm giá</Form.Label>
-                <Form.Control
-                  as="select"
-                  value={productData.couponId}
-                  onChange={(e) =>
-                    handleFieldChange("couponId", e.target.value)
-                  }
-                  className="shadow-sm"
-                >
-                  <option value="">Chọn mã giảm giá</option>
-                  {coupons.filter(
-                    (coupon) =>
-                      coupon.status === "active" && coupon.description === "1"
-                  ).length > 0 ? (
-                    coupons
-                      .filter(
-                        (coupon) =>
-                          coupon.status === "active" &&
-                          coupon.description === "1"
-                      )
-                      .map((coupon) => (
-                        <option key={coupon.id} value={coupon.id}>
-                          {coupon.code} - {coupon.discount_percent}%
-                        </option>
-                      ))
-                  ) : (
-                    <option disabled>Không có mã giảm giá</option>
-                  )}
-                </Form.Control>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Số lượng sản phẩm</Form.Label>
-                <Form.Control
-                  type="number"
-                  value={productData.quantity}
-                  onChange={(e) =>
-                    handleFieldChange("quantity", e.target.value)
-                  }
-                  required
-                  className="shadow-sm"
-                  placeholder="Nhập số lượng sản phẩm"
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-          <Button
-            className="mt-4 w-100"
-            variant="primary"
-            type="submit"
-            size="lg"
-            style={{ boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.1)" }}
-          >
-            <FaTags /> Thêm sản phẩm
-          </Button>
         </Form>
-      )}
-    </div>
+      </div>
+    </ConfigProvider>
   );
 };
 

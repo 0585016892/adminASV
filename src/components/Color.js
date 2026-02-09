@@ -1,20 +1,14 @@
-import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Table,
-  Button,
-  Modal,
-  Form,
-  Row,
-  Col,
-  Alert,
-  OverlayTrigger,
-  Tooltip,
-  Spinner,
-  Pagination,
-} from "react-bootstrap";
-import { MdDeleteOutline, MdOutlineAutoFixHigh } from "react-icons/md";
-import { FaPlus, FaFileExport } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import { 
+  Table, Button, Modal, Form, Input, Row, Col, 
+  Tag, Space, Tooltip, ColorPicker, Typography, 
+  ConfigProvider, Card, Breadcrumb, Empty ,Divider, Select
+} from "antd";
+import { 
+  PlusOutlined, FileExcelOutlined, EditOutlined, 
+  DeleteOutlined, ExclamationCircleOutlined, 
+  BgColorsOutlined 
+} from "@ant-design/icons";
 import {
   getColors,
   createColor,
@@ -24,285 +18,289 @@ import {
 } from "../api/colorApi";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 import { useAuth } from "../contexts/AuthContext";
+
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const Color = () => {
   const { user } = useAuth();
+  const [form] = Form.useForm();
   const [colors, setColors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1); // Đã khai báo page
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [currentColor, setCurrentColor] = useState({
-    id: null,
-    name: "",
-    code: "#000000",
-    status: "active",
-  });
-  const [showModalDelete, setShowModalDelete] = useState(false);
-  const [colorToDelete, setColorToDelete] = useState(null);
-  const [message, setMessage] = useState("");
-  const [totalPages, setTotalPages] = useState(1);
-  const token = localStorage.getItem("token");
-  const limit = 15;
+  const [selectedId, setSelectedId] = useState(null);
 
-  // Lấy dữ liệu khi page thay đổi
+  const token = localStorage.getItem("token");
+  const limit = 10;
+
   const fetchColors = async () => {
     try {
       setLoading(true);
-      const data = await getColors(token, page, limit);
-      setColors(data.data.data);
-      setTotalPages(data.data.totalPages || 1); // lấy số trang từ API
+      const response = await getColors(token, page, limit);
+      // Giả định cấu trúc data trả về từ API của bạn
+      setColors(response.data.data);
+      setTotalItems(response.data.total || 0);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
-      showErrorToast("Màu","❌ Lỗi khi tải dữ liệu màu!");
+      showErrorToast("Lỗi", "Không thể tải danh sách màu!");
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchColors();
   }, [page]);
 
-  const handleShowAdd = () => {
+  // ==== Handlers ====
+  const handleOpenAdd = () => {
     setEditMode(false);
-    setCurrentColor({ id: null, name: "", code: "#000000", status: "active" });
+    setSelectedId(null);
+    form.resetFields();
+    form.setFieldsValue({ code: "#1677ff", status: "active" });
     setShowModal(true);
   };
 
-  const handleShowEdit = (color) => {
+  const handleOpenEdit = (record) => {
     setEditMode(true);
-    setCurrentColor(color);
+    setSelectedId(record.id);
+    form.setFieldsValue(record);
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (values) => {
     try {
+      setIsSubmitting(true);
       if (editMode) {
-        await updateColor(token, currentColor.id, currentColor, user.id);
-        showSuccessToast("Màu !","Cập nhật màu thành công!");
+        await updateColor(token, selectedId, values, user.id);
+        showSuccessToast("Thành công", "Cập nhật màu sắc hoàn tất!");
       } else {
-        await createColor(token, currentColor , user.id);
-        showSuccessToast("Màu !","Thêm màu thành công!");
+        await createColor(token, values, user.id);
+        showSuccessToast("Thành công", "Thêm màu sắc mới thành công!");
       }
       setShowModal(false);
       fetchColors();
     } catch (error) {
-      showErrorToast("Màu !","❌ Lỗi khi xử lý màu!");
-    }
-  };
-
-  const openDeleteModal = (id) => {
-    setColorToDelete(id);
-    setShowModalDelete(true);
-  };
-
-  const handleDelete = async () => {
-    try {
-      await deleteColor(token, colorToDelete, user.id);
-      showSuccessToast("Màu !","Xoá màu thành công!");
-      fetchColors();
-    } catch (error) {
-      showErrorToast("Màu !","Lỗi khi xoá màu!");
+      showErrorToast("Lỗi", "Thao tác thất bại!");
     } finally {
-      setShowModalDelete(false);
+      setIsSubmitting(false);
     }
   };
+
+  const showDeleteConfirm = (id) => {
+    confirm({
+      title: 'Xác nhận xóa màu sắc?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Dữ liệu màu này sẽ bị loại bỏ khỏi danh sách lựa chọn.',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await deleteColor(token, id, user.id);
+          showSuccessToast("Thành công", "Đã xóa màu sắc!");
+          fetchColors();
+        } catch (error) {
+          showErrorToast("Lỗi", "Không thể xóa màu này!");
+        }
+      },
+    });
+  };
+
   const handleExport = async () => {
     try {
       const response = await getAllColors(token);
       const data = response.data;
       const exportData = data.map((item, index) => ({
         STT: index + 1,
-        "Tên size": item.name,
+        "Tên màu": item.name,
+        "Mã Hex": item.code,
         "Trạng thái": item.status === "active" ? "Hiển thị" : "Ẩn",
         "Ngày tạo": item.created_at,
-        "Ngày cập nhật": item.updated_at,
       }));
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Sizes");
+      XLSX.utils.book_append_sheet(wb, ws, "Colors");
       const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([excelBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      saveAs(blob, "bảng màu.xlsx");
+      const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      saveAs(blob, "danh-sach-mau.xlsx");
     } catch (error) {
-      console.error("Lỗi xuất Excel:", error);
+      showErrorToast("Lỗi", "Xuất file Excel thất bại!");
     }
   };
-  const renderPagination = () => {
-    const items = [];
-    for (let i = 1; i <= totalPages; i++) {
-      items.push(
-        <Pagination.Item key={i} active={i === page} onClick={() => setPage(i)}>
-          {i}
-        </Pagination.Item>
-      );
-    }
-    return <Pagination className="justify-content-center">{items}</Pagination>;
-  };
+
+  // ==== Table Columns ====
+  const columns = [
+    {
+      title: '#',
+      dataIndex: 'index',
+      key: 'index',
+      render: (_, __, index) => (page - 1) * limit + index + 1,
+      width: 60,
+    },
+    {
+      title: 'TÊN MÀU SẮC',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name) => <Text strong>{name}</Text>,
+    },
+    {
+      title: 'MÃ HEX',
+      dataIndex: 'code',
+      key: 'code',
+      render: (code) => <Text code>{code}</Text>,
+    },
+    {
+      title: 'MÀU HIỂN THỊ',
+      dataIndex: 'code',
+      key: 'preview',
+      render: (code) => (
+        <div style={{ 
+          width: 40, height: 24, backgroundColor: code, 
+          borderRadius: 6, border: '2px solid #fff',
+          boxShadow: '0 0 4px rgba(0,0,0,0.1)' 
+        }} />
+      ),
+    },
+    {
+      title: 'TRẠNG THÁI',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'active' ? 'green' : 'default'}>
+          {status === 'active' ? 'ĐANG HIỂN THỊ' : 'TẠM ẨN'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'NGÀY TẠO',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => date?.slice(0, 10),
+    },
+    {
+      title: 'HÀNH ĐỘNG',
+      key: 'action',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Chỉnh sửa">
+            <Button 
+              type="text" 
+              icon={<EditOutlined style={{ color: '#c19a6b' }} />} 
+              onClick={() => handleOpenEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Xóa">
+            <Button 
+              type="text" 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => showDeleteConfirm(record.id)}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <Row className="mb-3">
-        <Col md={12}>
-          <h4>🎨 Quản lý Màu</h4>
-        </Col>
-        <Col className="text-end">
-          <Button variant="primary" className="me-2" onClick={handleShowAdd}>
-            <FaPlus className="me-1" /> Thêm màu
-          </Button>
-          <Button variant="success" onClick={handleExport}>
-            <FaFileExport className="me-1" />
-            Xuất Excel
-          </Button>
-        </Col>
-      </Row>
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 12 } }}>
+      <div className="container-fluid p-4">
+        <style>{`
+          .color-card { border-radius: 20px; border: 1px solid #f0ece1; overflow: hidden; }
+          .ant-table-thead > tr > th { background: #fdfcf8 !important; }
+        `}</style>
 
-      {loading ? (
-        <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-          <Spinner animation="border" variant="primary" />
-        </div>
-      ) : (
-        <div>
-           <Table bordered hover responsive>
-          <thead className="table-dark">
-            <tr>
-              <th>#</th>
-              <th>Tên màu</th>
-              <th>Mã màu</th>
-              <th>Màu hiển thị</th>
-              <th>Trạng thái</th>
-              <th>Ngày tạo</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {colors.length > 0 ? (
-              colors.map((color, index) => (
-                <tr key={color.id}>
-                  <td>{index + 1 + (page - 1) * limit}</td>
-                  <td>{color.name}</td>
-                  <td>{color.code}</td>
-                  <td>
-                    <div
-                      style={{
-                        width: 30,
-                        height: 30,
-                        backgroundColor: color.code,
-                        border: "1px solid #ccc",
-                        borderRadius: 4,
-                      }}
-                    ></div>
-                  </td>
-                  <td>{color.status === "active" ? "Hiển thị" : "Ẩn"}</td>
-                  <td>{color.created_at?.slice(0, 10)}</td>
-                  <td>
-                    <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleShowEdit(color)}
-                      >
-                        <MdOutlineAutoFixHigh />
-                      </Button>
-                    </OverlayTrigger>
-                    <OverlayTrigger overlay={<Tooltip>Xoá</Tooltip>}>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => openDeleteModal(color.id)}
-                      >
-                        <MdDeleteOutline />
-                      </Button>
-                    </OverlayTrigger>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="text-center">
-                  Không có dữ liệu
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </Table>
-      {renderPagination()}
-        </div>
-      )}
+        <Row className="mb-4 align-items-center" gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <Breadcrumb items={[{ title: 'Quản trị' }, { title: 'Cấu hình' }, { title: 'Màu sắc' }]} className="mb-2" />
+            <Title level={3} className="m-0"><BgColorsOutlined /> Danh mục Màu sắc</Title>
+          </Col>
+          <Col xs={24} md={12} className="text-md-end">
+            <Space>
+              <Button icon={<FileExcelOutlined />} onClick={handleExport} size="large">Xuất Excel</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAdd} size="large">Thêm màu mới</Button>
+            </Space>
+          </Col>
+        </Row>
 
-      {/* Modal thêm/sửa */}
-      <Modal show={showModal} onHide={handleCloseModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>{editMode ? "Sửa màu" : "Thêm màu"}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <Form.Label>Tên màu</Form.Label>
-            <Form.Control
-              type="text"
-              value={currentColor.name}
-              onChange={(e) =>
-                setCurrentColor({ ...currentColor, name: e.target.value })
-              }
-            />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Mã màu</Form.Label>
-            <Form.Control
-              type="color"
-              value={currentColor.code}
-              onChange={(e) =>
-                setCurrentColor({ ...currentColor, code: e.target.value })
-              }
-            />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Trạng thái</Form.Label>
-            <Form.Select
-              value={currentColor.active}
-              onChange={(e) =>
-                setCurrentColor({ ...currentColor, active: e.target.value })
-              }
-            >
-              <option value="active">Hiển thị</option>
-              <option value="inactive">Ẩn</option>
-            </Form.Select>
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
-            Hủy
-          </Button>
-          <Button variant="primary" onClick={handleSubmit}>
-            {editMode ? "Cập nhật" : "Thêm"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        <Card className="color-card border-0 shadow-sm">
+          <Table 
+            columns={columns} 
+            dataSource={colors} 
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              current: page,
+              pageSize: limit,
+              total: totalItems,
+              onChange: (p) => setPage(p),
+              showSizeChanger: false,
+              position: ['bottomRight']
+            }}
+            locale={{ emptyText: <Empty description="Chưa có dữ liệu màu sắc" /> }}
+          />
+        </Card>
 
-      {/* Modal xoá */}
-      <Modal show={showModalDelete} onHide={() => setShowModalDelete(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xoá màu</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xoá màu này?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModalDelete(false)}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xoá
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+        {/* Modal Thêm/Sửa */}
+        <Modal
+          title={<Title level={4}>{editMode ? "Cập nhật màu sắc" : "Tạo màu sắc mới"}</Title>}
+          open={showModal}
+          onCancel={() => setShowModal(false)}
+          footer={null}
+          centered
+          destroyOnClose
+        >
+          <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
+            <Form.Item name="name" label="Tên gọi màu sắc" rules={[{ required: true, message: 'Ví dụ: Xanh Navy, Đỏ Đô...' }]}>
+              <Input size="large" placeholder="Nhập tên màu..." />
+            </Form.Item>
+            
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="code" label="Mã màu (Hex)" rules={[{ required: true }]}>
+                  <Input size="large" prefix={<div style={{ width: 14, height: 14, borderRadius: 2, background: form.getFieldValue('code') }} />} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Chọn nhanh">
+                  <ColorPicker 
+                    value={form.getFieldValue('code')}
+                    onChange={(color) => form.setFieldsValue({ code: color.toHexString() })}
+                    showText
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item name="status" label="Trạng thái hiển thị">
+              <Select size="large">
+                <Select.Option value="active">Kích hoạt</Select.Option>
+                <Select.Option value="inactive">Tạm ẩn</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Divider />
+            
+            <Form.Item className="mb-0 text-end">
+              <Space>
+                <Button onClick={() => setShowModal(false)} size="large">Hủy bỏ</Button>
+                <Button type="primary" htmlType="submit" size="large" loading={isSubmitting}>
+                  {editMode ? "Lưu thay đổi" : "Xác nhận thêm"}
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </ConfigProvider>
   );
 };
 

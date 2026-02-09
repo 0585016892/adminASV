@@ -1,501 +1,319 @@
-import React, { useEffect, useState } from "react";
-import {
-  getEmployees,
-  createEmployee,
-  updateEmployee,
-  deleteEmployee,
+import React, { useEffect, useState, useCallback } from "react";
+import { 
+  Table, Card, Button, Input, Select, Space, Modal, 
+  Form, Upload, Tag, Typography, Breadcrumb, App, Row, Col, Spin, Pagination 
+} from "antd";
+import { 
+  PlusOutlined, SearchOutlined, UserOutlined, 
+  EditOutlined, DeleteOutlined, UploadOutlined,
+  TeamOutlined, FilterOutlined 
+} from "@ant-design/icons";
+import { 
+  getEmployees, createEmployee, 
+  updateEmployee, deleteEmployee 
 } from "../api/employeeApi";
-import EmployeeTable from "../components/EmployeeTable";
-import { Modal, Button ,  Pagination,Spinner} from "react-bootstrap";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
-import { FaPlus, FaFileExport } from "react-icons/fa";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text } = Typography;
 
 const EmployeePage = () => {
   const [employees, setEmployees] = useState([]);
-  const [token] = useState(localStorage.getItem("token"));
-  const [message, setMessage] = useState("");
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedDeleteId, setSelectedDeleteId] = useState(null);
-    const [totalNhanVien, setTotalKhachhang] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [messageType, setMessageType] = useState("success");
-const [filters, setFilters] = useState({
-    page: 1,
-    limit: 12,
-    keyword: "",
-    status: "",
-    seoScore: "",
-  });
-  const [form, setForm] = useState({
-    full_name: "",
-    email: "",
-    phone: "",
-    position: "",
-    department: "",
-    address: "",
-    role: "staff",
-    status: "active",
-    password: "",
-    role_id: 2,
-    avatar: null,
-  });
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-
-  const [filter, setFilter] = useState({
+  const [form] = Form.useForm();
+  
+  const token = localStorage.getItem("token");
+  
+  // Phân trang & Lọc
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState({
+    keyword: "",
     department: "",
     role: "",
-    full_name: "",
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
-       setLoading(true);
       const res = await getEmployees(token);
-      let filtered = res.data.data;
-      console.log(res.data.total);
-      setTotalPages(res.data.page);
-      setTotalKhachhang(res.data.total)
-      if (filter.full_name) {
-        filtered = filtered.filter((emp) =>
-          emp.full_name.toLowerCase().includes(filter.full_name.toLowerCase())
-        );
+      let data = res.data.data;
+      
+      // Filter logic tại client (nếu API chưa hỗ trợ lọc)
+      if (filters.keyword) {
+        data = data.filter(emp => emp.full_name.toLowerCase().includes(filters.keyword.toLowerCase()));
+      }
+      if (filters.department) {
+        data = data.filter(emp => emp.department === filters.department);
+      }
+      if (filters.role) {
+        data = data.filter(emp => emp.role === filters.role);
       }
 
-      if (filter.department) {
-        filtered = filtered.filter(
-          (emp) => emp.department === filter.department
-        );
-      }
-
-      if (filter.role) {
-        filtered = filtered.filter((emp) => emp.role === filter.role);
-      }
-
-      setEmployees(filtered);
+      setEmployees(data);
+      setTotal(res.data.total || data.length);
     } catch (err) {
-      showErrorToast("Nhân viên","Lỗi khi lấy danh sách nhân viên");
-    }finally {
-    setLoading(false);
-  }
-  };
+      showErrorToast("Lỗi", "Không thể lấy danh sách nhân viên");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, filters]);
 
   useEffect(() => {
     fetchData();
-  }, [filter]);
-const handlePageChange = (pageNumber) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      page: pageNumber,
-    }));
+  }, [fetchData]);
+
+  // Xử lý Form
+  const handleOpenModal = (emp = null) => {
+    if (emp) {
+      setEditingId(emp.id);
+      form.setFieldsValue({
+        ...emp,
+        password: "", // Không hiển thị mật khẩu cũ
+      });
+    } else {
+      setEditingId(null);
+      form.resetFields();
+    }
+    setIsModalOpen(true);
   };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+
+  const handleFinish = async (values) => {
     try {
       const formData = new FormData();
-      for (let key in form) {
-        if (form[key] !== "" && form[key] !== null) {
-          formData.append(key, form[key]);
+      Object.keys(values).forEach(key => {
+        if (values[key] !== undefined && values[key] !== null) {
+          if (key === 'avatar' && values[key].file) {
+            formData.append('avatar', values[key].file.originFileObj);
+          } else {
+            formData.append(key, values[key]);
+          }
         }
-      }
+      });
 
       if (editingId) {
         await updateEmployee(token, editingId, formData);
-        showSuccessToast("Nhân viên","Cập nhật nhân viên thành công");
+        showSuccessToast("Thành công", "Cập nhật nhân viên thành công");
       } else {
         await createEmployee(token, formData);
-        showSuccessToast("Nhân viên","Thêm nhân viên thành công");
+        showSuccessToast("Thành công", "Thêm nhân viên mới thành công");
       }
-
-      setMessageType("success");
-      // setTimeout(() => setMessage(""), 3000);
-
-      setForm({
-        full_name: "",
-        email: "",
-        phone: "",
-        position: "",
-        department: "",
-        address: "",
-        role: "staff",
-        status: "active",
-        password: "",
-        role_id: 2,
-        avatar: null,
-      });
-      setEditingId(null);
-      setShowForm(false);
+      setIsModalOpen(false);
       fetchData();
     } catch (err) {
-      showErrorToast("Nhân viên","Kiểm tra lại email , thông tin nhân viên !");
-      setMessageType("error");
-      // setTimeout(() => setMessage(""), 3000);
+      showErrorToast("Thất bại", "Vui lòng kiểm tra lại thông tin");
     }
   };
 
-  const handleEdit = (emp) => {
-    setEditingId(emp.id);
-    setForm({
-      full_name: emp.full_name || "",
-      email: emp.email || "",
-      phone: emp.phone || "",
-      position: emp.position || "",
-      department: emp.department || "",
-      address: emp.address || "",
-      role: emp.role || "staff",
-      status: emp.status || "active",
-      password: "",
-      role_id: emp.role === "admin" ? 1 : 2,
-      avatar: null, // không set ảnh cũ
+  const handleDelete = (id, role) => {
+    if (role === "admin") return showErrorToast("Cảnh báo", "Không thể xóa Quản trị viên");
+    
+    Modal.confirm({
+      title: 'Xác nhận xóa?',
+      content: 'Dữ liệu nhân viên sẽ bị xóa vĩnh viễn khỏi hệ thống.',
+      okText: 'Xóa ngay',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await deleteEmployee(token, id);
+          showSuccessToast("Thành công", "Đã xóa nhân viên");
+          fetchData();
+        } catch {
+          showErrorToast("Lỗi", "Không thể xóa nhân viên này");
+        }
+      }
     });
-    setShowForm(true);
   };
 
-  const openDeleteModal = (emp) => {
-    if (emp.role === "admin") {
-      showErrorToast("Nhân viên","Không thể xoá tài khoản admin");
-      setMessageType("error");
-      // setTimeout(() => setMessage(""), 3000);
-      return;
+  // Cấu hình bảng
+  const columns = [
+    {
+      title: 'Nhân viên',
+      key: 'user',
+      render: (_, record) => (
+        <Space>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f0ece1', overflow: 'hidden' }}>
+             {record.avatar ? <img src={record.avatar} alt="v" style={{width:'100%'}}/> : <UserOutlined style={{padding: 12}} />}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600 }}>{record.full_name}</div>
+            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.email}</div>
+          </div>
+        </Space>
+      )
+    },
+    {
+      title: 'Phòng ban',
+      dataIndex: 'department',
+      key: 'department',
+      render: (text) => <Tag color="blue">{text || 'N/A'}</Tag>
+    },
+    {
+      title: 'Chức vụ',
+      dataIndex: 'role',
+      key: 'role',
+      render: (role) => (
+        <Tag color={role === 'admin' ? 'volcano' : 'green'}>
+          {role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}
+        </Tag>
+      )
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'active' ? 'success' : 'default'}>
+          {status === 'active' ? 'Hoạt động' : 'Khóa'}
+        </Tag>
+      )
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      align: 'right',
+      render: (_, record) => (
+        <Space>
+          <Button icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
+          <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id, record.role)} />
+        </Space>
+      )
     }
-    setSelectedDeleteId(emp.id);
-    setShowDeleteModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setSelectedDeleteId(null);
-    setShowDeleteModal(false);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      await deleteEmployee(token, selectedDeleteId);
-      showSuccessToast("Nhân viên","Xóa nhân viên thành công");
-      setMessageType("success");
-      fetchData();
-    } catch (err) {
-      showErrorToast("Nhân viên","Lỗi khi xóa nhân viên");
-      setMessageType("error");
-    } finally {
-      closeDeleteModal();
-      // setTimeout(() => setMessage(""), 3000);
-    }
-  };
-
-  const handleCancel = () => {
-    setEditingId(null);
-    setForm({
-      full_name: "",
-      email: "",
-      phone: "",
-      position: "",
-      department: "",
-      address: "",
-      role: "staff",
-      status: "active",
-      password: "",
-      role_id: 2,
-      avatar: null,
-    });
-    setShowForm(false);
-  };
-
-  const handleShowAddForm = () => {
-    handleCancel();
-    setShowForm(true);
-  };
+  ];
 
   return (
-    <>
-      <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-        <h3>Quản lý nhân viên</h3>
-        <div className="mb-3">
-          <div className="row align-items-center">
-            
+    <div className="p-4" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
+      <Row justify="space-between" align="middle" className="mb-4">
+        <Col>
+          <Breadcrumb items={[{ title: 'Hệ thống' }, { title: 'Quản lý nhân viên' }]} />
+          <Title level={3} style={{ marginTop: 8 }}><TeamOutlined /> Danh sách đội ngũ</Title>
+        </Col>
+        <Col>
+          <Button 
+            type="primary" 
+            size="large" 
+            icon={<PlusOutlined />} 
+            onClick={() => handleOpenModal()}
+            style={{ background: '#5d4037', borderColor: '#5d4037', borderRadius: 8 }}
+          >
+            Thêm nhân viên
+          </Button>
+        </Col>
+      </Row>
 
-            <div className="col-md-8 col-sm-12">
-              <div className="row g-2">
-                <div className="col-md-4">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Tìm theo tên"
-                    value={filter.full_name}
-                    onChange={(e) =>
-                      setFilter({ ...filter, full_name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="col-md-4">
-                  <select
-                    className="form-select"
-                    value={filter.department}
-                    onChange={(e) =>
-                      setFilter({ ...filter, department: e.target.value })
-                    }
-                  >
-                    <option value="">-- Chọn phòng ban --</option>
-                    {[
-                      ...new Set(
-                        employees.map((e) => e.department).filter(Boolean)
-                      ),
-                    ].map((d, i) => (
-                      <option key={i} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-4">
-                  <select
-                    className="form-select"
-                    value={filter.role}
-                    onChange={(e) =>
-                      setFilter({ ...filter, role: e.target.value })
-                    }
-                  >
-                    <option value="">-- Chọn chức vụ --</option>
-                    <option value="staff">Nhân viên</option>
-                    <option value="admin">Quản trị viên</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-4 col-sm-12 mb-2 mb-md-0 text-end">
-              <button
-                className="btn btn-primary "
-                onClick={handleShowAddForm}
-              >
-                <FaPlus className="me-1" /> 
-                Thêm nhân viên
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Bộ lọc */}
+      <Card className="mb-4 shadow-sm border-0" style={{ borderRadius: 16 }}>
+        <Row gutter={16}>
+          <Col xs={24} md={8}>
+            <Input 
+              prefix={<SearchOutlined />} 
+              placeholder="Tìm theo tên hoặc email..." 
+              onChange={e => setFilters({...filters, keyword: e.target.value})}
+            />
+          </Col>
+          <Col xs={12} md={6}>
+            <Select 
+              className="w-100" 
+              placeholder="Lọc phòng ban" 
+              allowClear
+              onChange={val => setFilters({...filters, department: val})}
+              options={[...new Set(employees.map(e => e.department))].filter(Boolean).map(d => ({label: d, value: d}))}
+            />
+          </Col>
+          <Col xs={12} md={6}>
+            <Select 
+              className="w-100" 
+              placeholder="Chức vụ" 
+              allowClear
+              onChange={val => setFilters({...filters, role: val})}
+              options={[{label: 'Quản trị viên', value: 'admin'}, {label: 'Nhân viên', value: 'staff'}]}
+            />
+          </Col>
+        </Row>
+      </Card>
 
-        {showForm && (
-          <>
-            <div className="overlay123" onClick={handleCancel}></div>
-            <div className="modal-form123 animate-slide-down-fade-in">
-              <form onSubmit={handleSubmit} encType="multipart/form-data">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label>Họ và tên</label>
-                    <input
-                      className="form-control"
-                      name="full_name"
-                      value={form.full_name}
-                      onChange={(e) =>
-                        setForm({ ...form, full_name: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Email</label>
-                    <input
-                      type="email"
-                      placeholder="Không được trùng email !"
-                      className="form-control"
-                      name="email"
-                      value={form.email}
-                      onChange={(e) =>
-                        setForm({ ...form, email: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Điện thoại</label>
-                    <input
-                      className="form-control"
-                      name="phone"
-                      value={form.phone}
-                      onChange={(e) =>
-                        setForm({ ...form, phone: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Ảnh đại diện</label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      accept="image/*"
-                      onChange={(e) =>
-                        setForm({ ...form, avatar: e.target.files[0] })
-                      }
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Vị trí</label>
-                    <input
-                      className="form-control"
-                      name="position"
-                      value={form.position}
-                      onChange={(e) =>
-                        setForm({ ...form, position: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Phòng ban</label>
-                    <input
-                      className="form-control"
-                      name="department"
-                      value={form.department}
-                      onChange={(e) =>
-                        setForm({ ...form, department: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Địa chỉ</label>
-                    <input
-                      className="form-control"
-                      name="address"
-                      value={form.address}
-                      onChange={(e) =>
-                        setForm({ ...form, address: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Chức vụ</label>
-                    <select
-                      className="form-select"
-                      name="role"
-                      value={form.role}
-                      onChange={(e) => {
-                        const selectedRole = e.target.value;
-                        setForm({
-                          ...form,
-                          role: selectedRole,
-                          role_id: selectedRole === "admin" ? 1 : 2,
-                        });
-                      }}
-                    >
-                      <option value="">--Chọn chức vụ--</option>
-                      <option value="staff">Nhân viên</option>
-                      <option value="admin">Quản trị viên</option>
-                    </select>
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>Trạng thái</label>
-                    <select
-                      className="form-select"
-                      name="status"
-                      value={form.status}
-                      onChange={(e) =>
-                        setForm({ ...form, status: e.target.value })
-                      }
-                    >
-                      <option value="active">Hoạt động</option>
-                      <option value="inactive">Không hoạt động</option>
-                    </select>
-                  </div>
-
-                  <div className="col-md-6">
-                    <label>
-                      Mật khẩu {editingId ? "(bỏ trống nếu không đổi)" : ""}
-                    </label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      name="password"
-                      value={form.password}
-                      onChange={(e) =>
-                        setForm({ ...form, password: e.target.value })
-                      }
-                      required={!editingId}
-                    />
-                  </div>
-
-                  <div className="d-flex justify-content-end gap-2 mt-3">
-                    <button type="submit" className="btn btn-success">
-                      {editingId ? "Cập nhật" : "Thêm"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handleCancel}
-                    >
-                      Huỷ
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </>
-        )}
- {loading ? (
-  // Hiển thị spinner loading toàn trang/bảng
-          <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
-            <Spinner animation="border" variant="primary" />
-          </div>
-        ) : (
-          <>
-        <EmployeeTable
-          employees={employees}
-          onEdit={handleEdit}
-          onDelete={openDeleteModal}
+      {/* Bảng dữ liệu */}
+      <Card className="shadow-sm border-0" style={{ borderRadius: 16 }}>
+        <Table 
+          columns={columns} 
+          dataSource={employees} 
+          loading={loading}
+          rowKey="id"
+          pagination={{
+            total: total,
+            pageSize: 10,
+            showSizeChanger: false,
+            style: { marginTop: 20 }
+          }}
         />
-        <div className="d-flex justify-content-between align-items-center mt-3">
-        <span className="text-muted">
-          Có <strong>{totalNhanVien}</strong> khách hàng
-        </span>
-        <Pagination className="mb-0">
-          <Pagination.First onClick={() => handlePageChange(1)} />
-          <Pagination.Prev
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          />
-          {[...Array(totalPages).keys()].map((page) => (
-            <Pagination.Item
-              key={page + 1}
-              active={currentPage === page + 1}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              {page + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-        </Pagination>
-      </div>
-      </>
-        )}
-      </div>
-       
-      <Modal show={showDeleteModal} onHide={closeDeleteModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xoá nhân viên</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xoá nhân viên này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Huỷ
-          </Button>
-          <Button variant="danger" onClick={confirmDelete}>
-            Xác nhận xoá
-          </Button>
-        </Modal.Footer>
+        <div className="mt-2 text-secondary">Tổng cộng: <strong>{total}</strong> nhân viên</div>
+      </Card>
+
+      {/* Modal Thêm/Sửa */}
+      <Modal
+        title={editingId ? "Cập nhật thông tin nhân viên" : "Đăng ký nhân viên mới"}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        onOk={() => form.submit()}
+        width={700}
+        okText={editingId ? "Lưu thay đổi" : "Tạo tài khoản"}
+        cancelText="Hủy bỏ"
+        centered
+      >
+        <Form form={form} layout="vertical" onFinish={handleFinish} style={{ marginTop: 20 }}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="full_name" label="Họ và tên" rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}>
+                <Input placeholder="Nguyễn Văn A" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
+                <Input placeholder="email@company.com" disabled={!!editingId} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="phone" label="Số điện thoại">
+                <Input placeholder="090..." />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="avatar" label="Ảnh đại diện">
+                <Upload beforeUpload={() => false} maxCount={1} listType="picture">
+                  <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="department" label="Phòng ban">
+                <Input placeholder="Kế toán, Sales..." />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="role" label="Quyền hạn" initialValue="staff">
+                <Select options={[{label: 'Quản trị viên', value: 'admin'}, {label: 'Nhân viên', value: 'staff'}]} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="status" label="Trạng thái" initialValue="active">
+                <Select options={[{label: 'Hoạt động', value: 'active'}, {label: 'Khóa', value: 'inactive'}]} />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item 
+                name="password" 
+                label="Mật khẩu" 
+                rules={[{ required: !editingId, message: 'Vui lòng đặt mật khẩu' }]}
+              >
+                <Input.Password placeholder={editingId ? "Để trống nếu không muốn đổi" : "Mật khẩu tối thiểu 6 ký tự"} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
       </Modal>
-    </>
+    </div>
   );
 };
 

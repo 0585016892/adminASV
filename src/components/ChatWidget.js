@@ -1,197 +1,158 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Card, Form, InputGroup, Dropdown } from "react-bootstrap";
-import { FiMessageCircle, FiX, FiSend, FiMoreHorizontal } from "react-icons/fi";
+import { 
+  Button, Card, Input, Avatar, 
+  Badge, Dropdown, Space, Typography, ConfigProvider 
+} from "antd";
+import { 
+  MessageFilled, CloseOutlined, SendOutlined, 
+  EllipsisOutlined, RobotOutlined, GiftOutlined, LineChartOutlined 
+} from "@ant-design/icons";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import dayjs from "dayjs";
+
+const { Text } = Typography;
 
 const ChatWidget = () => {
   const API_URL = process.env.REACT_APP_API_URL;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { from: "bot", text: "Xin chào 👋! Mình có thể giúp gì cho bạn hôm nay?" },
+    { from: "bot", text: "Xin chào 👋! Mình là trợ lý Âm Sắc Màu, mình có thể giúp gì cho bạn?", time: dayjs() },
   ]);
   const [input, setInput] = useState("");
   const [coupons, setCoupons] = useState([]);
   const messagesEndRef = useRef(null);
+  const widgetRef = useRef(null); // Ref để xác định vị trí hiện Menu
 
-  // Scroll chat xuống dưới
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => scrollToBottom(), [messages]);
+  useEffect(() => { if (isOpen) scrollToBottom(); }, [messages, isOpen]);
 
-  // Lấy danh sách coupon từ backend
   useEffect(() => {
     axios.get(`${API_URL}/assistant/coupons`)
-      .then(res => {
-        if (res.data.success) setCoupons(res.data.coupons);
-      })
+      .then(res => { if (res.data.success) setCoupons(res.data.coupons); })
       .catch(err => console.error(err));
-  }, []);
-
-  const formatCurrency = (value) => {
-    if (!value) return "";
-    return Number(value).toLocaleString("vi-VN", { minimumFractionDigits: 0 }) + " ₫";
-  };
+  }, [API_URL]);
 
   const handleSend = async (customInput) => {
     const textToSend = customInput || input;
     if (!textToSend.trim()) return;
 
-    const newMessage = { from: "user", text: textToSend, time: new Date() };
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => [...prev, { from: "user", text: textToSend, time: dayjs() }]);
     setInput("");
 
     const typingMsgId = Date.now();
     setMessages(prev => [...prev, { from: "bot", text: "Đang soạn tin...", typing: true, id: typingMsgId }]);
 
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
     try {
       let answer = "";
-
       if (textToSend.toLowerCase().includes("gửi mã") && textToSend.toLowerCase().includes("cho khách")) {
-        const regex = /gửi mã\s+["']?(.+?)["']?\s+cho khách hàng/i;
-        const match = textToSend.match(regex);
-
-        if (!match || !match[1]) {
-          answer = "⚠️ Không tìm thấy tên mã giảm giá. Vui lòng chọn lại.";
+        const couponName = textToSend.match(/["']?(.+?)["']?\s+cho khách hàng/i)?.[1]?.trim();
+        if (!couponName) {
+          answer = "⚠️ Không tìm thấy tên mã giảm giá.";
         } else {
-          const couponName = match[1].trim();
           await axios.post(`${API_URL}/assistant/send-coupon-email`, { couponName });
-          answer = "✅ Đã gửi email cho tất cả khách hàng!";
+          answer = `✅ Đã gửi email mã "${couponName}" thành công!`;
         }
       } else {
         const res = await axios.post(`${API_URL}/assistant/ask`, { question: textToSend });
         answer = res.data.answer || "Xin lỗi, mình chưa hiểu 🥲";
-        if (res.data.revenue) answer = `${res.data.revenue} (${formatCurrency(res.data.revenue)})`;
       }
 
-      const typingDelay = Math.min(answer.length * 50, 2000);
-      await delay(typingDelay);
-
-      setMessages(prev =>
-        prev.map(m => m.id === typingMsgId ? { from: "bot", text: answer, time: new Date() } : m)
-      );
-
+      setMessages(prev => prev.map(m => m.id === typingMsgId ? { from: "bot", text: answer, time: dayjs() } : m));
     } catch {
-      setMessages(prev =>
-        prev.map(m => m.id === typingMsgId ? { from: "bot", text: "⚠️ Server lỗi, vui lòng thử lại sau.", time: new Date() } : m)
-      );
+      setMessages(prev => prev.map(m => m.id === typingMsgId ? { from: "bot", text: "⚠️ Lỗi kết nối.", time: dayjs() } : m));
     }
   };
-  const suggestions = [
-    { text: "Doanh thu hôm nay" },
-    { text: "Doanh thu tháng này" },
-    { text: "Đơn hàng trong tuần." },
+
+  // Cấu trúc Menu
+  const items = [
+    { key: '1', label: 'Doanh thu hôm nay', icon: <LineChartOutlined />, onClick: () => handleSend("Doanh thu hôm nay") },
+    { key: '2', label: 'Đơn hàng trong tuần', icon: <LineChartOutlined />, onClick: () => handleSend("Đơn hàng trong tuần") },
+    { key: 'd1', type: 'divider' },
+    ...coupons
+      .filter(c => c.description === "0" && Number(c.quantity) > 0 && new Date(c.end_date) >= new Date())
+      .map((c, i) => ({
+        key: `cp-${i}`,
+        icon: <GiftOutlined style={{ color: '#f5222d' }} />,
+        label: (
+          <div style={{ display: 'flex', justifyContent: 'space-between', minWidth: 160 }}>
+            <span>{c.code}</span>
+            <Text type="success" size="small">{c.discount_type === "percent" ? `${c.discount_value}%` : 'Giảm đ'}</Text>
+          </div>
+        ),
+        onClick: () => handleSend(`Gửi mã "${c.code}" cho khách hàng`)
+      }))
   ];
 
   return (
-    <div style={{ position: "fixed", bottom: "90px", right: "20px", zIndex: 9999 }}>
-      {!isOpen && (
-        <Button variant="primary" className="rounded-circle p-3 shadow" onClick={() => setIsOpen(true)}>
-          <FiMessageCircle size={22} />
-        </Button>
-      )}
-
-      {isOpen && (
-        <Card style={{ width: "300px", height: "400px", borderRadius: "15px" }} className="shadow">
-          <Card.Header className="d-flex justify-content-between align-items-center bg-primary text-white">
-            <span>💬 Trợ lí Âm Sắc Màu</span>
-            <Button variant="light" size="sm" className="p-0 d-flex align-items-center justify-content-center" onClick={() => setIsOpen(false)}>
-              <FiX />
-            </Button>
-          </Card.Header>
-
-          <Card.Body style={{ overflowY: "auto", padding: "10px", backgroundColor: "#f5f5f5" }}>
-            <AnimatePresence initial={false}>
-              {messages.map((msg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ duration: 0.25 }}
-                  className={`d-flex mb-2 ${msg.from === "user" ? "justify-content-end" : "justify-content-start"}`}
-                >
-                  {msg.from === "bot" && (
-                    <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
-                         style={{ width: "28px", height: "28px", fontSize: "14px" }}>🤖</div>
-                  )}
-                  <div className="p-2 rounded"
-                       style={{
-                         maxWidth: "70%",
-                         backgroundColor: msg.from === "user" ? "#0d6efd" : "#ffffff",
-                         color: msg.from === "user" ? "#fff" : "#000",
-                         borderRadius: msg.from === "user" ? "15px 15px 0 15px" : "15px 15px 15px 0",
-                         fontStyle: msg.typing ? "italic" : "normal",
-                         opacity: msg.typing ? 0.7 : 1
-                       }}>
-                    {msg.text}
-                    <div style={{ fontSize: "10px", color: "#888", textAlign: "right", marginTop: "2px" }}>
-                      {msg.time ? new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            <div ref={messagesEndRef} />
-          </Card.Body>
-
-          <Card.Footer className="p-2 bg-white">
-            <InputGroup>
-              <Form.Control
-                placeholder="Nhập tin nhắn..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+    <ConfigProvider theme={{ token: { primaryColor: '#1890ff' } }}>
+      <div ref={widgetRef} style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 9999 }}>
+        
+        <AnimatePresence>
+          {!isOpen && (
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+              <Button 
+                type="primary" shape="circle" 
+                icon={<MessageFilled style={{ fontSize: 24 }} />} 
+                style={{ width: 60, height: 60, boxShadow: "0 4px 15px rgba(24,144,255,0.4)" }} 
+                onClick={() => setIsOpen(true)}
               />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              <Dropdown>
-                <Dropdown.Toggle variant="secondary" id="dropdown-suggestions" style={{ marginRight: "2px" }}>
-                  <FiMoreHorizontal />
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu style={{ maxHeight: "200px", overflowY: "auto" }}>
-                  {suggestions.map((s, idx) => (
-                    <Dropdown.Item key={idx} onClick={() => handleSend(s.text)}>
-                      {s.text}
-                    </Dropdown.Item>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+              <Card
+                title={<Space><Avatar size="small" icon={<RobotOutlined />} /> <Text strong>Trợ lý Âm Sắc Màu</Text></Space>}
+                extra={<Button type="text" icon={<CloseOutlined />} onClick={() => setIsOpen(false)} />}
+                style={{ width: 320, borderRadius: 16, boxShadow: "0 10px 30px rgba(0,0,0,0.2)" }}
+                bodyStyle={{ padding: 0 }}
+              >
+                <div style={{ height: 350, overflowY: "auto", padding: 12, background: "#f5f5f5" }}>
+                  {messages.map((msg, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: msg.from === "user" ? "flex-end" : "flex-start", marginBottom: 10 }}>
+                      <div style={{
+                        padding: "8px 12px", borderRadius: 12, fontSize: 13,
+                        backgroundColor: msg.from === "user" ? "#1890ff" : "#fff",
+                        color: msg.from === "user" ? "#fff" : "#000",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                      }}>{msg.text}</div>
+                    </div>
                   ))}
-                  <Dropdown.Divider />
-                  <p>
-                    Gửi mã giảm giá cho tất cả khách hàng
-                  </p>
-                    {coupons
-                      .filter(c => c.description === "0" && Number(c.quantity) > 0  &&  new Date(c.end_date) >= new Date())
-                      .map((c, idx) => (
-                        <Dropdown.Item
-                          key={idx}
-                          onClick={() => handleSend(`Gửi mã "${c.code}" cho khách hàng`)}
-                          className="d-flex justify-content-between align-items-center"
-                        >
-                          <span>🎟️ {c.code}</span>
-                          <span className="badge bg-success">{c.discount_type === "percent"
-                                    ? `${Number(c.discount_value)}%`
-                                    : `${Number(c.discount_value).toLocaleString("vi-VN")} VND`}</span>
-                        </Dropdown.Item>
-                      ))
-                    }
-                    {coupons.filter(c => c.description === "0" && Number(c.quantity) > 0).length === 0 && (
-                      <Dropdown.Item disabled>Không có mã giảm giá khả dụng</Dropdown.Item>
-                    )}
-                </Dropdown.Menu>
-              </Dropdown>
+                  <div ref={messagesEndRef} />
+                </div>
 
-              <Button variant="primary" onClick={() => handleSend()}>
-                <FiSend />
-              </Button>
-            </InputGroup>
-          </Card.Footer>
-        </Card>
-      )}
-    </div>
+                <div style={{ padding: 10, borderTop: "1px solid #eee" }}>
+                  <Space.Compact style={{ width: '100%' }}>
+                    {/* CHỖ NÀY QUAN TRỌNG: Thêm getPopupContainer */}
+                    <Dropdown 
+                      menu={{ items }} 
+                      trigger={['click']} 
+                      placement="topLeft"
+                      getPopupContainer={() => widgetRef.current} 
+                    >
+                      <Button icon={<EllipsisOutlined />} />
+                    </Dropdown>
+                    <Input 
+                      placeholder="Hỏi gì đó..." 
+                      value={input} 
+                      onChange={e => setInput(e.target.value)} 
+                      onPressEnter={() => handleSend()}
+                    />
+                    <Button type="primary" icon={<SendOutlined />} onClick={() => handleSend()} />
+                  </Space.Compact>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </ConfigProvider>
   );
 };
 

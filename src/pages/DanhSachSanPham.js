@@ -1,335 +1,280 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { 
+  Table, Button, Input, Select, Space, Row, Col, 
+  Card, Typography, Modal, Tag, Tooltip, Avatar, 
+  ConfigProvider, Pagination, Empty, Spin
+} from "antd";
+import { 
+  PlusOutlined, FileExcelOutlined, DeleteOutlined, 
+  EditOutlined, EyeOutlined, SearchOutlined, 
+  InboxOutlined, ExclamationCircleOutlined 
+} from "@ant-design/icons";
 import {
-  Table,
-  Button,
-  Form,
-  Row,
-  Tooltip,
-  OverlayTrigger,
-  Col,
-  Pagination,
-  Modal,  
-  Spinner,
-} from "react-bootstrap";
-import { FaPlus, FaFileExport } from "react-icons/fa";
-import {
-  getAllProducts,
-  deleteProduct,
   filterProducts,
+  deleteProduct,
   exportProductsExcel 
 } from "../api/productAPI";
-import { Link } from "react-router-dom";
-import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
-import { FaBoxOpen } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { FaRegEye } from "react-icons/fa6";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
-const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const DanhSachSanPham = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const URL_WEB = process.env.REACT_APP_WEB_URL;
+
+  // ==== States ====
   const [products, setProducts] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
   const [loading, setLoading] = useState(false);
-  const limit = 6;
-  const [message, setMessage] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
-const [loadedImages, setLoadedImages] = useState({});
+  const [totalProducts, setTotalProducts] = useState(0);
   const [filters, setFilters] = useState({
     page: 1,
     limit: 7,
     keyword: "",
-    categoryId: "",
-    dateRange: "",
-    productType: "",
     status: "",
-    seoScore: "",
   });
 
+  // ==== Fetch Data ====
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const data = await filterProducts(filters);
+      setProducts(data.products);
+      setTotalProducts(data.totalProducts);
+    } catch (error) {
+      showErrorToast("Lỗi tải sản phẩm", error.message);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await filterProducts(filters);
-        setProducts(data.products);
-        setTotalProducts(data.totalProducts);
-        setTotalPages(data.totalPages);
-      } catch (error) {
-        showErrorToast("Sản phẩm", error);
-        setProducts([]);
-        setTotalProducts(0);
-        setTotalPages(1);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, [filters]);
 
-  const handlePageChange = (pageNumber) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      page: pageNumber,
-    }));
+  // ==== Handlers ====
+  const handlePageChange = (page) => {
+    setFilters(prev => ({ ...prev, page }));
   };
 
-  const handleDelete = async () => {
-    if (!productToDelete) return;
-    try {
-      const result = await deleteProduct(productToDelete);
-      setProducts((prevProducts) =>
-        prevProducts.filter((prod) => prod.id !== productToDelete)
-      );
-      showSuccessToast("Sản phẩm",result.message);
-      setShowModal(false);
-    } catch (error) {
-      showErrorToast("Sản phẩm",error.message || "❌ Lỗi khi xóa sản phẩm.");
-    }
+  const handleSearch = (e) => {
+    setFilters(prev => ({ ...prev, keyword: e.target.value, page: 1 }));
   };
 
-  const openDeleteModal = (id) => {
-    setProductToDelete(id);
-    setShowModal(true);
+  const handleStatusChange = (value) => {
+    setFilters(prev => ({ ...prev, status: value, page: 1 }));
   };
 
-  const closeDeleteModal = () => {
-    setShowModal(false);
-    setProductToDelete(null);
+  const showDeleteConfirm = (id) => {
+    confirm({
+      title: 'Xác nhận xóa sản phẩm?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Hành động này không thể hoàn tác.',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          const result = await deleteProduct(id);
+          showSuccessToast("Thành công", result.message);
+          fetchData(); // Reload lại danh sách
+        } catch (error) {
+          showErrorToast("Lỗi", error.message);
+        }
+      },
+    });
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-      page: 1,
-    }));
-  };
-
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(""), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-  return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <Row className="align-items-center mb-3">
-        <Col md={12}>
-          <div className="d-flex align-items-center">
-            <FaBoxOpen
-              className="me-2"
-              size={25}
-              style={{ color: "#1d41ff" }}
+  // ==== Table Columns ====
+  const columns = [
+    {
+      title: 'MÃ SP',
+      dataIndex: 'id',
+      key: 'id',
+      render: (id) => <Text code>SP180703{id}</Text>,
+      width: 140,
+    },
+    {
+      title: 'HÌNH ẢNH',
+      dataIndex: 'image',
+      key: 'image',
+      render: (image) => (
+        <Avatar 
+          shape="square" 
+          size={60} 
+          src={`${URL_WEB}/uploads/${image}`} 
+          icon={<InboxOutlined />}
+          style={{ border: '1px solid #f0ece1' }}
+        />
+      ),
+      width: 100,
+    },
+    {
+      title: 'TÊN SẢN PHẨM',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name) => <Text strong>{name}</Text>,
+    },
+    {
+      title: 'GIÁ BÁN',
+      dataIndex: 'price',
+      key: 'price',
+      render: (price) => (
+        <Text type="danger" strong>
+          {Number(price).toLocaleString("vi-VN")}₫
+        </Text>
+      ),
+      sorter: (a, b) => a.price - b.price,
+    },
+    {
+      title: 'DANH MỤC',
+      dataIndex: 'categoryName',
+      key: 'categoryName',
+      render: (cat) => <Tag color="orange">{cat}</Tag>,
+    },
+    {
+      title: 'HÀNH ĐỘNG',
+      key: 'action',
+      fixed: 'right',
+      width: 150,
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Xem chi tiết">
+            <Button 
+              type="text" 
+              icon={<EyeOutlined style={{ color: '#1890ff' }} />} 
+              onClick={() => navigate(`/san-pham/details/${record.id}`)}
             />
-            <h4 className="fw-bold">Sản phẩm</h4>
-          </div>
-          {message && <div className="alert alert-info">{message}</div>}
-        </Col>
-        
-      </Row>
-
-      {/* Filter Form */}
-      <div className="mb-4">
-        <Row>
-          <Col xs={12} sm={4} md={3} className="mb-2">
-            <Form.Control
-              type="text"
-              placeholder="🔍 Tìm tên / mã "
-              name="keyword"
-              value={filters.keyword}
-              onChange={handleFilterChange}
-            />
-          </Col>
-          <Col xs={12} sm={4} md={2} className="mb-2">
-            <Form.Select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-            >
-              <option value="">-- Tất cả trạng thái --</option>
-              <option value="active">Hiển thị</option>
-              <option value="inactive">Ẩn</option>
-            </Form.Select>
-          </Col>
-          <Col xs={12} sm={4} md={7} className="text-md-end">
+          </Tooltip>
+          
           {user?.role === "admin" && (
-              <div >
-                <Button variant="primary">
-              <Link
-                to={"/san-pham/them"}
-                style={{ textDecoration: "none", color: "white" }}
-                >
-                  <FaPlus className="me-1" />
-                Thêm sản phẩm
-              </Link>
-              </Button>
-               <Button className="m-2" variant="success" onClick={exportProductsExcel}>
-                <FaFileExport className="me-1" />
-                Xuất Excel
-              </Button>
-            </div>
+            <>
+              <Tooltip title="Chỉnh sửa">
+                <Button 
+                  type="text" 
+                  icon={<EditOutlined style={{ color: '#c19a6b' }} />} 
+                  onClick={() => navigate(`/san-pham/sua/${record.id}`)}
+                />
+              </Tooltip>
+              <Tooltip title="Xóa">
+                <Button 
+                  type="text" 
+                  danger 
+                  icon={<DeleteOutlined />} 
+                  onClick={() => showDeleteConfirm(record.id)}
+                />
+              </Tooltip>
+            </>
           )}
-        </Col>
-        </Row>
-      </div>
-      {loading ? (
-            <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-                 <Spinner animation="border" variant="primary" />
-               </div>
-          ) : (
-            <div>
-               <Table bordered hover responsive>
-        <thead className="table-dark">
-          <tr>
-            <th>Mã sản phẩm</th>
-            <th>Ảnh</th>
+        </Space>
+      ),
+    },
+  ];
 
-            <th>Tên</th>
-            <th>Giá</th>
-            <th>Danh mục</th>
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#5d4037",
+          borderRadius: 12,
+        },
+      }}
+    >
+      <div className="container-fluid p-4">
+        <style>{`
+          .product-table-card { border-radius: 20px; border: 1px solid #f0ece1; overflow: hidden; }
+          .title-font { font-family: 'Playfair Display', serif; }
+          .ant-table-thead > tr > th { background: #fdfcf8 !important; }
+        `}</style>
+
+        {/* Header Section */}
+        <Row className="mb-4 align-items-center" gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <Title level={3} className="title-font m-0">
+              <InboxOutlined className="me-2" /> Quản lý sản phẩm
+            </Title>
+            <Text type="secondary">Tổng số: {totalProducts} sản phẩm hiện có</Text>
+          </Col>
+          <Col xs={24} md={12} className="text-md-end">
             {user?.role === "admin" && (
-              <th>Code</th>
+              <Space>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />} 
+                  size="large"
+                  onClick={() => navigate("/san-pham/them")}
+                >
+                  Thêm mới
+                </Button>
+                <Button 
+                  icon={<FileExcelOutlined />} 
+                  size="large"
+                  onClick={exportProductsExcel}
+                  style={{ borderColor: '#27ae60', color: '#27ae60' }}
+                >
+                  Xuất Excel
+                </Button>
+              </Space>
             )}
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody className="align-middle text-center">
-          {products.length > 0 ? (
-            products.map((prod, index) => (
-               <tr key={`${prod.id}-${index}`}>
-                <td>{`SP180703${prod.id}`}</td>
-                <td>
-                  {prod.image && (
-                   <div
-                        style={{ width: "70px", height: "70px", borderRadius: "8px", overflow: "hidden" }}
-                      >
-                        {!loadedImages[prod.id] && (
-                          <div className="skeleton-shimmer w-100 h-100 rounded" />
-                        )}
-                        <img
-                          src={`${URL_WEB}/uploads/${prod.image}`}
-                          alt="Ảnh sản phẩm"
-                          onLoad={() =>
-                            setLoadedImages((prev) => ({ ...prev, [prod.id]: true }))
-                          }
-                          style={{
-                            width: "70px",
-                            height: "70px",
-                            objectFit: "cover",
-                            borderRadius: "8px",
-                            display: loadedImages[prod.id] ? "block" : "none",
-                            transition: "opacity 0.5s ease-in-out",
-                          }}
-                        />
-                      </div>
+          </Col>
+        </Row>
 
-                  )}
-                </td>
-                <td>{prod.name}</td>
+        {/* Filter Section */}
+        <Card className="mb-4 border-0 shadow-sm" style={{ borderRadius: 16 }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12} md={8}>
+              <Input
+                placeholder="Tìm tên hoặc mã sản phẩm..."
+                prefix={<SearchOutlined />}
+                allowClear
+                onChange={handleSearch}
+                size="large"
+              />
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Select
+                className="w-100"
+                placeholder="Trạng thái hiển thị"
+                size="large"
+                allowClear
+                onChange={handleStatusChange}
+              >
+                <Select.Option value="active">Đang hiển thị</Select.Option>
+                <Select.Option value="inactive">Đang ẩn</Select.Option>
+              </Select>
+            </Col>
+          </Row>
+        </Card>
 
-                <td> {Number(prod.price).toLocaleString("vi-VN")}₫</td>
-                <td>{prod.categoryName}</td>
-                {user?.role === "admin" && (
-                  <td>{prod.couponCode ? prod.couponCode : "Không có mã"}</td>
-                )}
-                <td className="d-flex">
-                  <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      className="me-2"
-                      as={Link}
-                      to={`/san-pham/details/${prod.id}`}
-                    >
-                      <FaRegEye />
-                    </Button>
-                  </OverlayTrigger>
-                  {user?.role === "admin" && (
-                    <>
-                      <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                        <Button
-                          variant="outline-primary"
-                          as={Link}
-                          to={`/san-pham/sua/${prod.id}`}
-                          className="me-2"
-                        >
-                          <MdOutlineAutoFixHigh />
-                        </Button>
-                      </OverlayTrigger>
-                      <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                        <Button
-                          variant="outline-danger"
-                          onClick={() => openDeleteModal(prod.id)}
-                        >
-                          <MdDelete />
-                        </Button>
-                      </OverlayTrigger>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))
-          ):(
-              <tr>
-                <td colSpan="5" className="text-center text-muted">
-                  Không có dữ liệu
-                </td>
-              </tr>
-            )}
-        </tbody>
-      </Table>
-        {/* Pagination */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <small>{totalProducts} sản phẩm</small>
-        </div>
-        <Pagination className="d-flex justify-content-center">
-          <Pagination.First onClick={() => handlePageChange(1)} />
-          <Pagination.Prev
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
+        {/* Table Section */}
+        <Card className="product-table-card border-0 shadow-sm">
+          <Table 
+            columns={columns} 
+            dataSource={products} 
+            rowKey="id"
+            loading={loading}
+            pagination={false}
+            scroll={{ x: 800 }}
+            locale={{ emptyText: <Empty description="Không tìm thấy sản phẩm nào" /> }}
           />
-          {[...Array(totalPages).keys()].map((page) => (
-            <Pagination.Item
-              key={page + 1}
-              active={currentPage === page + 1}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              {page + 1}
-            </Pagination.Item>
-          ))}
-          <Pagination.Next
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-          <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-        </Pagination>
+          
+          <div className="p-3 d-flex justify-content-between align-items-center bg-white">
+            <Text type="secondary">Hiển thị {products.length} trên tổng số {totalProducts}</Text>
+            <Pagination
+              current={filters.page}
+              total={totalProducts}
+              pageSize={filters.limit}
+              onChange={handlePageChange}
+              showSizeChanger={false}
+            />
+          </div>
+        </Card>
       </div>
-            </div>
-        )}
-    
-
-      {/* Modal xác nhận xóa */}
-      <Modal show={showModal} onHide={closeDeleteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa sản phẩm</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xóa sản phẩm này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xóa
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+    </ConfigProvider>
   );
 };
 

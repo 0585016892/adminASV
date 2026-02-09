@@ -1,354 +1,301 @@
-import React, { useState, useEffect } from "react";
-import {
-  Table,
-  Button,
-  Form,
-  InputGroup,
-  FormControl,
-  Alert,
-  Modal,
-  Tooltip,
-  Row,
-  Col,
-  OverlayTrigger,
-} from "react-bootstrap";
-import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { 
+  Table, Card, Button, Input, Modal, Form, 
+  Space, Typography, Tooltip, Popconfirm, 
+  Upload, Row, Col, Badge, Empty, Spin, Tag 
+} from "antd";
+import { 
+  SearchOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  CloudUploadOutlined, 
+  FileExcelOutlined,
+  RobotOutlined,
+  SaveOutlined,
+  ExportOutlined,
+  BulbOutlined
+} from "@ant-design/icons";
 import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
 const API = process.env.REACT_APP_API_URL;
 
 const AutoReplyManager = () => {
   const [rules, setRules] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [file, setFile] = useState(null);
-  const [message, setMessage] = useState("");
-  const [aiToDelete, setAiToDelete] = useState(null);
+  const [form] = Form.useForm();
+  const [gptForm] = Form.useForm();
 
-  const [editingRule, setEditingRule] = useState(null); // rule đang sửa
-  const [showModal, setShowModal] = useState(false);
-  const [showModalDelete, setShowModalDelete] = useState(false);
+  // Modals state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showGPTModal, setShowGPTModal] = useState(false);
+  const [editingRule, setEditingRule] = useState(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
-  const fetchRules = async () => {
-    const res = await fetch(`${API}/ai`);
-    
-    const data = await res.json();
-    setRules(data);
-  };
+  const fetchRules = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/ai`);
+      const data = await res.json();
+      setRules(data);
+    } catch (error) {
+      showErrorToast("Lỗi", "Không thể kết nối máy chủ");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchRules();
-  }, []);
+  }, [fetchRules]);
 
-  const handleUpload = async () => {
-    if (!file) return setMessage("Vui lòng chọn file Excel!");
-
+  // Xử lý Import Excel
+  const handleUpload = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-
-    const res = await fetch(`${API}/ai/import-excel`, {
-      method: "POST",
-      body: formData,
-    });
-    const result = await res.json();
-
-    if (result.success) {
-      showSuccessToast("Import Excel", `Đã import ${result.inserted} dòng`);
-      setFile(null);
-      fetchRules();
-    } else {
-      showErrorToast("Import Excel", "Lỗi khi import file Excel");
-    }
-  };
-
-  const handleExport = () => {
-    window.open(`${API}/ai/export-excel`, "_blank");
-  };
-  //xóa
-  const openDeleteModal = (id) => {
-    setAiToDelete(id);
-    setShowModalDelete(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowModalDelete(false);
-    setAiToDelete(null);
-  };
-
-  const handleDelete = async () => {
-    if (!aiToDelete) return;
-
+    setLoading(true);
     try {
-      const res = await fetch(`${API}/ai/delete/${aiToDelete}`, {
-        method: "DELETE",
+      const res = await fetch(`${API}/ai/import-excel`, {
+        method: "POST",
+        body: formData,
       });
-
-      if (!res.ok) {
-        const text = await res.text(); // debug HTML nếu có
-        throw new Error(`Server error: ${text}`);
-      }
-
       const result = await res.json();
-
       if (result.success) {
-        showSuccessToast("Xoá câu lệnh", "🗑️ Xoá thành công");
-        setShowModalDelete(false);
-        setAiToDelete(null);
-        fetchRules(); // làm mới lại danh sách rule
-      } else {
-        showErrorToast("Xoá câu lệnh", result.message || "❌ Xoá thất bại.");
+        showSuccessToast("Thành công", `Đã thêm ${result.inserted} câu trả lời mới`);
+        fetchRules();
       }
-    } catch (error) {
-      setMessage("❌ Lỗi khi gọi API: " + error.message);
+    } catch {
+      showErrorToast("Lỗi", "Import file thất bại");
+    } finally {
+      setLoading(false);
     }
-  };
-  //sửa
-  const openEditModal = (rule) => {
-    setEditingRule(rule);
-    setShowModal(true);
+    return false; // Ngăn upload mặc định của Antd
   };
 
-  const handleSaveEdit = async () => {
-    const res = await fetch(`${API}/ai/update/${editingRule.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editingRule),
-    });
-    const result = await res.json();
-    if (result.success) {
-      showSuccessToast("Cập nhật", "✅ Đã cập nhật thành công!");
-      setShowModal(false);
-      fetchRules();
-    }else {
-      showErrorToast("Cập nhật", "❌ Cập nhật thất bại!");
-    }
-  };
-  //gpt
-  const [showGPTModal, setShowGPTModal] = useState(false);
-  const [gptPrompt, setGptPrompt] = useState(
-    "Gợi ý câu trả lời cho chatbot bán quần áo."
-  );
-  const [loadingSuggest, setLoadingSuggest] = useState(false);
-  const handleGPTSuggest = async () => {
+  // Xử lý Xóa
+  const handleDelete = async (id) => {
     try {
-      const res = await fetch(`${API}/ai/suggest-gpt`);
+      const res = await fetch(`${API}/ai/delete/${id}`, { method: "DELETE" });
       const result = await res.json();
       if (result.success) {
-        setMessage("✨ Gợi ý từ GPT đã được thêm");
-        fetchRules(); // Tải lại rule mới
-      } else {
-        alert("❌ Lỗi khi gọi GPT");
+        showSuccessToast("Thành công", "Đã xóa quy tắc");
+        fetchRules();
       }
-    } catch (err) {
-      console.error("GPT Error:", err);
-      alert("❌ Lỗi server GPT");
+    } catch {
+      showErrorToast("Lỗi", "Không thể xóa nội dung này");
     }
   };
-  const handleGeminiSuggest = async () => {
-    setLoadingSuggest(true);
+
+  // Xử lý Cập nhật
+  const handleSaveEdit = async (values) => {
+    try {
+      const res = await fetch(`${API}/ai/update/${editingRule.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      const result = await res.json();
+      if (result.success) {
+        showSuccessToast("Cập nhật", "Đã lưu thay đổi");
+        setShowEditModal(false);
+        fetchRules();
+      }
+    } catch {
+      showErrorToast("Lỗi", "Cập nhật thất bại");
+    }
+  };
+
+  // Xử lý Gemini AI
+  const handleGeminiSuggest = async (values) => {
+    setLoadingAI(true);
     try {
       const res = await fetch(`${API}/ai/suggest-gemini`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: gptPrompt }),
+        body: JSON.stringify({ prompt: values.prompt }),
       });
-
       const result = await res.json();
       if (result.success) {
-        showSuccessToast("Gemini", `✨ Đã thêm ${result.inserted} câu trả lời`);
+        showSuccessToast("Gemini AI", `✨ Đã tạo thêm ${result.inserted} quy tắc phản hồi`);
         setShowGPTModal(false);
         fetchRules();
-      } else {
-        showErrorToast("Gemini", result.message || "❌ Lỗi khi gọi Gemini");
       }
-    } catch (err) {
-      showErrorToast("❌ Lỗi khi gọi Gemini: " + err.message);
+    } catch {
+      showErrorToast("AI Error", "Lỗi khi kết nối với trí tuệ nhân tạo");
+    } finally {
+      setLoadingAI(false);
     }
-    setLoadingSuggest(false);
   };
 
-  const filtered = rules?.filter((r) =>
-    !search || (r.chatbot_replies && r.chatbot_replies.toLowerCase().includes(search.toLowerCase()))
+  const columns = [
+    {
+      title: 'MÃ SỐ',
+      dataIndex: 'id',
+      key: 'id',
+      width: 120,
+      render: (id) => <Tag color="blue">CB82-{id}</Tag>,
+    },
+    {
+      title: 'TỪ KHÓA / CÂU HỎI',
+      dataIndex: 'chatbot_replies',
+      key: 'chatbot_replies',
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
+      title: 'NỘI DUNG PHẢN HỒI',
+      dataIndex: 'reply',
+      key: 'reply',
+      render: (text) => (
+        <Paragraph ellipsis={{ rows: 2, expandable: true, symbol: 'Xem thêm' }}>
+          {text}
+        </Paragraph>
+      ),
+    },
+    {
+      title: 'THAO TÁC',
+      key: 'action',
+      align: 'right',
+      render: (record) => (
+        <Space>
+          <Tooltip title="Chỉnh sửa">
+            <Button 
+              icon={<EditOutlined />} 
+              onClick={() => {
+                setEditingRule(record);
+                form.setFieldsValue({
+                  chatbot_replies: record.chatbot_replies,
+                  reply: record.reply
+                });
+                setShowEditModal(true);
+              }} 
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Xóa quy tắc này?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button icon={<DeleteOutlined />} danger />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  const filteredRules = rules?.filter((r) =>
+    !search || r.chatbot_replies?.toLowerCase().includes(search.toLowerCase())
   ) || [];
-  
-  
+
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <div className="p-4">
-        <h4>🤖 Quản lý từ khóa phản hồi tự động</h4>
-        {message && (
-          <Alert variant="info" className="mt-3">
-            {message}
-          </Alert>
-        )}
-        <Row>
-          <Col md={4}>
-            <InputGroup className="mb-3 mt-3">
-              <FormControl
-                placeholder="Tìm từ khóa..."
-                value={search}
+    <div className="p-4" style={{ background: '#f0f2f5', minHeight: '100vh' }}>
+      {/* Header */}
+      <div className="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+          <Title level={3}><RobotOutlined /> Chatbot Auto-Reply</Title>
+          <Text type="secondary">Cấu hình từ khóa và câu trả lời tự động dựa trên Trí tuệ nhân tạo</Text>
+        </div>
+        <Space>
+          <Button 
+            icon={<ExportOutlined />} 
+            onClick={() => window.open(`${API}/ai/export-excel`, "_blank")}
+          >
+            Xuất Excel
+          </Button>
+          <Button 
+            type="primary" 
+            icon={<BulbOutlined />} 
+            style={{ background: '#8e44ad', borderColor: '#8e44ad' }}
+            onClick={() => setShowGPTModal(true)}
+          >
+            Gợi ý từ Gemini AI
+          </Button>
+        </Space>
+      </div>
+
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <Card className="shadow-sm border-0" style={{ borderRadius: 12 }}>
+            <div className="mb-4 d-flex justify-content-between align-items-center">
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="Tìm từ khóa khách hàng thường hỏi..."
+                style={{ width: 400 }}
+                size="large"
                 onChange={(e) => setSearch(e.target.value)}
               />
-              
-             
-            </InputGroup>
-          </Col>
-          <Col md={8}>
-            <Row className="mb-3 mt-3">
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Control
-                    type="file"
-                    accept=".xlsx"
-                    onChange={(e) => setFile(e.target.files[0])}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Button className="ms-2" onClick={handleUpload}>
-                  📤 Import
-                </Button>
-              </Col>
-              <Col md={3}>
-               <Button
-                onClick={() => setShowGPTModal(true)}
-                variant="success"
-                className="ms-2"
-              >
-                ✨ Gợi ý từ Gemini
-                </Button>
-              </Col>
-              <Col md={3}>
-                <Button onClick={handleExport} className="me-2">📤 Xuất Excel</Button>
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-        <Table striped bordered hover>
-          <thead className="table-dark">
-            <tr>
-              <th>ID</th>
-              <th>Từ khóa</th>
-              <th>Phản hồi</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((r) => (
-              <tr key={r.id}>
-                <td>CB821{r.id}</td>
-                <td>{r.chatbot_replies}</td>
-                <td>{r.reply}</td>
-                <td>
-                  <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                    <Button
-                      variant="outline-primary"
-                      as={Link}
-                      onClick={() => openEditModal(r)}
-                      className="me-2"
-                    >
-                      <MdOutlineAutoFixHigh />
-                    </Button>
-                  </OverlayTrigger>
-                  <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                    <Button
-                      variant="outline-danger"
-                      onClick={() => openDeleteModal(r.id)}
-                    >
-                      <MdDelete />
-                    </Button>
-                  </OverlayTrigger>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+              <Upload beforeUpload={handleUpload} showUploadList={false}>
+                <Button icon={<CloudUploadOutlined />} type="dashed">Import Excel</Button>
+              </Upload>
+            </div>
 
-        <hr />
+            <Table 
+              columns={columns} 
+              dataSource={filteredRules} 
+              loading={loading}
+              rowKey="id"
+              pagination={{ pageSize: 8 }}
+              locale={{ emptyText: <Empty description="Chưa có dữ liệu phản hồi" /> }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <Modal show={showModalDelete} onHide={closeDeleteModal}>
-          <Modal.Header closeButton>
-            <Modal.Title>Xác nhận xóa đoạn văn bản</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            Bạn có chắc chắn muốn xóa đoạn văn bản này không?
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={closeDeleteModal}>
-              Hủy
-            </Button>
-            <Button variant="danger" onClick={handleDelete}>
-              Xóa
-            </Button>
-          </Modal.Footer>
-        </Modal>
-        {/* Modal sửa */}
-        <Modal show={showModal} onHide={() => setShowModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>✏️ Sửa Rule</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form.Group className="mb-2">
-              <Form.Label>Từ khoá</Form.Label>
-              <Form.Control
-                value={editingRule?.keyword || ""}
-                onChange={(e) =>
-                  setEditingRule((prev) => ({
-                    ...prev,
-                    keyword: e.target.value,
-                  }))
-                }
-              />
-            </Form.Group>
-            <Form.Group>
-              <Form.Label>Phản hồi</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={editingRule?.reply || ""}
-                onChange={(e) =>
-                  setEditingRule((prev) => ({ ...prev, reply: e.target.value }))
-                }
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button onClick={handleSaveEdit}>💾 Lưu</Button>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
-              Đóng
-            </Button>
-          </Modal.Footer>
-        </Modal>
-        {/*modal germini*/}
-        <Modal show={showGPTModal} onHide={() => setShowGPTModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>🤖 Gợi ý nội dung từ Gemini</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form.Group>
-              <Form.Label>Nhập đề bài / prompt</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={4}
-                value={gptPrompt}
-                onChange={(e) => setGptPrompt(e.target.value)}
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowGPTModal(false)}>
-              Hủy
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleGeminiSuggest}
-              disabled={loadingSuggest}
-            >
-              {loadingSuggest ? "Đang gửi..." : "Gợi ý & Lưu"}
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      </div>
+      {/* Modal Sửa Rule */}
+      <Modal
+        title="✏️ Chỉnh sửa phản hồi"
+        open={showEditModal}
+        onCancel={() => setShowEditModal(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={handleSaveEdit}>
+          <Form.Item name="chatbot_replies" label="Từ khóa khách hàng gửi" rules={[{ required: true }]}>
+            <Input size="large" />
+          </Form.Item>
+          <Form.Item name="reply" label="Nội dung Chatbot trả lời" rules={[{ required: true }]}>
+            <TextArea rows={4} placeholder="Nhập nội dung phản hồi..." />
+          </Form.Item>
+          <Form.Item className="mb-0 text-end">
+            <Space>
+              <Button onClick={() => setShowEditModal(false)}>Hủy</Button>
+              <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>Cập nhật ngay</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal Gemini AI */}
+      <Modal
+        title={<Space><RobotOutlined style={{ color: '#1890ff' }} /> Gợi ý thông minh từ Gemini</Space>}
+        open={showGPTModal}
+        onCancel={() => setShowGPTModal(false)}
+        footer={null}
+      >
+        <Form gptForm={gptForm} layout="vertical" onFinish={handleGeminiSuggest} initialValues={{ prompt: "Gợi ý 10 câu trả lời cho shop quần áo Acoustic Harmony" }}>
+          <Form.Item name="prompt" label="Yêu cầu của bạn cho AI">
+            <TextArea rows={5} placeholder="Ví dụ: Tạo các câu trả lời về chính sách đổi trả..." />
+          </Form.Item>
+          <div className="bg-light p-3 rounded mb-3">
+            <Text type="secondary" size="small">
+              <BulbOutlined /> AI sẽ tự động phân tích và tạo ra các cặp <b>Từ khóa - Phản hồi</b> phù hợp với yêu cầu của bạn và lưu trực tiếp vào cơ sở dữ liệu.
+            </Text>
+          </div>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            block 
+            size="large" 
+            loading={loadingAI}
+            icon={<RobotOutlined />}
+          >
+            {loadingAI ? "Gemini đang suy nghĩ..." : "Tạo và Lưu dữ liệu"}
+          </Button>
+        </Form>
+      </Modal>
     </div>
   );
 };

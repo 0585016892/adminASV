@@ -1,26 +1,45 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Bar } from "react-chartjs-2";
-import { Spinner, Form, Button, Row, Col, Card, Container } from "react-bootstrap";
+import { 
+  Card, Row, Col, Button, DatePicker, InputNumber,
+  Spin, Typography, Space, Table, Empty, Tag
+} from "antd";
+import { 
+  FireOutlined, 
+  SearchOutlined, 
+  TrophyOutlined,
+  BarChartOutlined,
+  ArrowUpOutlined
+} from "@ant-design/icons";
+import dayjs from "dayjs";
 import { motion } from "framer-motion";
 import "chart.js/auto";
+
+const { Title, Text } = Typography;
 
 const TopProductsReport = () => {
   const API_URL = process.env.REACT_APP_API_URL;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fromDate, setFromDate] = useState("2025-01-01");
-  const today = new Date().toISOString().split("T")[0];
-  const [toDate, setToDate] = useState(today);
-  const [limit, setLimit] = useState(5);
+  
+  const [filters, setFilters] = useState({
+    fromDate: "2025-01-01",
+    toDate: dayjs().format("YYYY-MM-DD"),
+    limit: 5
+  });
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/reports/top-products`, {
-        params: { from_date: fromDate, to_date: toDate, limit: limit },
+        params: { 
+          from_date: filters.fromDate, 
+          to_date: filters.toDate, 
+          limit: filters.limit 
+        },
       });
-      setData(res.data.data);
+      setData(res.data.data || []);
     } catch (error) {
       console.error("Lỗi gọi API:", error);
     } finally {
@@ -32,149 +51,167 @@ const TopProductsReport = () => {
     fetchData();
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    fetchData();
-  };
-
+  // Cấu hình Biểu đồ cột ngang (Horizontal Bar)
   const chartData = {
     labels: data.map((d) => d.name),
     datasets: [
       {
-        label: "Số lượng bán",
+        label: "Số lượng bán ra",
         data: data.map((d) => d.total_sold),
-        backgroundColor: [
-          "#36A2EB",
-          "#FF6384",
-          "#FFCE56",
-          "#4BC0C0",
-          "#9966FF",
-          "#FF9F40",
-        ],
-        borderRadius: 8,
+        backgroundColor: ["#5d4037", "#8d6e63", "#a1887f", "#bcaaa4", "#d7ccc8"],
+        borderRadius: 6,
+        borderSkipped: false,
       },
     ],
   };
 
   const chartOptions = {
+    indexAxis: 'y', // Chuyển thành biểu đồ ngang
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: {
-        callbacks: {
-          label: (context) => ` ${context.formattedValue} sản phẩm`,
-        },
+        backgroundColor: "#2c1e1a",
+        cornerRadius: 8,
+        padding: 12,
       },
     },
     scales: {
-      y: {
-        beginAtZero: true,
-        title: { display: true, text: "Số lượng bán" },
+      x: { 
+        beginAtZero: true, 
+        grid: { display: false },
+        ticks: { precision: 0 }
       },
-      x: {
-        title: { display: true, text: "Tên sản phẩm" },
+      y: { 
+        grid: { drawBorder: false, color: "#f5f5f5" },
         ticks: {
-          maxRotation: 45,
-          minRotation: 30,
-        },
+          font: { size: 12, weight: '500' }
+        }
       },
     },
   };
 
+  const columns = [
+    {
+      title: 'HẠNG',
+      key: 'rank',
+      width: 80,
+      align: 'center',
+      render: (_, __, index) => {
+        const colors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+        return index < 3 ? (
+          <TrophyOutlined style={{ color: colors[index], fontSize: '20px' }} />
+        ) : (
+          <Text type="secondary">#{index + 1}</Text>
+        );
+      }
+    },
+    {
+      title: 'SẢN PHẨM',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text) => <Text strong>{text}</Text>
+    },
+    {
+      title: 'ĐÃ BÁN',
+      dataIndex: 'total_sold',
+      key: 'total_sold',
+      align: 'right',
+      render: (val) => (
+        <Space>
+          <Text strong>{val}</Text>
+          <Tag color="success" icon={<ArrowUpOutlined />} bordered={false}>Sản phẩm hot</Tag>
+        </Space>
+      )
+    }
+  ];
+
   return (
-    <Container className="py-4">
-      <motion.div
-        initial={{ opacity: 0, y: -15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <Card className="shadow-lg border-0 rounded-4">
-          <Card.Header className="bg-success text-white text-center py-3 rounded-top-4">
-            <h4 className="mb-0">🔥 Top sản phẩm bán chạy</h4>
-          </Card.Header>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <style>{`
+        .product-table .ant-table-thead > tr > th { background: #fafafa; font-size: 11px; }
+        .filter-card { border-radius: 12px; border: 1px solid #f0ece1; margin-bottom: 24px; }
+      `}</style>
 
-          <Card.Body>
-            {/* Form lọc thời gian */}
-            <Form onSubmit={handleSubmit} className="mb-4">
-              <Row className="g-3 align-items-end">
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Từ ngày</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
+      {/* Filter Section */}
+      <Card className="filter-card shadow-sm">
+        <Row gutter={[16, 16]} align="bottom">
+          <Col xs={24} md={10}>
+            <Text type="secondary">Giai đoạn báo cáo</Text>
+            <DatePicker.RangePicker 
+              className="w-100 mt-2"
+              defaultValue={[dayjs(filters.fromDate), dayjs(filters.toDate)]}
+              onChange={(dates) => {
+                if (dates) setFilters({...filters, fromDate: dates[0].format("YYYY-MM-DD"), toDate: dates[1].format("YYYY-MM-DD")});
+              }}
+            />
+          </Col>
+          <Col xs={12} md={6}>
+            <Text type="secondary">Số lượng hiển thị</Text>
+            <InputNumber 
+              className="w-100 mt-2" 
+              min={1} max={20}
+              value={filters.limit}
+              onChange={(val) => setFilters({...filters, limit: val})}
+            />
+          </Col>
+          <Col xs={12} md={8}>
+            <Button 
+              type="primary" 
+              icon={<SearchOutlined />} 
+              onClick={fetchData} 
+              className="w-100 mt-2"
+              style={{ background: "#5d4037", borderColor: "#5d4037", height: '40px' }}
+            >
+              Phân tích xu hướng
+            </Button>
+          </Col>
+        </Row>
+      </Card>
 
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Đến ngày</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
+      <Spin spinning={loading}>
+        {data.length === 0 ? (
+          <Empty description="Không tìm thấy dữ liệu sản phẩm bán chạy" />
+        ) : (
+          <Row gutter={[24, 24]}>
+            {/* Biểu đồ trực quan */}
+            <Col xs={24} lg={12}>
+              <Card 
+                title={<Space><BarChartOutlined /> Biểu đồ doanh số</Space>} 
+                className="shadow-sm border-0 rounded-4"
+              >
+                <div style={{ height: "400px" }}>
+                  <Bar data={chartData} options={chartOptions} />
+                </div>
+              </Card>
+            </Col>
 
-                <Col md={2}>
-                  <Form.Group>
-                    <Form.Label>Giới hạn</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="1"
-                      value={limit}
-                      onChange={(e) => setLimit(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-
-                <Col md={2} className="d-grid">
-                  <Button type="submit" variant="success" className="mt-2">
-                    Xem báo cáo
-                  </Button>
-                </Col>
-              </Row>
-            </Form>
-
-            {/* Hiển thị biểu đồ */}
-            {loading ? (
-              <div className="d-flex justify-content-center align-items-center py-5">
-                <Spinner animation="border" variant="success" />
-              </div>
-            ) : data.length === 0 ? (
-              <p className="text-center text-muted">
-                Không có dữ liệu trong khoảng thời gian này.
-              </p>
-            ) : (
-              <div style={{ height: "450px" }}>
-                <Bar data={chartData} options={chartOptions} />
-              </div>
-            )}
-
-            {/* Bảng tóm tắt dữ liệu */}
-            {!loading && data.length > 0 && (
-              <div className="mt-4">
-                <h6 className="fw-bold mb-3 text-center text-secondary">
-                  📋 Danh sách sản phẩm
-                </h6>
-                {data.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom small"
-                  >
-                    <span className="fw-semibold">{idx + 1}. {item.name}</span>
-                    <span className="text-success">{item.total_sold} sản phẩm</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card.Body>
-        </Card>
-      </motion.div>
-    </Container>
+            {/* Bảng chi tiết */}
+            <Col xs={24} lg={12}>
+              <Card 
+                title={<Space><FireOutlined style={{ color: '#ff4d4f' }} /> Bảng xếp hạng sản phẩm</Space>} 
+                className="shadow-sm border-0 rounded-4"
+              >
+                <Table 
+                  className="product-table"
+                  dataSource={data} 
+                  columns={columns} 
+                  pagination={false} 
+                  rowKey="name"
+                  size="middle"
+                />
+                <div className="mt-4 p-3 bg-light rounded-3">
+                  <Text type="secondary" italic style={{ fontSize: '12px' }}>
+                    * Danh sách dựa trên tổng số lượng sản phẩm đã được thanh toán và giao hàng thành công.
+                  </Text>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+        )}
+      </Spin>
+    </motion.div>
   );
 };
 

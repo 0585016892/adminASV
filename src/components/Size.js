@@ -1,19 +1,14 @@
 import React, { useEffect, useState } from "react";
-import {
-  Button,
-  Container,
-  Table,
-  Form,
-  Row,
-  Col,
-  Modal,
-  Spinner,
-  Pagination,
-  Alert,
-  OverlayTrigger,
-  Tooltip,
-  Badge,
-} from "react-bootstrap";
+import { 
+  Table, Button, Modal, Form, Input, Row, Col, 
+  Tag, Space, Tooltip, Typography, ConfigProvider, 
+  Card, Breadcrumb, Empty, Select, Divider 
+} from "antd";
+import { 
+  PlusOutlined, FileExcelOutlined, EditOutlined, 
+  DeleteOutlined, ExclamationCircleOutlined, 
+  ColumnHeightOutlined 
+} from "@ant-design/icons";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import {
@@ -21,29 +16,25 @@ import {
   createSize,
   updateSize,
   deleteSize,
-  importSizes,
   getAllSizes,
 } from "../api/sizeApi";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
-import { MdDeleteOutline, MdOutlineAutoFixHigh } from "react-icons/md";
-import { FaPlus, FaFileExport } from "react-icons/fa";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const Size = () => {
   const token = localStorage.getItem("token");
+  const [form] = Form.useForm();
+  
   const [sizes, setSizes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [currentSize, setCurrentSize] = useState({
-    id: null,
-    name: "",
-    active: "active",
-  });
-  const [editMode, setEditMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [showModalDelete, setShowModalDelete] = useState(false);
-  const [sizeToDelete, setSizeToDelete] = useState(null);
-  const [message, setMessage] = useState("");
+  const [totalItems, setTotalItems] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
   const limit = 10;
 
@@ -51,10 +42,11 @@ const Size = () => {
     try {
       setLoading(true);
       const res = await getSizes(token, currentPage, limit);
+      // Giả định API trả về { data: { data: [], total: 100 } }
       setSizes(res.data.data);
-      setTotalPages(res.data.totalPages || 1);
+      setTotalItems(res.data.total || 0);
     } catch (err) {
-      showErrorToast("Size !","Thao tác thất bại.");
+      showErrorToast("Lỗi", "Không thể tải danh sách kích cỡ.");
     } finally {
       setLoading(false);
     }
@@ -64,59 +56,59 @@ const Size = () => {
     fetchSizes();
   }, [currentPage]);
 
-  const handleShowAdd = () => {
+  // ==== Xử lý Modal ====
+  const handleOpenAdd = () => {
     setEditMode(false);
-    setCurrentSize({ id: null, name: "", active: "active" });
+    setSelectedId(null);
+    form.resetFields();
+    form.setFieldsValue({ active: "active" });
     setShowModal(true);
   };
 
-  const handleShowEdit = (size) => {
+  const handleOpenEdit = (record) => {
     setEditMode(true);
-    setCurrentSize(size);
+    setSelectedId(record.id);
+    form.setFieldsValue(record);
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setCurrentSize({ id: null, name: "", active: "active" });
-  };
-
-  const openDeleteModal = (id) => {
-    setSizeToDelete(id);
-    setShowModalDelete(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowModalDelete(false);
-    setSizeToDelete(null);
-  };
-
-  const handleDelete = async () => {
-    if (!sizeToDelete) return;
+  const handleSubmit = async (values) => {
     try {
-      await deleteSize(token, sizeToDelete);
-      showSuccessToast("Size !","Xóa size thành công!");
-      closeDeleteModal();
-      fetchSizes();
-    } catch (error) {
-      showErrorToast(error.message || "❌ Lỗi khi xóa size.");
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
+      setIsSubmitting(true);
       if (editMode) {
-        await updateSize(token, currentSize.id, currentSize);
-        showSuccessToast("Size !","Cập nhật thành công!");
+        await updateSize(token, selectedId, values);
+        showSuccessToast("Thành công", "Cập nhật kích cỡ hoàn tất!");
       } else {
-        await createSize(token, currentSize);
-        showSuccessToast("Size !","Thêm mới thành công!");
+        await createSize(token, values);
+        showSuccessToast("Thành công", "Thêm kích cỡ mới thành công!");
       }
-      handleCloseModal();
+      setShowModal(false);
       fetchSizes();
     } catch (err) {
-      showErrorToast("Size !","Thao tác thất bại.");
+      showErrorToast("Thất bại", "Thao tác không thành công.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const showDeleteConfirm = (id) => {
+    confirm({
+      title: 'Xác nhận xóa kích cỡ?',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Hành động này không thể hoàn tác. Các sản phẩm đang dùng size này có thể bị ảnh hưởng.',
+      okText: 'Xóa ngay',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await deleteSize(token, id);
+          showSuccessToast("Thành công", "Đã xóa kích cỡ!");
+          fetchSizes();
+        } catch (error) {
+          showErrorToast("Lỗi", "Không thể xóa dữ liệu này.");
+        }
+      },
+    });
   };
 
   const handleExport = async () => {
@@ -125,182 +117,164 @@ const Size = () => {
       const data = response.data;
       const exportData = data.map((item, index) => ({
         STT: index + 1,
-        "Tên size": item.name,
-        "Trạng thái": item.status === 1 ? "Hiển thị" : "Ẩn",
-        "Ngày tạo": item.created_at,
-        "Ngày cập nhật": item.updated_at,
+        "Tên Size": item.name,
+        "Trạng thái": item.active === "active" ? "Hiển thị" : "Ẩn",
+        "Ngày tạo": new Date(item.created_at).toLocaleDateString("vi-VN"),
       }));
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sizes");
       const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([excelBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      saveAs(blob, "sizes.xlsx");
+      const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      saveAs(blob, "danh-sach-size.xlsx");
     } catch (error) {
-      console.error("Lỗi xuất Excel:", error);
+      showErrorToast("Lỗi", "Xuất file thất bại.");
     }
   };
 
-  const renderPagination = () => {
-    const items = [];
-    for (let i = 1; i <= totalPages; i++) {
-      items.push(
-        <Pagination.Item
-          key={i}
-          active={i === currentPage}
-          onClick={() => setCurrentPage(i)}
-        >
-          {i}
-        </Pagination.Item>
-      );
-    }
-    return <Pagination className="justify-content-center">{items}</Pagination>;
-  };
-
-
+  // ==== Cấu hình bảng ====
+  const columns = [
+    {
+      title: 'STT',
+      key: 'index',
+      width: 80,
+      align: 'center',
+      render: (_, __, index) => (currentPage - 1) * limit + index + 1,
+    },
+    {
+      title: 'TÊN KÍCH CỠ / HÌNH DẠNG',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text) => <Text strong style={{ fontSize: '15px' }}>{text}</Text>,
+    },
+    {
+      title: 'TRẠNG THÁI',
+      dataIndex: 'active',
+      key: 'active',
+      align: 'center',
+      render: (status) => (
+        <Tag color={status === 'active' ? 'blue' : 'default'} style={{ borderRadius: '4px', padding: '0 10px' }}>
+          {status === 'active' ? 'ĐANG HIỆN' : 'TẠM ẨN'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'NGÀY KHỞI TẠO',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      align: 'center',
+      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
+    },
+    {
+      title: 'HÀNH ĐỘNG',
+      key: 'action',
+      align: 'right',
+      width: 150,
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Chỉnh sửa">
+            <Button 
+              type="text" 
+              icon={<EditOutlined style={{ color: '#c19a6b' }} />} 
+              onClick={() => handleOpenEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Xóa dữ liệu">
+            <Button 
+              type="text" 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => showDeleteConfirm(record.id)}
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <Row className="align-items-center mb-3">
-        <Col md={12}>
-          <h4 className="fw-bold">📏 Quản lý Hình dạng</h4>
-        </Col>
-        <Col className="text-end">
-          <Button variant="primary" className="me-2" onClick={handleShowAdd}>
-           <FaPlus className="me-1" /> Thêm 
-          </Button>
-          <Button variant="success" onClick={handleExport}>
-            <FaFileExport className="me-1" /> Xuất Excel
-          </Button>
-        </Col>
-      </Row>
-      {loading ? (
-        <div className="text-center py-5  d-flex justify-content-center align-items-center h-100">
-                 <Spinner animation="border" variant="primary" />
-               </div>
-      ) : (
-          <div>
-              <Table striped bordered hover responsive className="shadow-sm">
-          <thead className="table-dark text-center">
-            <tr>
-              <th>#</th>
-              <th>Tên</th>
-              <th>Trạng thái</th>
-              <th>Ngày tạo</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody className="align-middle text-center">
-            {sizes.length > 0 ? (
-              sizes.map((size, index) => (
-                <tr key={size.id}>
-                  <td>{(currentPage - 1) * limit + index + 1}</td>
-                  <td>{size.name}</td>
-                  <td>
-                    <Badge
-                      bg={size.active === "active" ? "success" : "secondary"}
-                    >
-                      {size.active === "active" ? "Hiện" : "Ẩn"}
-                    </Badge>
-                  </td>
-                  <td>
-                    {new Date(size.created_at).toLocaleDateString("vi-VN")}
-                  </td>
-                  <td>
-                    <OverlayTrigger overlay={<Tooltip>Sửa size</Tooltip>}>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleShowEdit(size)}
-                      >
-                        <MdOutlineAutoFixHigh />
-                      </Button>
-                    </OverlayTrigger>
-                    <OverlayTrigger overlay={<Tooltip>Xóa size</Tooltip>}>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => openDeleteModal(size.id)}
-                      >
-                        <MdDeleteOutline />
-                      </Button>
-                    </OverlayTrigger>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" className="text-center text-muted">
-                  Không có dữ liệu
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </Table>
-      {renderPagination()}
-          </div>
-      )}
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 10 } }}>
+      <div className="container-fluid p-4">
+        <style>{`
+          .size-card { border-radius: 16px; border: 1px solid #f0ece1; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+          .ant-table-thead > tr > th { background: #fdfcf8 !important; font-weight: 600; text-transform: uppercase; font-size: 12px; }
+        `}</style>
 
+        {/* Header & Actions */}
+        <Row className="mb-4 align-items-center" gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <Breadcrumb items={[{ title: 'Hệ thống' }, { title: 'Thuộc tính' }, { title: 'Size' }]} className="mb-2" />
+            <Title level={3} className="m-0"><ColumnHeightOutlined /> Quản lý Kích cỡ</Title>
+          </Col>
+          <Col xs={24} md={12} className="text-md-end">
+            <Space size="middle">
+              <Button icon={<FileExcelOutlined />} onClick={handleExport} size="large">Xuất báo cáo</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenAdd} size="large">Thêm Size mới</Button>
+            </Space>
+          </Col>
+        </Row>
 
-      {/* Modal Thêm / Sửa */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>{editMode ? "✏️ Sửa Size" : "➕ Thêm Size"}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <Form.Label>Tên</Form.Label>
-            <Form.Control
-              type="text"
-              value={currentSize.name}
-              onChange={(e) =>
-                setCurrentSize({ ...currentSize, name: e.target.value })
-              }
-              placeholder="Nhập tên size..."
-            />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Trạng thái</Form.Label>
-            <Form.Select
-              value={currentSize.active}
-              onChange={(e) =>
-                setCurrentSize({ ...currentSize, active: e.target.value })
-              }
+        {/* Bảng dữ liệu */}
+        <Card className="size-card border-0">
+          <Table 
+            columns={columns} 
+            dataSource={sizes} 
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              current: currentPage,
+              pageSize: limit,
+              total: totalItems,
+              onChange: (p) => setCurrentPage(p),
+              showSizeChanger: false,
+              position: ['bottomRight']
+            }}
+            locale={{ emptyText: <Empty description="Chưa có thông tin về kích cỡ" /> }}
+          />
+        </Card>
+
+        {/* Modal Form */}
+        <Modal
+          title={<Title level={4} className="m-0">{editMode ? "Chỉnh sửa kích cỡ" : "Tạo kích cỡ mới"}</Title>}
+          open={showModal}
+          onCancel={() => setShowModal(false)}
+          footer={null}
+          centered
+          destroyOnClose
+        >
+          <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
+            <Form.Item 
+              name="name" 
+              label={<Text strong>Tên kích cỡ / Phân loại</Text>} 
+              rules={[{ required: true, message: 'Vui lòng nhập tên (Ví dụ: XL, 42, Lớn...)' }]}
             >
-              <option value="active">Hiện</option>
-              <option value="inactive">Ẩn</option>
-            </Form.Select>
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
-            Huỷ
-          </Button>
-          <Button variant="primary" onClick={handleSubmit}>
-            {editMode ? "Cập nhật" : "Thêm mới"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+              <Input size="large" placeholder="Nhập tên size..." />
+            </Form.Item>
 
-      {/* Modal Xoá */}
-      <Modal show={showModalDelete} onHide={closeDeleteModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>⚠️ Xác nhận xoá</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xoá size này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xoá
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+            <Form.Item 
+              name="active" 
+              label={<Text strong>Trạng thái kinh doanh</Text>}
+            >
+              <Select size="large">
+                <Select.Option value="active">Hiển thị (Active)</Select.Option>
+                <Select.Option value="inactive">Tạm ẩn (Inactive)</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Divider />
+
+            <Form.Item className="mb-0 text-end">
+              <Space>
+                <Button onClick={() => setShowModal(false)} size="large">Hủy</Button>
+                <Button type="primary" htmlType="submit" size="large" loading={isSubmitting}>
+                  {editMode ? "Lưu cập nhật" : "Tạo ngay"}
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </ConfigProvider>
   );
 };
 

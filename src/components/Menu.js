@@ -1,177 +1,313 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "react-bootstrap";
-import { FaChevronDown, FaChevronRight, FaSignOutAlt } from "react-icons/fa";
+import { Menu as AntMenu, Button, ConfigProvider, Avatar, Divider, Drawer } from "antd";
+import { 
+  LogoutOutlined, 
+  ShoppingOutlined, 
+  DatabaseOutlined, 
+  TeamOutlined, 
+  FileTextOutlined, 
+  PieChartOutlined, 
+  SettingOutlined,
+  MenuUnfoldOutlined,
+  CustomerServiceOutlined,
+  AppstoreOutlined,
+  GiftOutlined
+} from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
 import logo from "../img/logo.png";
-import "../assets/Menu.css";
 
-const Menu = () => {
+const MenuSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  const [openIndex, setOpenIndex] = useState(null);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-
-  const toggleSubMenu = (index) => {
-    setOpenIndex(openIndex === index ? null : index);
-  };
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.clear();
     navigate("/login");
   };
 
-  const menu = [
+  // Cấu hình danh mục Menu dựa trên Role
+  const menuItems = [
     {
-      text: "Bán hàng tại quầy",
+      key: "/ban-hang-off",
+      icon: <ShoppingOutlined />,
+      label: "Bán hàng tại quầy",
       roles: ["admin", "staff"],
-      children: [{ path: "/ban-hang-off", text: "Tạo hóa đơn" }],
     },
     {
-      text: "Quản lý sản phẩm",
+      key: "sub-products",
+      icon: <DatabaseOutlined />,
+      label: "Quản lý sản phẩm",
       roles: ["admin", "staff"],
       children: [
-        { path: "/san-pham/danh-sach", text: "Danh sách sản phẩm" },
-        { path: "/san-pham/mau-sac", text: "Danh sách màu sắc" },
-        { path: "/san-pham/size", text: "Danh sách hình thức" },
+        { key: "/san-pham/danh-sach", label: "Danh sách sản phẩm" },
+        { key: "/san-pham/mau-sac", label: "Danh sách màu sắc" },
+        { key: "/san-pham/size", label: "Danh sách hình thức" },
       ],
     },
     {
-      text: "Quản lý danh mục & bộ sưu tập",
+      key: "sub-cat",
+      icon: <AppstoreOutlined />,
+      label: "Danh mục & Bộ sưu tập",
       roles: ["admin", "staff"],
       children: [
-        { path: "/danh-muc/danh-sach", text: "Danh mục " },
-        { path: "/bo-sieu-tap/danh-sach", text: "Bộ sưu tập " },
+        { key: "/danh-muc/danh-sach", label: "Danh mục" },
+        { key: "/bo-sieu-tap/danh-sach", label: "Bộ sưu tập" },
       ],
     },
     {
-      text: "Quản lý khách hàng",
+      key: "/khach-hang/danh-sach",
+      icon: <TeamOutlined />,
+      label: "Quản lý khách hàng",
       roles: ["admin", "staff"],
-      children: [{ path: "/khach-hang/danh-sach", text: "Danh sách khách hàng" }],
     },
     {
-      text: "Quản lý đơn hàng",
+      key: "/don-hang/danh-sach",
+      icon: <FileTextOutlined />,
+      label: "Quản lý đơn hàng",
       roles: ["admin", "staff"],
-      children: [{ path: "/don-hang/danh-sach", text: "Danh sách đơn hàng" }],
     },
     {
-      text: "Quản lý khuyến mãi",
+      key: "/khuyen-mai/danh-sach",
+      icon: <GiftOutlined />,
+      label: "Quản lý khuyến mãi",
       roles: ["admin"],
-      children: [{ path: "/khuyen-mai/danh-sach", text: "Danh sách khuyến mãi" }],
     },
     {
-      text: "Quản lý Thống kê & báo cáo",
+      key: "/message/danh-sach",
+      icon: <GiftOutlined />,
+      label: "Nhắn tin",
       roles: ["admin"],
-      children: [{ path: "/tk-bc/them", text: "Thống kê & báo cáo" }],
     },
     {
-      text: "Quản lý nhân viên",
+      key: "/tk-bc/them",
+      icon: <PieChartOutlined />,
+      label: "Thống kê & Báo cáo",
+      roles: ["admin"],
+    },
+    {
+      key: "sub-hr",
+      icon: <CustomerServiceOutlined />,
+      label: "Quản lý nhân viên",
       roles: ["admin", "hr"],
       children: [
-        { path: "/admin/danh-sach", text: "Danh sách nhân viên" },
-        { path: "/admin/cham-cong", text: "Theo dõi ngày công" },
+        { key: "/admin/danh-sach", label: "Danh sách nhân viên" },
+        { key: "/admin/cham-cong", label: "Theo dõi ngày công" },
       ],
     },
     {
-      text: "Message",
-      roles: ["admin"],
-      children: [{ path: "/message/danh-sach", text: "Danh sách tin nhắn" }],
-    },
-    {
-      text: "Quản lý nội dung & giao diện",
+      key: "sub-content",
+      icon: <SettingOutlined />,
+      label: "Nội dung & Giao diện",
       roles: ["admin"],
       children: [
-        { path: "/slide-banner/danh-sach", text: "Slide/banner trang chủ" },
-        { path: "/tintuc-blog/danh-sach", text: "Tin tức / blog" },
-        { path: "/ai/danh-sach", text: "AI" },
-        { path: "/footer/danh-sach", text: "Footer" },
-        { path: "/binh-luan", text: "Đánh giá sản phẩm" },
-        { path: "/trang-bao-tri", text: "Trang bảo trì" },
+        { key: "/slide-banner/danh-sach", label: "Slide/banner" },
+        { key: "/tintuc-blog/danh-sach", label: "Tin tức / blog" },
+        { key: "/ai/danh-sach", label: "Trợ lý AI" },
+        { key: "/footer/danh-sach", label: "Footer" },
+        { key: "/binh-luan", label: "Đánh giá sản phẩm" },
       ],
     },
   ];
 
-  return (
-    <>
-      {/* Toggle button (mobile) */}
-      <button
-        className="d-md-none toggle-btn btn btn-primary position-fixed top-3 start-3"
-        onClick={() => setSidebarOpen(!isSidebarOpen)}
-      >
-        ☰
-      </button>
-      {isSidebarOpen && (
-        <div
-          className="d-md-none position-fixed top-0 start-0 w-100 h-100"
-          style={{ backgroundColor: "rgba(0,0,0,0.3)", zIndex: 1050 }}
-          onClick={() => setSidebarOpen(false)}
+  // Lọc menu theo quyền người dùng
+  const filteredItems = menuItems
+    .filter((item) => item.roles?.includes(user?.role))
+    .map((item) => {
+      if (item.children) {
+        return {
+          ...item,
+          children: item.children.map(child => ({
+            ...child,
+            onClick: () => { navigate(child.key); setMobileOpen(false); }
+          }))
+        };
+      }
+      return {
+        ...item,
+        onClick: () => { navigate(item.key); setMobileOpen(false); }
+      };
+    });
+
+  const SidebarContent = () => (
+    <div className="sidebar-inner">
+      <div className="logo-section">
+        <Link to="/" onClick={() => setMobileOpen(false)}>
+          <img src={logo} alt="Logo" className="sidebar-logo" />
+        </Link>
+      </div>
+
+      <div className="menu-scroll">
+        <AntMenu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          defaultOpenKeys={filteredItems.filter(i => i.children).map(i => i.key)}
+          items={filteredItems}
+          className="acoustic-menu"
         />
-      )}
-      {/* Sidebar */}
-      <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
-        <div className="logo">
-          <Link to="/" onClick={() =>  setSidebarOpen(false)}>
-            <img src={logo} alt="Logo" />
-          </Link>
+      </div>
+
+      <div className="sidebar-footer">
+        <Divider style={{ margin: "12px 0", borderColor: "#f1ece1" }} />
+        <div className="user-card">
+          <Avatar 
+            style={{ backgroundColor: '#c19a6b' }} 
+            icon={<TeamOutlined />} 
+          />
+          <div className="user-meta">
+            <div className="u-name">{user?.name || "Admin"}</div>
+            <div className="u-role">{user?.role}</div>
+          </div>
         </div>
+        <Button 
+          danger 
+          block 
+          icon={<LogoutOutlined />} 
+          onClick={handleLogout}
+          className="logout-btn"
+        >
+          Đăng xuất
+        </Button>
+      </div>
+    </div>
+  );
 
-        <ul className="menu">
-          {menu
-            .filter((item) => item.roles?.includes(user?.role))
-            .map((item, index) => (
-              <li
-                key={index}
-                className={`menu-item ${openIndex === index ? "open" : ""}`}
-              >
-                <div
-                  className="menu-title"
-                  onClick={() => toggleSubMenu(index)}
-                >
-                  <span>{item.text}</span>
-                  {item.children &&
-                    (openIndex === index ? (
-                      <FaChevronDown className="icon" />
-                    ) : (
-                      <FaChevronRight className="icon" />
-                    ))}
-                </div>
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#5d4037", // Nâu Walnut
+          colorBgContainer: "#fdfcf8", // Màu kem
+          colorText: "#8a7b6f",
+          borderRadius: 10,
+        },
+        components: {
+          Menu: {
+            itemBg: "transparent",
+            itemSelectedBg: "#f5f2eb",
+            itemSelectedColor: "#5d4037",
+            itemHoverBg: "#faf9f6",
+            subMenuItemBg: "transparent",
+            itemHeight: 45,
+          },
+        },
+      }}
+    >
+      <style>{`
+        .sidebar-desktop {
+          width: 280px;
+          height: 100vh;
+          position: fixed;
+          left: 0;
+          top: 0;
+          background: #fdfcf8;
+          border-right: 1px solid #eeebe3;
+          z-index: 100;
+        }
 
-                {item.children && (
-                  <ul className={`submenu ${openIndex === index ? "show" : ""}`}>
-                    {item.children.map((sub, idx) => (
-                      <li
-                        key={idx}
-                        className={
-                          location.pathname === sub.path ? "active" : ""
-                        }
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <Link to={sub.path}>{sub.text}</Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-        </ul>
+        .sidebar-inner {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
 
-        {/* Logout button */}
-        <div className="bottom-menu">
-          <Button
-            variant="light"
-            onClick={handleLogout}
-            className="logout-btn"
-          >
-            <FaSignOutAlt />
-            <span>Đăng xuất</span>
-          </Button>
-        </div>
+        .logo-section {
+          padding: 30px 24px;
+          text-align: center;
+        }
+
+        .sidebar-logo {
+          max-height: 50px;
+          filter: sepia(0.3);
+        }
+
+        .menu-scroll {
+          flex: 1;
+          overflow-y: auto;
+          padding: 0 10px;
+        }
+
+        .menu-scroll::-webkit-scrollbar { width: 4px; }
+        .menu-scroll::-webkit-scrollbar-thumb { background: #e2dcd0; border-radius: 10px; }
+
+        .acoustic-menu {
+          border-inline-end: none !important;
+        }
+
+        .sidebar-footer {
+          padding: 20px;
+        }
+
+        .user-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 15px;
+          padding: 0 5px;
+        }
+
+        .user-meta .u-name {
+          font-weight: 600;
+          color: #5d4037;
+          font-size: 14px;
+          line-height: 1.2;
+        }
+
+        .user-meta .u-role {
+          font-size: 11px;
+          color: #a89485;
+          text-transform: uppercase;
+        }
+
+        .logout-btn {
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .mobile-toggle {
+          position: fixed;
+          top: 20px;
+          left: 20px;
+          z-index: 999;
+          background: #5d4037;
+          color: white;
+          border: none;
+        }
+
+        @media (max-width: 768px) {
+          .sidebar-desktop { display: none; }
+        }
+      `}</style>
+
+      {/* Mobile Trigger */}
+      <Button 
+        className="d-md-none mobile-toggle"
+        icon={<MenuUnfoldOutlined />}
+        onClick={() => setMobileOpen(true)}
+      />
+
+      {/* Mobile Sidebar */}
+      <Drawer
+        placement="left"
+        onClose={() => setMobileOpen(false)}
+        open={mobileOpen}
+        width={280}
+        styles={{ body: { padding: 0, backgroundColor: "#fdfcf8" } }}
+      >
+        <SidebarContent />
+      </Drawer>
+
+      {/* Desktop Sidebar */}
+      <aside className="sidebar-desktop">
+        <SidebarContent />
       </aside>
-    </>
+    </ConfigProvider>
   );
 };
 
-export default Menu;
+export default MenuSidebar;

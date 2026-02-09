@@ -1,283 +1,250 @@
 import React, { useEffect, useState } from "react";
-import { Table, Spinner, Alert } from "react-bootstrap";
+import { 
+  Table, Button, Input, Select, Space, Tag, Typography, 
+  Tooltip, Modal, Breadcrumb, ConfigProvider, Switch, 
+  Card, Row, Col, Spin, Empty, Avatar 
+} from "antd";
+import { 
+  SearchOutlined, DeleteOutlined, EyeOutlined, 
+  UserOutlined, FilterOutlined, ExclamationCircleOutlined,
+  PhoneOutlined, MailOutlined, HomeOutlined
+} from "@ant-design/icons";
+import { Link } from "react-router-dom";
 import {
-  getCustomers,
   filterKhachhang,
   deleteKhachhang,
   updateCustomerStatus,
 } from "../api/customerApi";
-import {
-  Button,
-  Form,
-  Row,
-  Col,
-  Pagination,
-  Modal,
-  Tooltip,
-  OverlayTrigger,
-} from "react-bootstrap";
-import { Link } from "react-router-dom";
-import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
-import { FaRegEye } from "react-icons/fa6";
 import { useAuth } from "../contexts/AuthContext";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const DanhSachKhachhang = () => {
   const { user } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [khachhangToDelete, setKhachhangToDelete] = useState(null);
   const [totalKhachhang, setTotalKhachhang] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [message, setMessage] = useState("");
-
+  
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 12,
+    limit: 10,
     keyword: "",
     status: "",
-    seoScore: "",
   });
+
   useEffect(() => {
-    const fetchData = async () => {
+    fetchData();
+  }, [filters]);
+
+  const fetchData = async () => {
+    try {
       setLoading(true);
-      const data = await filterKhachhang(filters); // Gọi API lọc
-      
+      const data = await filterKhachhang(filters);
       setCustomers(data.customers);
       setTotalKhachhang(data.totalCustomers);
-      setTotalPages(data.totalPages);
-      setLoading(false);
-    };
-    fetchData();
-  }, [filters]); // Fetch lại khi filters thay đổi
-
-  const handlePageChange = (pageNumber) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      page: pageNumber,
-    }));
-  };
-  const handleDelete = async () => {
-    if (!khachhangToDelete) return;
-
-    try {
-      const result = await deleteKhachhang(khachhangToDelete,user.id);
-      setCustomers((prevDanhmuc) =>
-        prevDanhmuc.filter((cus) => cus.id !== khachhangToDelete)
-      );
-      showSuccessToast("Khách hàng",result.message);
-      setShowModal(false);
     } catch (error) {
-      showErrorToast("Khách hàng",error.message || "❌ Lỗi khi xóa sản phẩm.");
+      showErrorToast("Lỗi", "Không thể tải danh sách khách hàng.");
+    } finally {
+      setLoading(false);
     }
   };
-  const openDeleteModal = (id) => {
-    setKhachhangToDelete(id);
-    setShowModal(true);
-  };
 
-  const closeDeleteModal = () => {
-    setShowModal(false);
-    setKhachhangToDelete(null);
-  };
-  // Cập nhật filter khi thay đổi
-  const handleFilterChange = (e) => {
-    setFilters({
-      ...filters,
-      [e.target.name]: e.target.value,
+  const showDeleteConfirm = (id) => {
+    confirm({
+      title: 'Xác nhận xóa khách hàng?',
+      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      content: 'Dữ liệu khách hàng sẽ bị xóa vĩnh viễn khỏi hệ thống.',
+      okText: 'Xóa ngay',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          const result = await deleteKhachhang(id, user.id);
+          showSuccessToast("Thành công", result.message);
+          fetchData();
+        } catch (error) {
+          showErrorToast("Lỗi", error.message || "Không thể xóa khách hàng.");
+        }
+      },
     });
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  const handleStatusChange = async (id, checked) => {
+    const newStatus = checked ? "active" : "inactive";
     try {
-      // Gọi API để cập nhật trạng thái khách hàng
       await updateCustomerStatus(id, newStatus, user.id);
-
-      // Cập nhật trạng thái của khách hàng trong state
-      setCustomers((prevCustomers) =>
-        prevCustomers.map((customer) =>
-          customer.id === id ? { ...customer, status: newStatus } : customer
-        )
+      setCustomers(prev => 
+        prev.map(cus => cus.id === id ? { ...cus, status: newStatus } : cus)
       );
-
-      showSuccessToast("Khách hàng","Cập nhật trạng thái thành công!");
+      showSuccessToast("Thành công", "Đã cập nhật trạng thái khách hàng.");
     } catch (error) {
-      showErrorToast("Khách hàng","Có lỗi khi cập nhật trạng thái.");
+      showErrorToast("Lỗi", "Cập nhật trạng thái thất bại.");
     }
   };
-  return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <Row className="align-items-center mb-3">
-        <Col md={6}>
-          <h4 className="mb-3 fw-bold">Danh sách khách hàng</h4>
-        </Col>
-      </Row>
-      {/* Filter Form */}
-      <div>
-        <Row className="mb-4">
-          <Col md={3}>
-            <Form.Group>
-              <Form.Label>Tìm kiếm</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Nhập tên khách hàng"
-                name="keyword"
-                value={filters.keyword}
-                onChange={handleFilterChange}
-              />
-            </Form.Group>
-          </Col>
-          <Col md={3}>
-            <Form.Group>
-              <Form.Label>Trạng thái</Form.Label>
-              <Form.Select
-                name="status"
-                value={filters.status}
-                onChange={handleFilterChange}
-              >
-                <option value="">Tất cả</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="inactive">Không hoạt động</option>
-              </Form.Select>
-            </Form.Group>
-          </Col>
-        </Row>
-      </div>
-      
-      {loading ? (
-          <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
-            <Spinner animation="border" variant="primary" />
-          </div>
+
+  const columns = [
+    {
+      title: 'KHÁCH HÀNG',
+      key: 'customer',
+      render: (_, record) => (
+        <Space size="middle">
+          <Avatar 
+            style={{ backgroundColor: '#5d4037' }} 
+            icon={<UserOutlined />} 
+            src={record.avatar}
+          />
+          <Space direction="vertical" size={0}>
+            <Text strong>{record.full_name}</Text>
+            <Text type="secondary" style={{ fontSize: '12px' }}>ID: KH0000{record.id}</Text>
+          </Space>
+        </Space>
+      ),
+    },
+    {
+      title: 'LIÊN HỆ',
+      key: 'contact',
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Text style={{ fontSize: '13px' }}><MailOutlined /> {record.email}</Text>
+          <Text style={{ fontSize: '13px' }}><PhoneOutlined /> {record.phone}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'ĐỊA CHỈ',
+      dataIndex: 'address',
+      key: 'address',
+      ellipsis: true,
+      render: (text) => (
+        <Tooltip title={text}>
+          <Text type="secondary"><HomeOutlined /> {text}</Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'TRẠNG THÁI',
+      dataIndex: 'status',
+      key: 'status',
+      width: 150,
+      render: (status, record) => (
+        user?.role === "admin" ? (
+          <Space>
+            <Switch 
+              size="small"
+              checked={status === "active"} 
+              onChange={(checked) => handleStatusChange(record.id, checked)}
+            />
+            <Tag color={status === "active" ? "green" : "red"} style={{ borderRadius: '10px' }}>
+              {status === "active" ? "Hoạt động" : "Khóa"}
+            </Tag>
+          </Space>
         ) : (
-          <>
-            <Table striped bordered hover responsive className="shadow-sm">
-              <thead className="table-dark">
-                <tr>
-                  <th>Mã khách hàng</th>
-                  <th>Tên khách hàng</th>
-                  <th>Email</th>
-                  <th>Số điện thoại</th>
-                  <th>Địa chỉ</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" className="text-center">
-                      Không có khách hàng nào.
-                    </td>
-                  </tr>
-                ) : (
-                  customers.map((cus) => (
-                    <tr key={cus.id}>
-                      <td>KH0000{cus.id}</td>
-                      <td>{cus.full_name}</td>
-                      <td>{cus.email}</td>
-                      <td>{cus.phone}</td>
-                      <td>
-                        {cus.address.length > 30
-                          ? cus.address.slice(0, 30) + "..."
-                          : cus.address}
-                      </td>
-                     <td>
-                      {user?.role === "admin" ? (
-                        <Form.Check 
-                          type="switch"
-                          id={`status-switch-${cus.id}`}
-                          checked={cus.status === "active"}
-                          onChange={() =>
-                            handleStatusChange(
-                              cus.id,
-                              cus.status === "active" ? "inactive" : "active"
-                            )
-                          }
-                          className="custom-switch-lg"
-                          style={{ cursor: "pointer" }}
-                        />
-                      ) : (
-                        "Không được xem"
-                      )}
-                    </td>
-                      <td className="d-flex gap-2 justify-content-center">
-                        <OverlayTrigger overlay={<Tooltip>Xem chi tiết</Tooltip>}>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            className="me-2"
-                            as={Link}
-                            to={`/customers/details/${cus.id}`}
-                          >
-                            <FaRegEye />
-                          </Button>
-                        </OverlayTrigger>
-                        {user?.role === "admin" && (
-                          <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => openDeleteModal(cus.id)}
-                            >
-                              <MdDelete />
-                            </Button>
-                          </OverlayTrigger>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
+          <Tag>{status === "active" ? "Hoạt động" : "Khóa"}</Tag>
+        )
+      ),
+    },
+    {
+      title: 'HÀNH ĐỘNG',
+      key: 'actions',
+      align: 'right',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Xem chi tiết">
+            <Button 
+              type="text" 
+              icon={<EyeOutlined style={{ color: '#5d4037' }} />} 
+              as={Link}
+              href={`/customers/details/${record.id}`}
+            />
+          </Tooltip>
+          {user?.role === "admin" && (
+            <Tooltip title="Xóa">
+              <Button 
+                type="text" 
+                danger 
+                icon={<DeleteOutlined />} 
+                onClick={() => showDeleteConfirm(record.id)}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      ),
+    },
+  ];
 
-            {/* Phân trang */}
-            <div className="d-flex justify-content-between align-items-center mt-3">
-              <span className="text-muted">
-                Có <strong>{totalKhachhang}</strong> khách hàng
-              </span>
-              <Pagination className="mb-0">
-                <Pagination.First onClick={() => handlePageChange(1)} />
-                <Pagination.Prev
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                />
-                {[...Array(totalPages).keys()].map((page) => (
-                  <Pagination.Item
-                    key={page + 1}
-                    active={currentPage === page + 1}
-                    onClick={() => handlePageChange(page + 1)}
-                  >
-                    {page + 1}
-                  </Pagination.Item>
-                ))}
-                <Pagination.Next
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                />
-                <Pagination.Last onClick={() => handlePageChange(totalPages)} />
-              </Pagination>
-            </div>
-          </>
-        )}
+  return (
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 8 } }}>
+      <div className="p-4 bg-light min-vh-100">
+        <style>{`
+          .customer-table .ant-table-thead > tr > th { background: #fdfcf8; font-weight: 700; }
+          .filter-card { border-radius: 12px; border: 1px solid #f0ece1; margin-bottom: 24px; }
+        `}</style>
 
-      {/* Modal xác nhận xóa */}
-      <Modal show={showModal} onHide={closeDeleteModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa khách hàng</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xóa khách hàng này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xác nhận xóa
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+        {/* Header */}
+        <div className="mb-4">
+          <Breadcrumb items={[{ title: "Hệ thống" }, { title: "Khách hàng" }]} className="mb-2" />
+          <Title level={3}><UserOutlined /> Quản lý Khách hàng</Title>
+        </div>
+
+        {/* Filters */}
+        <Card className="filter-card shadow-sm">
+          <Row gutter={16} align="bottom">
+            <Col xs={24} md={8}>
+              <Text strong><SearchOutlined /> Tìm kiếm</Text>
+              <Input 
+                placeholder="Tên, Email hoặc Số điện thoại..." 
+                size="large"
+                className="mt-1"
+                allowClear
+                value={filters.keyword}
+                onChange={(e) => setFilters(prev => ({ ...prev, keyword: e.target.value, page: 1 }))}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <Text strong><FilterOutlined /> Trạng thái</Text>
+              <Select 
+                className="w-100 mt-1" 
+                size="large"
+                value={filters.status}
+                onChange={(val) => setFilters(prev => ({ ...prev, status: val, page: 1 }))}
+                options={[
+                  { label: "Tất cả trạng thái", value: "" },
+                  { label: "Đang hoạt động", value: "active" },
+                  { label: "Đang bị khóa", value: "inactive" },
+                ]}
+              />
+            </Col>
+            <Col xs={24} md={10} className="text-end">
+              <Text type="secondary">Tổng số khách hàng: <b>{totalKhachhang}</b></Text>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Table Area */}
+        <div className="bg-white p-3 rounded-4 border shadow-sm">
+          <Table 
+            className="customer-table"
+            columns={columns} 
+            dataSource={customers} 
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              current: filters.page,
+              pageSize: filters.limit,
+              total: totalKhachhang,
+              onChange: (p) => setFilters(prev => ({ ...prev, page: p })),
+              position: ['bottomCenter'],
+              showSizeChanger: false
+            }}
+            locale={{
+              emptyText: <Empty description="Không tìm thấy khách hàng nào" />
+            }}
+          />
+        </div>
+      </div>
+    </ConfigProvider>
   );
 };
 

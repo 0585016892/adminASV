@@ -1,199 +1,226 @@
 import React, { useEffect, useState } from "react";
-import { ClipLoader } from "react-spinners";
 import { useNavigate } from "react-router-dom";
-import { Button, Form, Row, Col, Card } from "react-bootstrap";
-import { addDanhmuc, getParentCategories } from "../api/danhmucApi";
+import { 
+  Form, Input, Button, Row, Col, Card, Select, 
+  Typography, Space, Breadcrumb, ConfigProvider, 
+  Spin, Divider, Tooltip 
+} from "antd";
+import { 
+  PlusOutlined, ArrowLeftOutlined, AppstoreAddOutlined, 
+  InfoCircleOutlined, GlobalOutlined, SendOutlined,
+  ClusterOutlined
+} from "@ant-design/icons";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { addDanhmuc, getParentCategories } from "../api/danhmucApi";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 import { useAuth } from "../contexts/AuthContext";
 
-const stripHtml = (html) => html.replace(/<[^>]*>/g, "").trim();
-const removeVietnameseTones = (str) => {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D");
-};
-const generateSlug = (text) =>
-  removeVietnameseTones(stripHtml(text))
-    .toLowerCase()
+const { Title, Text } = Typography;
+
+// Helper tạo slug chuẩn SEO
+const generateSlug = (text) => {
+  if (!text) return "";
+  const from = "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ";
+  const to = "aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyydD";
+  let str = text.split("").map((c, i) => {
+    const idx = from.indexOf(c);
+    return idx > -1 ? to[idx] : c;
+  }).join("");
+
+  return str.toLowerCase()
+    .trim()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "");
+};
 
 const DanhMucAdd = () => {
   const { user } = useAuth();
-  const [parentId, setParentId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [parentCategories, setParentCategories] = useState([]);
   const navigate = useNavigate();
-  const [danhMucData, setDanhMucData] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    status: "",
-    parent_id: null,
-  });
+  const [form] = Form.useForm();
+  
+  const [loading, setLoading] = useState(false);
+  const [parentCategories, setParentCategories] = useState([]);
 
-  // Fetch danh mục cha
+  // Lấy danh sách danh mục cha khi component mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await getParentCategories();
-        setParentCategories(response.categories); // Lưu mã giảm giá vào state
+        setParentCategories(response.categories || []);
       } catch (error) {
-        console.error("Lỗi khi lấy danh mục:", error);
+        showErrorToast("Lỗi", "Không thể tải danh sách danh mục cha.");
       }
     };
-
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    const updatedParentId =
-      parentId === "" || isNaN(Number(parentId)) ? null : Number(parentId);
-    setDanhMucData((prevData) => ({
-      ...prevData,
-      parent_id: updatedParentId,
-    }));
-  }, [parentId]);
-
-  const handleFieldChange = (field, value) => {
-    const newData = { ...danhMucData, [field]: value };
-    if (field === "name") {
-      newData.slug = generateSlug(value);
-    }
-    setDanhMucData(newData);
+  // Tự động sinh slug khi nhập tên
+  const handleNameChange = (e) => {
+    const name = e.target.value;
+    form.setFieldsValue({ slug: generateSlug(name) });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onFinish = async (values) => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       const dataToSend = {
-        name: danhMucData.name,
-        slug: danhMucData.slug,
-        status: danhMucData.status,
-        description: danhMucData.description,
-        parent_id: danhMucData.parent_id,
-        userID:user.id
+        ...values,
+        parent_id: values.parent_id || null, // Xử lý null nếu không chọn
+        userID: user.id
       };
+
       await addDanhmuc(dataToSend);
-      showSuccessToast("Danh mục","Thêm danh mục thành công!");
-      setDanhMucData({
-        name: "",
-        slug: "",
-        status: "",
-        description: "",
-        parent_id: null,
-      });
+      showSuccessToast("Thành công", "Danh mục mới đã được tạo!");
+      
+      // Delay điều hướng để người dùng kịp thấy toast thành công
       setTimeout(() => {
-        setIsLoading(false);
         navigate("/danh-muc/danh-sach");
-      }, 2000);
+      }, 1500);
     } catch (error) {
-      showErrorToast("Danh mục","Có lỗi khi thêm danh mục.");
+      showErrorToast("Thất bại", "Có lỗi xảy ra khi thêm danh mục.");
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <h4 className="mb-4 text-center">Thêm Danh Mục</h4>
-      <Card>
-        <Card.Body>
-          {isLoading ? (
-            <div className="loading-container d-flex justify-content-center">
-              <ClipLoader color="#3498db" loading={isLoading} size={50} />
-            </div>
-          ) : (
-            <Form onSubmit={handleSubmit}>
-              <Row>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Tên danh mục</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={danhMucData.name}
-                      onChange={(e) =>
-                        handleFieldChange("name", e.target.value)
-                      }
-                      required
-                      placeholder="Nhập tên danh mục"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Slug (tự động)</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={danhMucData.slug}
-                      readOnly
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 12 } }}>
+      <div className="container-fluid p-4">
+        <style>{`
+          .add-card { border-radius: 16px; border: 1px solid #f0ece1; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+          .section-title { color: #5d4037; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+          .ck-editor__editable { min-height: 250px; border-radius: 0 0 8px 8px !important; }
+          .ant-form-item-label label { font-weight: 600; }
+        `}</style>
 
-              <Row className="mt-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Status</Form.Label>
-                    <Form.Control
-                      as="select"
-                      value={danhMucData.status}
-                      onChange={(e) =>
-                        handleFieldChange("status", e.target.value)
-                      }
+        {/* Loading Overlay */}
+        <Spin spinning={loading} fullscreen tip="Đang lưu dữ liệu..." />
+
+        {/* Header Section */}
+        <Row className="mb-4 align-items-center">
+          <Col span={12}>
+            <Breadcrumb items={[{ title: "Quản trị" }, { title: "Danh mục" }, { title: "Khởi tạo" }]} className="mb-2" />
+            <Title level={3} className="m-0"><AppstoreAddOutlined /> Thêm Danh Mục Mới</Title>
+          </Col>
+          <Col span={12} className="text-end">
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/danh-muc/danh-sach")}>
+              Quay lại danh sách
+            </Button>
+          </Col>
+        </Row>
+
+        <Form 
+          form={form} 
+          layout="vertical" 
+          onFinish={onFinish} 
+          initialValues={{ status: "active", parent_id: "" }}
+          className="mt-2"
+        >
+          <Row gutter={24} justify="center">
+            <Col xs={24} xl={18}>
+              <Card className="add-card">
+                <Title level={5} className="section-title"><InfoCircleOutlined /> Thông tin chung</Title>
+                
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item 
+                      name="name" 
+                      label="Tên danh mục" 
+                      rules={[{ required: true, message: 'Tên danh mục không được để trống' }]}
                     >
-                      <option value="">-- Chọn chế độ --</option>
-                      <option value="active">Hiển thị</option>
-                      <option value="inactive">Ẩn</option>
-                    </Form.Control>
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Danh mục cha (tùy chọn)</Form.Label>
-                    <Form.Select
-                      value={parentId}
-                      onChange={(e) => setParentId(e.target.value)}
+                      <Input size="large" placeholder="Nhập tên (ví dụ: Phụ kiện đàn)" onChange={handleNameChange} />
+                    </Form.Item>
+                  </Col>
+                  
+                  <Col xs={24} md={12}>
+                    <Form.Item 
+                      name="slug" 
+                      label={
+                        <Space>
+                          Slug đường dẫn
+                          <Tooltip title="Đường dẫn được tạo tự động để tối ưu SEO">
+                            <InfoCircleOutlined style={{ fontSize: 12 }} />
+                          </Tooltip>
+                        </Space>
+                      } 
+                      rules={[{ required: true }]}
                     >
-                      <option value="">-- Chọn danh mục --</option>
-                      {parentCategories?.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
+                      <Input size="large" prefix={<GlobalOutlined className="text-muted" />} readOnly placeholder="tu-dong-sinh-slug" />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
-              <Row className="mt-3">
-                <Col>
-                  <Form.Group>
-                    <Form.Label>Mô tả</Form.Label>
-                    <CKEditor
-                      editor={ClassicEditor}
-                      data={danhMucData.description}
-                      onChange={(event, editor) => {
-                        const data = editor.getData();
-                        handleFieldChange("description", data);
-                      }}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item 
+                      name="parent_id" 
+                      label={<Space><ClusterOutlined /> Danh mục cha (nếu có)</Space>}
+                    >
+                      <Select size="large" placeholder="-- Chọn danh mục cấp cao hơn --">
+                        <Select.Option value="">Không có (Là danh mục gốc)</Select.Option>
+                        {parentCategories.map(cat => (
+                          <Select.Option key={cat.id} value={cat.id}>{cat.name}</Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  
+                  <Col xs={24} md={12}>
+                    <Form.Item name="status" label="Trạng thái hiển thị" rules={[{ required: true }]}>
+                      <Select size="large">
+                        <Select.Option value="active">Hiển thị công khai</Select.Option>
+                        <Select.Option value="inactive">Tạm ẩn</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
 
-              <Button className="mt-4" variant="primary" type="submit" block>
-                Thêm danh mục
-              </Button>
-            </Form>
-          )}
-        </Card.Body>
-      </Card>
-    </div>
+                <Divider />
+
+                {/* Phần mô tả với CKEditor */}
+                <Form.Item 
+                  name="description" 
+                  label="Mô tả chi tiết"
+                  trigger="onChange"
+                  getValueFromEvent={(event, editor) => editor.getData()}
+                >
+                  <CKEditor
+                    editor={ClassicEditor}
+                    config={{
+                      placeholder: 'Nhập nội dung mô tả danh mục tại đây...',
+                    }}
+                    onReady={(editor) => {
+                      // Tùy chỉnh chiều cao nếu cần
+                      editor.editing.view.change((writer) => {
+                        writer.setStyle("height", "250px", editor.editing.view.document.getRoot());
+                      });
+                    }}
+                  />
+                </Form.Item>
+
+                <div className="text-end mt-4">
+                  <Space size="middle">
+                    <Button size="large" onClick={() => navigate("/danh-muc/danh-sach")}>
+                      Hủy bỏ
+                    </Button>
+                    <Button 
+                      type="primary" 
+                      size="large" 
+                      icon={<SendOutlined />} 
+                      htmlType="submit"
+                      loading={loading}
+                      style={{ paddingLeft: 40, paddingRight: 40 }}
+                    >
+                      LƯU DANH MỤC
+                    </Button>
+                  </Space>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+        </Form>
+      </div>
+    </ConfigProvider>
   );
 };
 

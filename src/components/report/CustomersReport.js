@@ -1,28 +1,45 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Doughnut } from "react-chartjs-2";
-import { Spinner, Form, Button, Row, Col, Card, Container } from "react-bootstrap";
+import { 
+  Card, Row, Col, Form, Button, DatePicker, 
+  InputNumber, Spin, Table, Typography, Space, Empty, Divider 
+} from "antd";
+import { 
+  SearchOutlined, 
+  UsergroupAddOutlined, 
+  PieChartOutlined,
+  CalendarOutlined 
+} from "@ant-design/icons";
+import dayjs from "dayjs";
 import { motion } from "framer-motion";
 import "chart.js/auto";
+
+const { Title, Text } = Typography;
 
 const CustomersReport = () => {
   const API_URL = process.env.REACT_APP_API_URL;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fromDate, setFromDate] = useState("2025-01-01");
-  const [toDate, setToDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+  
+  // State cho bộ lọc
+  const [filters, setFilters] = useState({
+    fromDate: "2025-01-01",
+    toDate: dayjs().format("YYYY-MM-DD"),
+    limit: 5
   });
-  const [limit, setLimit] = useState(5);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/reports/customers`, {
-        params: { from_date: fromDate, to_date: toDate, limit: limit },
+        params: { 
+          from_date: filters.fromDate, 
+          to_date: filters.toDate, 
+          limit: filters.limit 
+        },
       });
-      setData(res.data.data);
+      setData(res.data.data || []);
     } catch (error) {
       console.error("Lỗi gọi API:", error);
     } finally {
@@ -34,108 +51,128 @@ const CustomersReport = () => {
     fetchData();
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    fetchData();
-  };
-
   const chartData = {
     labels: data.map((d) => d.customer_group),
     datasets: [
       {
         data: data.map((d) => d.count),
-        backgroundColor: ["#36A2EB", "#FF6384", "#FFCE56", "#4BC0C0", "#9966FF"],
-        borderColor: "#fff",
-        borderWidth: 2,
-        hoverOffset: 10,
+        backgroundColor: ["#5d4037", "#8d6e63", "#bcaaa4", "#d7ccc8", "#f5f5f5"],
+        hoverBackgroundColor: ["#3e2723", "#5d4037", "#8d6e63", "#a1887f", "#e0e0e0"],
+        borderWidth: 0,
+        cutout: "70%", // Tạo biểu đồ vòng (Ring chart) hiện đại hơn
       },
     ],
   };
 
+  const chartOptions = {
+    plugins: {
+      legend: { position: "bottom", labels: { usePointStyle: true, padding: 20 } },
+    },
+    maintainAspectRatio: false,
+  };
+
+  const columns = [
+    {
+      title: 'NHÓM KHÁCH HÀNG',
+      dataIndex: 'customer_group',
+      key: 'customer_group',
+      render: (text) => <Text strong>{text}</Text>
+    },
+    {
+      title: 'SỐ LƯỢNG',
+      dataIndex: 'count',
+      key: 'count',
+      align: 'right',
+      render: (val) => <Text style={{ color: '#5d4037' }}>{val} khách</Text>
+    }
+  ];
+
   return (
-    <Container className="py-4">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <Card className="shadow-lg border-0 rounded-4">
-          <Card.Header className="bg-primary text-white text-center py-3 rounded-top-4">
-            <h4 className="mb-0">📊 Báo cáo thống kê khách hàng</h4>
-          </Card.Header>
-          <Card.Body>
-            {/* Form lọc dữ liệu */}
-            <Form onSubmit={handleSubmit} className="mb-4">
-              <Row className="g-3 align-items-end">
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Từ ngày</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Đến ngày</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={2}>
-                  <Form.Group>
-                    <Form.Label>Giới hạn</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="1"
-                      value={limit}
-                      onChange={(e) => setLimit(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={2} className="d-grid">
-                  <Button type="submit" variant="primary" className="mt-2">
-                    Xem báo cáo
-                  </Button>
-                </Col>
-              </Row>
-            </Form>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <style>{`
+        .filter-bar { background: #fafafa; padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1px solid #f0f0f0; }
+        .chart-container { height: 320px; position: relative; }
+        .total-badge { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+      `}</style>
 
-            {/* Nội dung biểu đồ */}
-            {loading ? (
-              <div className="d-flex justify-content-center align-items-center py-5">
-                <Spinner animation="border" variant="primary" />
-              </div>
-            ) : data.length === 0 ? (
-              <p className="text-center text-muted">Không có dữ liệu trong khoảng thời gian này.</p>
-            ) : (
-              <div className="text-center">
-                <div style={{ maxWidth: "420px", margin: "0 auto" }}>
-                  <Doughnut data={chartData} />
-                </div>
+      {/* Bộ lọc thông minh */}
+      <div className="filter-bar">
+        <Row gutter={[16, 16]} align="bottom">
+          <Col xs={24} sm={10} md={8}>
+            <Text type="secondary"><CalendarOutlined /> Khoảng thời gian</Text>
+            <DatePicker.RangePicker 
+              className="w-100 mt-2"
+              defaultValue={[dayjs(filters.fromDate), dayjs(filters.toDate)]}
+              onChange={(dates) => {
+                if (dates) {
+                  setFilters({...filters, fromDate: dates[0].format("YYYY-MM-DD"), toDate: dates[1].format("YYYY-MM-DD")});
+                }
+              }}
+            />
+          </Col>
+          <Col xs={12} sm={6} md={4}>
+            <Text type="secondary">Giới hạn nhóm</Text>
+            <InputNumber 
+              className="w-100 mt-2" 
+              min={1} 
+              value={filters.limit} 
+              onChange={(val) => setFilters({...filters, limit: val})}
+            />
+          </Col>
+          <Col xs={12} sm={8} md={4}>
+            <Button 
+              type="primary" 
+              icon={<SearchOutlined />} 
+              onClick={fetchData} 
+              className="w-100"
+              style={{ background: "#5d4037", borderColor: "#5d4037" }}
+            >
+              Lọc dữ liệu
+            </Button>
+          </Col>
+        </Row>
+      </div>
 
-                <div className="mt-4">
-                  {data.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="d-flex justify-content-between align-items-center px-4 py-2 border-bottom small"
-                    >
-                      <span className="fw-semibold">{item.customer_group}</span>
-                      <span className="text-primary">{item.count} khách hàng</span>
-                    </div>
-                  ))}
+      <Spin spinning={loading}>
+        {data.length === 0 ? (
+          <Empty description="Không có dữ liệu khách hàng" />
+        ) : (
+          <Row gutter={24}>
+            {/* Cột trái: Biểu đồ */}
+            <Col xs={24} lg={10}>
+              <Card title={<Space><PieChartOutlined /> Phân bổ nhóm</Space>} className="shadow-sm border-0 rounded-4">
+                <div className="chart-container">
+                  <Doughnut data={chartData} options={chartOptions} />
+                  <div className="total-badge">
+                    <Title level={4} style={{ margin: 0 }}>
+                      {data.reduce((sum, item) => sum + item.count, 0)}
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>TỔNG CỘNG</Text>
+                  </div>
                 </div>
-              </div>
-            )}
-          </Card.Body>
-        </Card>
-      </motion.div>
-    </Container>
+              </Card>
+            </Col>
+
+            {/* Cột phải: Bảng chi tiết */}
+            <Col xs={24} lg={14}>
+              <Card title={<Space><UsergroupAddOutlined /> Chi tiết thống kê</Space>} className="shadow-sm border-0 rounded-4">
+                <Table 
+                  dataSource={data} 
+                  columns={columns} 
+                  pagination={false} 
+                  rowKey="customer_group"
+                  size="middle"
+                />
+                <Divider dashed />
+                <div className="text-end px-3">
+                  <Text type="secondary">Báo cáo dựa trên dữ liệu từ đơn hàng đã hoàn tất.</Text>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+        )}
+      </Spin>
+    </motion.div>
   );
 };
 

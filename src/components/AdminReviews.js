@@ -1,61 +1,51 @@
-import React, { useEffect, useState, useRef } from "react";
-import {
-  Table,
-  Button,
-  Badge,
-  Form,
-  Row,
-  Col,
-  Pagination,
-  Card,
-  Spinner,
-  Modal,
-  Image,
-} from "react-bootstrap";
-import { FaStar, FaRegStar, FaTrash, FaCheck } from "react-icons/fa";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+// Sửa lại dòng này
+import { 
+  Table, Card, Button, Select, Tag, Rate, Space, Typography, 
+  Modal, Image, Row, Col, Badge, Empty, Spin, Tooltip, Avatar,
+  Popconfirm // <--- Thêm vào đây,
+} from "antd";
+import { 
+  StarFilled, 
+  CheckCircleOutlined, 
+  DeleteOutlined, 
+  EyeOutlined, 
+  MessageOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined
+} from "@ant-design/icons";
 import reviewApi from "../api/reviewApi";
 import { io } from "socket.io-client";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
-function AdminReviews() {
+const { Title, Text,Paragraph } = Typography;
+const URL_WEB = process.env.REACT_APP_WEB_URL;
+
+const AdminReviews = () => {
   const [products, setProducts] = useState([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    totalPages: 1,
-    total: 0,
-    limit: 10,
-  });
-const [filters, setFilters] = useState({ rating: "", status: "all" });
   const [loading, setLoading] = useState(false);
-
+  const [filters, setFilters] = useState({ rating: "", status: "all" });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  
   const [showProductModal, setShowProductModal] = useState(false);
   const [productReviews, setProductReviews] = useState([]);
-  const [productName, setProductName] = useState("");
-
-  const [deleteReviewId, setDeleteReviewId] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const URL = process.env.REACT_APP_WEB_URL;
+  const [currentProductName, setCurrentProductName] = useState("");
   const socketRef = useRef(null);
 
-  // Khởi tạo socket chỉ 1 lần
+  // 1. Khởi tạo Socket.io
   useEffect(() => {
-    socketRef.current = io(URL);
+    socketRef.current = io(URL_WEB);
+    const refreshData = () => loadProducts(pagination.page);
 
-    socketRef.current.on("newReview", () => loadProducts(pagination.page));
-    socketRef.current.on("approveReview", () => loadProducts(pagination.page));
-    socketRef.current.on("reviewDeleted", () => loadProducts(pagination.page));
+    socketRef.current.on("newReview", refreshData);
+    socketRef.current.on("approveReview", refreshData);
+    socketRef.current.on("reviewDeleted", refreshData);
 
-    return () => {
-      socketRef.current.disconnect();
-    };
-  }, [pagination.page, URL]);
+    return () => socketRef.current.disconnect();
+  }, [pagination.page]);
 
-  // Load danh sách sản phẩm có review
-  useEffect(() => {
-    loadProducts(1);
-  }, [filters]);
-
-  const loadProducts = async (page) => {
+  // 2. Load sản phẩm theo filter
+  const loadProducts = useCallback(async (page) => {
     setLoading(true);
     try {
       const res = await reviewApi.getAllReviews({
@@ -63,345 +53,246 @@ const [filters, setFilters] = useState({ rating: "", status: "all" });
         limit: pagination.limit,
         rating: filters.rating,
       });
-      console.log(res);
-      
       setProducts(res.data || []);
-      setPagination(res.pagination || pagination);
+      setPagination(prev => ({ ...prev, total: res.pagination?.total || 0, page }));
     } catch (err) {
-      console.error("Lỗi load reviews:", err);
+      showErrorToast("Lỗi", "Không thể tải danh sách đánh giá");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.limit]);
 
-  // Xem chi tiết review sản phẩm
-  const handleViewProductReviews = async (productId, productName) => {
-    try {
-      const res = await reviewApi.getAllReviews({ productId, limit: 50 });
-      const parsedReviews = (res.data || []).map((rv) => ({
-        ...rv,
-        images: rv.images ? safeJsonParse(rv.images) : [],
-      }));
-      setProductReviews(parsedReviews);
-      setProductName(productName);
-      setShowProductModal(true);
-    } catch (err) {
-      
-    }
-  };
+  useEffect(() => {
+    loadProducts(1);
+  }, [loadProducts]);
 
-  const safeJsonParse = (str) => {
-    try {
-      return JSON.parse(str);
-    } catch {
-      return [];
-    }
-  };
-
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
-// Lọc ở frontend sau khi load API
-  const filteredProducts = products.filter((p) => {
-    if (filters.status === "pending") return p.pending_reviews > 0;
-    if (filters.status === "done") return p.pending_reviews === 0;
-    return true;
-  });
+  // 3. Xử lý Duyệt/Xóa
   const handleApprove = async (id) => {
     try {
       await reviewApi.approveReview(id);
       socketRef.current.emit("approveReview", id);
-      setProductReviews((prev) =>
-        prev.map((rv) => (rv.id === id ? { ...rv, is_verified: 1 } : rv))
-      );
-      loadProducts(pagination.page);
-    } catch (error) {
-      
-    }
-  };
-
-  const openDeleteModal = (id) => {
-    setDeleteReviewId(id);
-    setShowDeleteModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setDeleteReviewId(null);
-    setShowDeleteModal(false);
-  };
-
-  const handleDelete = async () => {
-    if (!deleteReviewId) return;
-    try {
-      await reviewApi.deleteReview(deleteReviewId);
-      socketRef.current.emit("reviewDeleted", deleteReviewId);
-      closeDeleteModal();
-      setProductReviews((prev) =>
-        prev.filter((rv) => rv.id !== deleteReviewId)
-      );
+      setProductReviews(prev => prev.map(rv => rv.id === id ? { ...rv, is_verified: 1 } : rv));
+      showSuccessToast("Thành công", "Đã duyệt đánh giá");
       loadProducts(pagination.page);
     } catch (err) {
-      
+      showErrorToast("Lỗi", "Duyệt đánh giá thất bại");
     }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      await reviewApi.deleteReview(id);
+      socketRef.current.emit("reviewDeleted", id);
+      setProductReviews(prev => prev.filter(rv => rv.id !== id));
+      showSuccessToast("Thành công", "Đã xóa đánh giá");
+      loadProducts(pagination.page);
+    } catch (err) {
+      showErrorToast("Lỗi", "Xóa đánh giá thất bại");
+    }
+  };
+
+  // 4. Chi tiết đánh giá sản phẩm
+  const viewDetails = async (productId, name) => {
+    try {
+      const res = await reviewApi.getAllReviews({ productId, limit: 50 });
+      const parsed = (res.data || []).map(rv => ({
+        ...rv,
+        images: typeof rv.images === 'string' ? JSON.parse(rv.images) : (rv.images || [])
+      }));
+      setProductReviews(parsed);
+      setCurrentProductName(name);
+      setShowProductModal(true);
+    } catch (err) {
+      showErrorToast("Lỗi", "Không thể lấy chi tiết");
+    }
+  };
+
+  const columns = [
+    {
+      title: 'SẢN PHẨM',
+      dataIndex: 'product_name',
+      key: 'product_name',
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong style={{ color: '#5d4037' }}>{text}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>ID: {record.product_id}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'CHỈ SỐ SAO',
+      dataIndex: 'avg_rating',
+      key: 'avg_rating',
+      render: (val) => (
+        <Space>
+          <Rate disabled defaultValue={val} allowHalf style={{ fontSize: 14 }} />
+          <Text type="warning" strong>{Number(val).toFixed(1)}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'PHẢN HỒI',
+      key: 'count',
+      render: (record) => (
+        <Space size="large">
+          <Badge count={record.total_reviews} showZero color="#5d4037" title="Tổng số" />
+          {record.pending_reviews > 0 && (
+            <Tooltip title="Cần duyệt gấp">
+              <Badge count={record.pending_reviews} />
+            </Tooltip>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'MỚI NHẤT',
+      dataIndex: 'last_review_date',
+      key: 'last_review_date',
+      render: (date) => date ? new Date(date).toLocaleDateString("vi-VN") : "-",
+    },
+    {
+      title: 'QUẢN LÝ',
+      key: 'action',
+      align: 'right',
+      render: (record) => (
+        <Button 
+          type="primary" 
+          ghost 
+          icon={<EyeOutlined />} 
+          onClick={() => viewDetails(record.product_id, record.product_name)}
+        >
+          Chi tiết
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <h4 className="fw-bold mb-4">Quản lý đánh giá</h4>
-
+    <div className="p-4" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
+      <Title level={3}><MessageOutlined /> Phản hồi khách hàng</Title>
+      
       {/* Bộ lọc */}
-      <Card className="mb-3 p-3 shadow-sm rounded-3">
-        <Row className="align-items-end g-3">
-          <Col md={3}>
-            <Form.Label>Số sao</Form.Label>
-            <Form.Select
-              name="rating"
-              value={filters.rating}
-              onChange={handleFilterChange}
+      <Card className="mb-4 shadow-sm border-0" style={{ borderRadius: 12 }}>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Text type="secondary">Lọc theo số sao</Text>
+            <Select 
+              className="w-100 mt-1" 
+              placeholder="Tất cả mức sao"
+              onChange={(val) => setFilters(prev => ({ ...prev, rating: val }))}
+              allowClear
             >
-              <option value="">Tất cả</option>
-              {[5, 4, 3, 2, 1].map((r) => (
-                <option key={r} value={r}>
-                  {r} sao
-                </option>
-              ))}
-            </Form.Select>
+              {[5, 4, 3, 2, 1].map(s => <Select.Option key={s} value={s}>{s} Sao</Select.Option>)}
+            </Select>
           </Col>
-
-          <Col md={3}>
-            <Form.Label>Trạng thái</Form.Label>
-            <Form.Select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
+          <Col span={6}>
+            <Text type="secondary">Tình trạng duyệt</Text>
+            <Select 
+              className="w-100 mt-1" 
+              defaultValue="all"
+              onChange={(val) => setFilters(prev => ({ ...prev, status: val }))}
             >
-              <option value="all">Tất cả</option>
-              <option value="pending">Đánh giá chưa duyệt</option>
-              <option value="done">Đã duyệt hết</option>
-            </Form.Select>
+              <Select.Option value="all">Tất cả đánh giá</Select.Option>
+              <Select.Option value="pending">Chờ phê duyệt</Select.Option>
+              <Select.Option value="done">Đã duyệt hoàn tất</Select.Option>
+            </Select>
           </Col>
         </Row>
       </Card>
 
-
-      {/* Bảng danh sách sản phẩm có review */}
-      <Card className="shadow-sm rounded-3">
-        <Table striped bordered hover responsive className="mb-0">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Sản phẩm</th>
-                <th>Tổng đánh giá</th>
-                <th>Chưa duyệt</th>
-                <th>Điểm trung bình</th>
-                <th>Ngày review mới nhất</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center">
-                    <Spinner animation="border" />
-                  </td>
-                </tr>
-              ) : filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center">
-                    Không có đánh giá nào
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map((p) => (
-                  <tr key={p.product_id}>
-                    <td>{p.product_id}</td>
-                    <td>{p.product_name}</td>
-                    <td>{p.total_reviews}</td>
-                    <td>
-                      {p.pending_reviews > 0 ? (
-                        <Badge bg="warning">{p.pending_reviews} chưa duyệt</Badge>
-                      ) : (
-                        <Badge bg="success">Đã duyệt hết</Badge>
-                      )}
-                    </td>
-                    <td>
-                      {[1, 2, 3, 4, 5].map((star) =>
-                        star <= Math.round(p.avg_rating) ? (
-                          <FaStar key={star} color="#ffc107" />
-                        ) : (
-                          <FaRegStar key={star} color="#ccc" />
-                        )
-                      )}
-                    </td>
-                    <td>
-                      {p.last_review_date
-                        ? new Date(p.last_review_date).toLocaleDateString("vi-VN")
-                        : "-"}
-                    </td>
-                    <td>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() =>
-                          handleViewProductReviews(p.product_id, p.product_name)
-                        }
-                      >
-                        Xem chi tiết
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
-
-
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="d-flex justify-content-end mt-3 mb-3">
-            <Pagination>
-              {[...Array(pagination.totalPages)].map((_, i) => {
-                const page = i + 1;
-                return (
-                  <Pagination.Item
-                    key={page}
-                    active={page === pagination.page}
-                    onClick={() => loadProducts(page)}
-                  >
-                    {page}
-                  </Pagination.Item>
-                );
-              })}
-            </Pagination>
-          </div>
-        )}
+      {/* Bảng chính */}
+      <Card className="shadow-sm border-0" style={{ borderRadius: 16 }}>
+        <Table 
+          columns={columns} 
+          dataSource={products.filter(p => {
+            if (filters.status === "pending") return p.pending_reviews > 0;
+            if (filters.status === "done") return p.pending_reviews === 0;
+            return true;
+          })} 
+          loading={loading}
+          rowKey="product_id"
+          pagination={{
+            current: pagination.page,
+            total: pagination.total,
+            pageSize: pagination.limit,
+            onChange: (page) => loadProducts(page)
+          }}
+        />
       </Card>
 
-      {/* Modal chi tiết review sản phẩm */}
+      {/* Modal chi tiết đánh giá */}
       <Modal
-        size="lg"
-        show={showProductModal}
-        onHide={() => setShowProductModal(false)}
+        title={<Title level={4}>Đánh giá sản phẩm: {currentProductName}</Title>}
+        open={showProductModal}
+        onCancel={() => setShowProductModal(false)}
+        width={1000}
+        footer={null}
       >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            Danh sách đánh giá của sản phẩm: {productName}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {productReviews.length === 0 ? (
-            <p>Chưa có đánh giá nào.</p>
-          ) : (
-            <Table striped bordered hover responsive>
-              <thead  className="table-dark">
-                <tr>
-                  <th>Người đánh giá</th>
-                  <th>Sao</th>
-                  <th>Nội dung</th>
-                  <th>Ảnh</th>
-                  <th>Ngày tạo</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productReviews.map((rv) => (
-                  <tr key={rv.id}>
-                    <td>
-                      <strong>{rv.full_name}</strong>
-                      <div className="text-muted small">{rv.phone}</div>
-                    </td>
-                    <td>
-                      {[1, 2, 3, 4, 5].map((star) =>
-                        star <= rv.rating ? (
-                          <FaStar key={star} color="#ffc107" />
-                        ) : (
-                          <FaRegStar key={star} color="#ccc" />
-                        )
-                      )}
-                    </td>
-                    <td style={{ maxWidth: "250px", whiteSpace: "pre-wrap" }}>
-                      {rv.content}
-                    </td>
-                    <td>
-                      {rv.images && rv.images.length > 0 ? (
-                        <Row className="g-1">
-                          {rv.images.map((img, i) => (
-                            <Col xs={12} key={i}>
-                              <Image
-                                src={`${URL}/uploads/reviews/${img}`}
-                                rounded
-                                thumbnail
-                                style={{
-                                  width: "100%",
-                                  height: "60px",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            </Col>
-                          ))}
-                        </Row>
-                      ) : (
-                        <span className="text-muted">Không có</span>
-                      )}
-                    </td>
-                    <td>
-                      {new Date(rv.created_at).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td>
-                      {rv.is_verified ? (
-                        <Badge bg="success">Đã duyệt</Badge>
-                      ) : (
-                        <Badge bg="secondary">Chưa duyệt</Badge>
-                      )}
-                    </td>
-                    <td>
-                      {!rv.is_verified && (
-                        <Button
-                          variant="success"
-                          size="sm"
-                          className="me-2"
-                          onClick={() => handleApprove(rv.id)}
-                        >
-                          <FaCheck /> Duyệt
-                        </Button>
-                      )}
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => openDeleteModal(rv.id)}
+        <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          {productReviews.map((rv) => (
+            <Card key={rv.id} className="mb-3 border-light shadow-sm">
+              <Row gutter={16}>
+                <Col span={6}>
+                  <Space align="start">
+                    <Avatar size="large" style={{ backgroundColor: '#5d4037' }}>
+                      {rv.full_name?.charAt(0)}
+                    </Avatar>
+                    <div style={{ lineHeight: 1.2 }}>
+                      <Text strong block>{rv.full_name}</Text>
+                      <Text type="secondary" size="small">{rv.phone}</Text>
+                      <br />
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        <ClockCircleOutlined /> {new Date(rv.created_at).toLocaleString("vi-VN")}
+                      </Text>
+                    </div>
+                  </Space>
+                </Col>
+                <Col span={12}>
+                  <Rate disabled defaultValue={rv.rating} style={{ fontSize: 12, marginBottom: 8 }} />
+                  <Paragraph style={{ whiteSpace: 'pre-wrap', color: '#444' }}>{rv.content}</Paragraph>
+                  <Space wrap>
+                    {rv.images.map((img, i) => (
+                      <Image
+                        key={i}
+                        src={`${URL_WEB}/uploads/reviews/${img}`}
+                        width={80}
+                        height={80}
+                        style={{ objectFit: 'cover', borderRadius: 8 }}
+                      />
+                    ))}
+                  </Space>
+                </Col>
+                <Col span={6} className="text-end">
+                  <Space direction="vertical">
+                    {rv.is_verified ? (
+                      <Tag color="success" icon={<CheckCircleOutlined />}>Đã duyệt</Tag>
+                    ) : (
+                      <Button 
+                        type="primary" 
+                        size="small" 
+                        icon={<CheckCircleOutlined />}
+                        onClick={() => handleApprove(rv.id)}
                       >
-                        <FaTrash /> Xóa
+                        Duyệt ngay
                       </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-        </Modal.Body>
-      </Modal>
-
-      {/* Modal Xác nhận xóa */}
-      <Modal show={showDeleteModal} onHide={closeDeleteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa đánh giá</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Bạn có chắc chắn muốn xóa đánh giá này không?
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xóa
-          </Button>
-        </Modal.Footer>
+                    )}
+                    <Popconfirm
+                      title="Xóa đánh giá này?"
+                      icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+                      onConfirm={() => handleDelete(rv.id)}
+                    >
+                      <Button danger size="small" icon={<DeleteOutlined />}>Xóa</Button>
+                    </Popconfirm>
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
+          ))}
+          {productReviews.length === 0 && <Empty />}
+        </div>
       </Modal>
     </div>
   );
-}
+};
 
 export default AdminReviews;

@@ -1,54 +1,46 @@
-import React, { useState, useEffect } from "react";
-import {
-  Modal,
-  Button,
-  Form,
-  FloatingLabel,
-  Alert,
-  Image,
-} from "react-bootstrap";
-import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+import React, { useEffect, useState } from "react";
+import { 
+  Modal, Form, Input, Select, Upload, 
+  Typography, Space, Button, Divider, message ,Col, Row,Tooltip
+} from "antd";
+import { 
+  PlusOutlined, InfoCircleOutlined, 
+  PictureOutlined, GlobalOutlined, 
+  EditOutlined 
+} from "@ant-design/icons";
+
+const { Text, Title } = Typography;
+const { TextArea } = Input;
 
 const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
+  const [form] = Form.useForm();
   const isEdit = !!initialData;
+  const [fileList, setFileList] = useState([]);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    status: "active",
-    image: null,
-    imagePreview: "",
-  });
-  const [message, setMessage] = useState("");
-
+  // Khởi tạo/Reset dữ liệu khi mở Modal
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        id: initialData.id,
-        name: initialData.name || "",
-        slug: initialData.slug || "",
-        description: initialData.description || "",
-        status: initialData.status || "active",
-        image: null,
-        imagePreview: initialData.image
-          ? `${process.env.REACT_APP_WEB_URL}/uploads/${initialData.image}`
-          : "",
-      });
-    } else {
-      setFormData({
-        name: "",
-        slug: "",
-        description: "",
-        status: "active",
-        image: null,
-        imagePreview: "",
-      });
+    if (show) {
+      if (initialData) {
+        form.setFieldsValue({
+          ...initialData,
+        });
+        // Thiết lập preview ảnh cũ nếu có
+        if (initialData.image) {
+          const imageUrl = initialData.image.startsWith("http")
+            ? initialData.image
+            : `${process.env.REACT_APP_WEB_URL}/uploads/${initialData.image}`;
+          setFileList([{ url: imageUrl, name: initialData.image }]);
+        }
+      } else {
+        form.resetFields();
+        setFileList([]);
+      }
     }
-    setMessage("");
-  }, [initialData]);
+  }, [show, initialData, form]);
 
+  // Helper tạo slug chuẩn SEO
   const generateSlug = (text) => {
+    if (!text) return "";
     return text
       .normalize("NFD")
       .replace(/\p{Diacritic}/gu, "")
@@ -60,105 +52,167 @@ const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
       .toLowerCase();
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "name") {
-      setFormData((prev) => ({
-        ...prev,
-        name: value,
-        slug: generateSlug(value),
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    form.setFieldsValue({ slug: generateSlug(value) });
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        image: file,
-        imagePreview: URL.createObjectURL(file),
-      }));
-    }
+  const handleFormSubmit = () => {
+    form.validateFields()
+      .then((values) => {
+        // Gắn file thực tế từ fileList vào values
+        const submitData = {
+          ...values,
+          id: initialData?.id,
+          image: fileList[0]?.originFileObj || initialData?.image,
+        };
+        onSave(submitData);
+      })
+      .catch((info) => {
+        console.log("Validate Failed:", info);
+      });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.description) {
-      setMessage("❌ Vui lòng nhập đầy đủ thông tin.");
-      return;
-    }
-
-    onSave(formData);  // gửi formData cho cha xử lý API
-    onHide(); // đóng modal
+  // Cấu hình cho Upload ảnh
+  const uploadProps = {
+    onRemove: () => setFileList([]),
+    beforeUpload: (file) => {
+      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      if (!isJpgOrPng) {
+        message.error('Bạn chỉ có thể tải lên file JPG/PNG!');
+        return Upload.LIST_IGNORE;
+      }
+      setFileList([file]);
+      return false; // Ngăn upload tự động lên server
+    },
+    fileList,
+    listType: "picture-card",
+    maxCount: 1,
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>{isEdit ? "✏️ Sửa bộ sưu tập" : "➕ Thêm bộ sưu tập"}</Modal.Title>
-      </Modal.Header>
-      <Form onSubmit={handleSubmit}>
-        <Modal.Body>
-          {message && <Alert variant="danger">{message}</Alert>}
-
-          <Form.Group className="mb-3">
-            <Form.Label>Tên bộ sưu tập</Form.Label>
-            <Form.Control
+    <Modal
+      open={show}
+      onCancel={onHide}
+      onOk={handleFormSubmit}
+      centered
+      width={600}
+      title={
+        <Space>
+          {isEdit ? <EditOutlined /> : <PlusOutlined />}
+          <Title level={5} style={{ margin: 0, color: "#5d4037" }}>
+            {isEdit ? "CẬP NHẬT BỘ SƯU TẬP" : "KHỞI TẠO BỘ SƯU TẬP"}
+          </Title>
+        </Space>
+      }
+      footer={[
+        <Button key="back" onClick={onHide} style={{ borderRadius: 8 }}>
+          Hủy bỏ
+        </Button>,
+        <Button 
+          key="submit" 
+          type="primary" 
+          onClick={handleFormSubmit}
+          style={{ background: "#5d4037", borderColor: "#5d4037", borderRadius: 8 }}
+        >
+          {isEdit ? "Lưu thay đổi" : "Thêm mới ngay"}
+        </Button>
+      ]}
+    >
+      <Divider style={{ margin: "12px 0" }} />
+      
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{ status: "active" }}
+        autoComplete="off"
+      >
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item
               name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Slug (tự tạo)</Form.Label>
-            <Form.Control name="slug" value={formData.slug} readOnly />
-          </Form.Group>
-
-          <FloatingLabel label="Mô tả" className="mb-3">
-            <Form.Control
-              as="textarea"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              style={{ height: "100px" }}
-              required
-            />
-          </FloatingLabel>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Trạng thái</Form.Label>
-            <Form.Select name="status" value={formData.status} onChange={handleChange}>
-              <option value="active">Kích hoạt</option>
-              <option value="inactive">Ẩn</option>
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Ảnh đại diện</Form.Label>
-            <Form.Control type="file" accept="image/*" onChange={handleImageChange} />
-            {formData.imagePreview && (
-              <Image
-                src={formData.imagePreview}
-                alt="preview"
-                className="mt-2"
-                fluid
-                rounded
-                style={{ maxHeight: 150, objectFit: "cover", width: "100%" }}
+              label={<Text strong>Tên bộ sưu tập</Text>}
+              rules={[{ required: true, message: "Vui lòng không để trống tiêu đề" }]}
+            >
+              <Input 
+                size="large" 
+                placeholder="Ví dụ: Thu Đông 2026 - Acoustic Vibe" 
+                onChange={handleNameChange}
+                style={{ borderRadius: 8 }}
+                // Tooltip xử lý khi tiêu đề quá dài
+                suffix={
+                  <Tooltip title="Tiêu đề sẽ được hiển thị trên trang chủ">
+                    <InfoCircleOutlined style={{ color: "rgba(0,0,0,.45)" }} />
+                  </Tooltip>
+                }
               />
-            )}
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>Đóng</Button>
-          <Button type="submit" variant="primary">
-            {isEdit ? "Cập nhật" : "Thêm mới"}
-          </Button>
-        </Modal.Footer>
+            </Form.Item>
+          </Col>
+
+          <Col span={24}>
+            <Form.Item
+              name="slug"
+              label={<Text strong>Slug đường dẫn</Text>}
+              extra={<Text type="secondary" style={{ fontSize: 12 }}>Đường dẫn tĩnh chuẩn SEO, được tạo tự động từ tên.</Text>}
+            >
+              <Input 
+                size="large" 
+                prefix={<GlobalOutlined />} 
+                readOnly 
+                style={{ background: "#f5f5f5", color: "#8c8c8c", borderRadius: 8 }} 
+              />
+            </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
+              name="status"
+              label={<Text strong>Trạng thái</Text>}
+            >
+              <Select size="large" style={{ borderRadius: 8 }}>
+                <Select.Option value="active">Đang kích hoạt</Select.Option>
+                <Select.Option value="inactive">Tạm ẩn</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+
+          <Col span={24}>
+            <Form.Item
+              name="description"
+              label={<Text strong>Mô tả ngắn gọn</Text>}
+              rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+            >
+              <TextArea
+                rows={4}
+                placeholder="Nhập giới thiệu về bộ sưu tập..."
+                style={{ borderRadius: 8 }}
+                showCount
+                maxLength={200}
+              />
+            </Form.Item>
+          </Col>
+
+          <Col span={24}>
+            <Form.Item
+              label={<Text strong>Ảnh bìa bộ sưu tập</Text>}
+              required
+            >
+              <div style={{ background: "#fafafa", padding: "20px", borderRadius: "12px", border: "1px dashed #d9d9d9" }}>
+                <Upload {...uploadProps}>
+                  {fileList.length < 1 && (
+                    <div>
+                      <PictureOutlined style={{ fontSize: 24, color: "#5d4037" }} />
+                      <div style={{ marginTop: 8, color: "#5d4037" }}>Tải ảnh lên</div>
+                    </div>
+                  )}
+                </Upload>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  * Định dạng hỗ trợ: JPG, PNG. Dung lượng tối đa: 2MB.
+                </Text>
+              </div>
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );

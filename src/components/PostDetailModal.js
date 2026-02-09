@@ -1,119 +1,154 @@
 import React from "react";
-import { Spinner, Modal, Button, Badge ,Row,Col} from "react-bootstrap";
+import { 
+  Modal, 
+  Button, 
+  Badge, 
+  Row, 
+  Col, 
+  Spin, 
+  Typography, 
+  Divider, 
+  Image, 
+  Descriptions, 
+  Empty ,
+  Card,
+  Space,
+  Tag
+} from "antd";
+import { 
+  BookOutlined, 
+  EyeOutlined, 
+  FileTextOutlined, 
+  PictureOutlined,
+  CheckCircleOutlined,
+  StopOutlined
+} from "@ant-design/icons";
 
-const PostDetailModal = ({ show, onHide, post,loading = false }) => {
-  if (!post) return null;
+const { Title, Text } = Typography;
 
-  const statusColor = post.status === "published" ? "success" : "secondary";
+const PostDetailModal = ({ show, onHide, post, loading = false }) => {
+  const URL_WEB = process.env.REACT_APP_WEB_URL;
+
+  if (!post && !loading) return null;
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
-      <Modal.Header closeButton>
-        <Modal.Title>
-          📖 <span className="fw-bold">Chi tiết bài viết</span>
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-  {loading ? (
-    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 200 }}>
-      <Spinner animation="border" role="status" variant="primary">
-        <span className="visually-hidden">Đang tải...</span>
-      </Spinner>
-    </div>
-  ) : (
-    <>
-      <h4 className="mb-2">{post.title}</h4>
-      <div className="mb-3">
-        <Badge bg="info" className="me-2">
-          Danh mục: {post.category || "Không có"}
-        </Badge>
-        <Badge bg={statusColor}>
-          {post.status === "published" ? "✅ Hiển thị" : "❌ Nháp"}
-        </Badge>
-      </div>
+    <Modal
+      title={
+        <Space>
+          <BookOutlined style={{ color: '#1890ff' }} />
+          <span style={{ fontWeight: 700 }}>CHI TIẾT BÀI VIẾT</span>
+        </Space>
+      }
+      open={show}
+      onCancel={onHide}
+      width={1000} // Mở rộng chiều ngang modal
+      centered
+      footer={[
+        <Button key="close" type="primary" onClick={onHide}>
+          Đóng cửa sổ
+        </Button>,
+      ]}
+    >
+      <Spin spinning={loading} tip="Đang tải dữ liệu bài viết...">
+        {!post ? (
+          <Empty description="Không tìm thấy dữ liệu" />
+        ) : (
+          <div style={{ padding: '10px 0' }}>
+            <Row gutter={[24, 24]}>
+              {/* Cột trái: Thông tin và Nội dung */}
+              <Col xs={24} lg={15}>
+                <Title level={4}>{post.title}</Title>
+                
+                <Descriptions bordered size="small" column={2} className="mb-4">
+                  <Descriptions.Item label="Danh mục">
+                    <Tag color="blue">{post.category || "Chưa phân loại"}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Trạng thái">
+                    {post.status === "published" ? (
+                      <Badge status="success" text="Đang hiển thị" />
+                    ) : (
+                      <Badge status="default" text="Bản nháp" />
+                    )}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Ngày tạo" span={2}>
+                    {new Date(post.created_at || Date.now()).toLocaleString("vi-VN")}
+                  </Descriptions.Item>
+                </Descriptions>
 
-      <hr />
-
-      <div className="mb-3">
-        <h6 className="fw-semibold text-muted">📝 Nội dung:</h6>
-        <div
-          className="p-3 border rounded bg-light"
-          style={{ minHeight: 120 }}
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
-              </div>
-          <hr />
-              
-              <Row>
-                <Col md={6}>
-                {post.images?.length > 0 && (
-        <>
-          <div className="mb-2">
-            <h6 className="fw-semibold text-muted">🖼️ Hình ảnh:</h6>
-            <div className="d-flex flex-wrap gap-2">
-              {post.images.map((img, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    border: "1px solid #ddd",
-                    borderRadius: 5,
-                    padding: 4,
-                    background: "#f9f9f9",
+                <Divider orientation="left" style={{ margin: '12px 0' }}>
+                  <Space><FileTextOutlined /> Nội dung bài viết</Space>
+                </Divider>
+                
+                <div 
+                  className="content-preview-box"
+                  style={{ 
+                    maxHeight: '400px', 
+                    overflowY: 'auto', 
+                    padding: '15px', 
+                    background: '#fcfcfc', 
+                    border: '1px solid #f0f0f0',
+                    borderRadius: '8px'
                   }}
+                  dangerouslySetInnerHTML={{ __html: post.content }}
+                />
+              </Col>
+
+              {/* Cột phải: Hình ảnh */}
+              <Col xs={24} lg={9}>
+                <Card 
+                  size="small" 
+                  title={<Space><PictureOutlined /> Hình ảnh đại diện</Space>}
+                  className="mb-3"
+                  headStyle={{ background: '#fafafa' }}
                 >
-                  <img
-                    src={`${process.env.REACT_APP_WEB_URL}${img}`}
-                    alt={`Hình ${idx + 1}`}
-                    style={{
-                      height: 100,
-                      width: "auto",
-                      borderRadius: 4,
-                      display: "block",
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <Image
+                      src={`${URL_WEB}${post.image}`}
+                      alt="Thumbnail"
+                      style={{ 
+                        maxHeight: 200, 
+                        width: '100%', 
+                        objectFit: 'cover', 
+                        borderRadius: '4px' 
+                      }}
+                      fallback="https://via.placeholder.com/400x300?text=No+Image"
+                    />
                   </div>
-                  
-        </>
-      )}</Col>
-                <Col md={6}>
-                <div className="mb-2">
-            <h6 className="fw-semibold text-muted">🖼️ Hình ảnh chính:</h6>
-            <div className="d-flex flex-wrap gap-2">
-             
-                <div
-                  style={{
-                    border: "1px solid #ddd",
-                    borderRadius: 5,
-                    padding: 4,
-                    background: "#f9f9f9",
-                  }}
+                </Card>
+
+                <Card 
+                  size="small" 
+                  title={<Space><PictureOutlined /> Album hình ảnh</Space>}
+                  headStyle={{ background: '#fafafa' }}
                 >
-                  <img
-                    src={`${process.env.REACT_APP_WEB_URL}${post.image}`}
-                    alt={`Hình  1}`}
-                    style={{
-                      height: 100,
-                      width: "auto",
-                      borderRadius: 4,
-                      display: "block",
-                    }}
-                  />
-                </div>
-            </div>
-          </div></Col>
-</Row>
-   
-    </>
-  )}
-</Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
-          Đóng
-        </Button>
-      </Modal.Footer>
+                  {post.images?.length > 0 ? (
+                    <Image.PreviewGroup>
+                      <Row gutter={[8, 8]}>
+                        {post.images.map((img, idx) => (
+                          <Col span={8} key={idx}>
+                            <Image
+                              src={`${URL_WEB}${img}`}
+                              style={{ 
+                                height: 60, 
+                                width: '100%', 
+                                objectFit: 'cover', 
+                                borderRadius: '4px',
+                                border: '1px solid #f0f0f0' 
+                              }}
+                            />
+                          </Col>
+                        ))}
+                      </Row>
+                    </Image.PreviewGroup>
+                  ) : (
+                    <Text type="secondary" italic>Không có hình ảnh đính kèm</Text>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+          </div>
+        )}
+      </Spin>
     </Modal>
   );
 };

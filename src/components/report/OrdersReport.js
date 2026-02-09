@@ -1,25 +1,40 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Line } from "react-chartjs-2";
-import { Spinner, Form, Button, Row, Col, Card, Container } from "react-bootstrap";
+import { 
+  Card, Row, Col, Button, DatePicker, 
+  Spin, Typography, Space, Statistic, Empty, Divider 
+} from "antd";
+import { 
+  ShoppingOutlined, 
+  SearchOutlined, 
+  CalendarOutlined, 
+  RiseOutlined,
+  CalendarCheckOutlined
+} from "@ant-design/icons";
+import dayjs from "dayjs";
 import { motion } from "framer-motion";
 import "chart.js/auto";
+
+const { Title, Text } = Typography;
 
 const OrdersReport = () => {
   const API_URL = process.env.REACT_APP_API_URL;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fromDate, setFromDate] = useState("2025-01-01");
-  const today = new Date().toISOString().split("T")[0];
-  const [toDate, setToDate] = useState(today);
+  
+  const [filters, setFilters] = useState({
+    fromDate: "2025-01-01",
+    toDate: dayjs().format("YYYY-MM-DD"),
+  });
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/reports/orders`, {
-        params: { from_date: fromDate, to_date: toDate },
+        params: { from_date: filters.fromDate, to_date: filters.toDate },
       });
-      setData(res.data.data);
+      setData(res.data.data || []);
     } catch (error) {
       console.error("Lỗi gọi API:", error);
     } finally {
@@ -31,24 +46,24 @@ const OrdersReport = () => {
     fetchData();
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    fetchData();
-  };
+  // Tính toán các chỉ số nhanh
+  const totalOrders = data.reduce((sum, d) => sum + d.orders_count, 0);
+  const avgOrders = data.length > 0 ? (totalOrders / data.length).toFixed(1) : 0;
+  const maxOrders = data.length > 0 ? Math.max(...data.map(d => d.orders_count)) : 0;
 
   const chartData = {
     labels: data.map((d) => d.period),
     datasets: [
       {
-        label: "Số đơn hàng",
+        label: "Số lượng đơn hàng",
         data: data.map((d) => d.orders_count),
         fill: true,
-        tension: 0.35,
-        backgroundColor: "rgba(54,162,235,0.2)",
-        borderColor: "rgba(54,162,235,1)",
-        borderWidth: 2,
+        borderColor: "#5d4037", // Acoustic Brown
+        backgroundColor: "rgba(93, 64, 55, 0.08)", // Nhạt dần
+        tension: 0.4,
         pointBackgroundColor: "#fff",
-        pointBorderColor: "#36A2EB",
+        pointBorderWidth: 2,
+        pointRadius: 4,
         pointHoverRadius: 6,
       },
     ],
@@ -56,106 +71,122 @@ const OrdersReport = () => {
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: true,
-        position: "top",
-        labels: {
-          boxWidth: 15,
-          color: "#333",
-        },
-      },
+      legend: { display: false }, // Ẩn legend vì đã có tiêu đề card
       tooltip: {
-        callbacks: {
-          label: (context) => ` ${context.formattedValue} đơn hàng`,
-        },
+        backgroundColor: "#5d4037",
+        titleFont: { size: 13 },
+        bodyFont: { size: 14 },
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: false,
       },
     },
     scales: {
       y: {
         beginAtZero: true,
-        title: { display: true, text: "Số đơn hàng" },
+        grid: { drawBorder: false, color: "#f0f0f0" },
+        ticks: { stepSize: 1 },
       },
       x: {
-        title: { display: true, text: "Thời gian" },
+        grid: { display: false },
       },
     },
   };
 
   return (
-    <Container className="py-4">
-      <motion.div
-        initial={{ opacity: 0, y: -15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <Card className="shadow-lg border-0 rounded-4">
-          <Card.Header className="bg-info text-white text-center py-3 rounded-top-4">
-            <h4 className="mb-0">📦 Báo cáo đơn hàng theo thời gian</h4>
-          </Card.Header>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <style>{`
+        .stats-row .ant-statistic-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stats-row .ant-statistic-content { color: #5d4037; font-weight: 700; }
+        .filter-section { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #f0ece1; margin-bottom: 24px; }
+      `}</style>
 
-          <Card.Body>
-            {/* Form lọc dữ liệu */}
-            <Form onSubmit={handleSubmit} className="mb-4">
-              <Row className="g-3 align-items-end">
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Từ ngày</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Đến ngày</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={2} className="d-grid">
-                  <Button type="submit" variant="info" className="mt-2">
-                    Xem báo cáo
-                  </Button>
-                </Col>
-              </Row>
-            </Form>
+      {/* Bộ lọc và Header nhanh */}
+      <div className="filter-section shadow-sm">
+        <Row gutter={[24, 24]} align="bottom">
+          <Col xs={24} md={12} lg={16}>
+            <Title level={4} style={{ margin: 0 }}> Phân tích xu hướng đơn hàng</Title>
+            <Text type="secondary">Theo dõi biến động số lượng đơn hàng theo chu kỳ thời gian</Text>
+          </Col>
+          <Col xs={24} md={12} lg={8}>
+            <Space.Compact className="w-100">
+              <DatePicker.RangePicker 
+                style={{ width: '75%' }}
+                defaultValue={[dayjs(filters.fromDate), dayjs(filters.toDate)]}
+                onChange={(dates) => {
+                  if (dates) setFilters({ fromDate: dates[0].format("YYYY-MM-DD"), toDate: dates[1].format("YYYY-MM-DD") });
+                }}
+              />
+              <Button 
+                type="primary" 
+                icon={<SearchOutlined />} 
+                onClick={fetchData}
+                style={{ background: '#5d4037', borderColor: '#5d4037' }}
+              >
+                Lọc
+              </Button>
+            </Space.Compact>
+          </Col>
+        </Row>
+      </div>
 
-            {/* Biểu đồ hoặc trạng thái */}
-            {loading ? (
-              <div className="d-flex justify-content-center align-items-center py-5">
-                <Spinner animation="border" variant="info" />
-              </div>
-            ) : data.length === 0 ? (
-              <p className="text-center text-muted">
-                Không có dữ liệu trong khoảng thời gian này.
-              </p>
-            ) : (
-              <div style={{ height: "450px" }}>
+      <Spin spinning={loading}>
+        {data.length === 0 ? (
+          <Empty description="Không có dữ liệu đơn hàng trong khoảng thời gian này" />
+        ) : (
+          <>
+            {/* Thẻ chỉ số (KPIs) */}
+            <Row gutter={[16, 16]} className="mb-4 stats-row">
+              <Col xs={12} md={8}>
+                <Card bordered={false} className="shadow-sm">
+                  <Statistic 
+                    title="Tổng số đơn hàng" 
+                    value={totalOrders} 
+                    prefix={<ShoppingOutlined />} 
+                    suffix="đơn"
+                  />
+                </Card>
+              </Col>
+              <Col xs={12} md={8}>
+                <Card bordered={false} className="shadow-sm">
+                  <Statistic 
+                    title="Trung bình/Ngày" 
+                    value={avgOrders} 
+                    prefix={<RiseOutlined />} 
+                    precision={1}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} md={8}>
+                <Card bordered={false} className="shadow-sm">
+                  <Statistic 
+                    title="Ngày cao điểm" 
+                    value={maxOrders} 
+                    prefix={<CalendarOutlined />} 
+                    valueStyle={{ color: '#cf1322' }}
+                  />
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Biểu đồ chính */}
+            <Card bordered={false} className="shadow-sm rounded-4" style={{ padding: '10px' }}>
+              <div style={{ height: "400px" }}>
                 <Line data={chartData} options={chartOptions} />
               </div>
-            )}
-
-            {/* Thống kê tổng */}
-            {!loading && data.length > 0 && (
-              <div className="mt-4 text-center">
-                <h6 className="fw-bold text-secondary mb-3">
-                  📊 Tổng đơn hàng:{" "}
-                  <span className="text-info">
-                    {data.reduce((sum, d) => sum + d.orders_count, 0)} đơn
-                  </span>
-                </h6>
+              <Divider />
+              <div className="text-center">
+                <Text type="secondary" italic>
+                  Biểu đồ hiển thị dữ liệu từ {dayjs(filters.fromDate).format("DD/MM/YYYY")} đến {dayjs(filters.toDate).format("DD/MM/YYYY")}
+                </Text>
               </div>
-            )}
-          </Card.Body>
-        </Card>
-      </motion.div>
-    </Container>
+            </Card>
+          </>
+        )}
+      </Spin>
+    </motion.div>
   );
 };
 

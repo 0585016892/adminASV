@@ -1,60 +1,41 @@
-import React, { useEffect, useState } from "react";
-import NumberFormat from "react-number-format";
-import {
-  Table,
-  Button,
-  Form,
-  Modal,
-  Row,
-  Col,
-  Alert,
-  Card,
-  Pagination,
-  Spinner,
-  Tooltip,
-  OverlayTrigger,
-} from "react-bootstrap";
-import { FaPlus, FaEdit, FaTrash,FaFileExport } from "react-icons/fa";
-import {
-  filterCoupon,
-  createCoupon,
-  updateCoupon,
-  deleteCoupon,
-  updateCouponStatus,
-} from "../api/couponApi";
+import React, { useState, useEffect } from "react";
+import { 
+  Table, Button, Input, Select, Tag, Space, Typography, 
+  Modal, Form, Row, Col, Card, Pagination, Spin, 
+  Tooltip, Switch, DatePicker, InputNumber, Divider, Empty
+} from "antd";
+import { 
+  PlusOutlined, EditOutlined, DeleteOutlined, 
+  FileExcelOutlined, SearchOutlined, GiftOutlined,
+  ClockCircleOutlined, ThunderboltOutlined, CheckCircleOutlined
+} from "@ant-design/icons";
+import dayjs from "dayjs";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { 
+  filterCoupon, createCoupon, updateCoupon, 
+  deleteCoupon, updateCouponStatus 
+} from "../api/couponApi";
 import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const CouponManagement = () => {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showModalDelete, setShowModalDelete] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
-  const [couponToDelete, setCouponToDelete] = useState(null);
-  const [message, setMessage] = useState("");
+  const [form] = Form.useForm();
 
   const [filters, setFilters] = useState({
     page: 1,
-    limit: 9,
+    limit: 8,
     status: "",
     keyword: "",
     discount_type: "",
     min_order_total: "",
-  });
-
-  const [formData, setFormData] = useState({
-    code: "",
-    description: "",
-    discount_type: "fixed",
-    discount_value: 0,
-    min_order_total: 0,
-    start_date: "",
-    end_date: "",
-    quantity: 0,
-    status: "active",
   });
 
   useEffect(() => {
@@ -66,497 +47,278 @@ const CouponManagement = () => {
     try {
       const data = await filterCoupon(filters);
       setCoupons(data.coupons || []);
-      setTotalPages(data.totalPages || 1);
+      setTotalPages(data.totalOrders || 0); // Giả sử API trả về total count
     } catch (error) {
       setCoupons([]);
-      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
 
-  const openAddModal = () => {
-    setEditingCoupon(null);
-    setFormData({
-      code: "",
-      description: "",
-      discount_type: "fixed",
-      discount_value: 0,
-      min_order_total: 0,
-      start_date: "",
-      end_date: "",
-      quantity: 0,
-      status: "active",
-    });
-    setShowModal(true);
-  };
-
-  const openEditModal = (coupon) => {
-    setEditingCoupon(coupon.id);
-    setFormData({
-      code: coupon.code,
-      description: coupon.description,
-      discount_type: coupon.discount_type,
-      discount_value: coupon.discount_value,
-      min_order_total: coupon.min_order_total || 0,
-      quantity: coupon.quantity || 0,
-      start_date: coupon.start_date?.slice(0, 16) || "",
-      end_date: coupon.end_date?.slice(0, 16) || "",
-      status: coupon.status,
-    });
-    setShowModal(true);
-  };
-
-  const openDeleteModal = (id) => {
-    setCouponToDelete(id);
-    setShowModalDelete(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowModalDelete(false);
-    setCouponToDelete(null);
-  };
-
-  const handleDelete = async () => {
-    if (!couponToDelete) return;
-    try {
-      await deleteCoupon(couponToDelete);
-      showSuccessToast("Khuyến mãi", "Xóa mã giảm giá thành công!");
-      closeDeleteModal();
-      fetchData();
-    } catch (error) {
-      showErrorToast(
-        "Khuyến mãi",
-        error.message || "❌ Lỗi khi xóa mã giảm giá."
-      );
+  const handleOpenModal = (record = null) => {
+    setEditingCoupon(record);
+    if (record) {
+      form.setFieldsValue({
+        ...record,
+        dates: [dayjs(record.start_date), dayjs(record.end_date)],
+        status: record.status === "active"
+      });
+    } else {
+      form.resetFields();
+      form.setFieldsValue({ discount_type: 'fixed', status: true });
     }
+    setShowModal(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onFinish = async (values) => {
+    const payload = {
+      ...values,
+      start_date: values.dates[0].format('YYYY-MM-DD HH:mm:ss'),
+      end_date: values.dates[1].format('YYYY-MM-DD HH:mm:ss'),
+      status: values.status ? "active" : "inactive"
+    };
+    delete payload.dates;
+
     try {
       if (editingCoupon) {
-        await updateCoupon(editingCoupon, formData);
-        showSuccessToast("Khuyến mãi", "Cập nhật mã giảm giá thành công!");
+        await updateCoupon(editingCoupon.id, payload);
+        showSuccessToast("Thành công", "Đã cập nhật mã giảm giá");
       } else {
-        await createCoupon(formData);
-        showSuccessToast("Khuyến mãi", "Thêm mã giảm giá thành công!");
+        await createCoupon(payload);
+        showSuccessToast("Thành công", "Đã thêm mã mới");
       }
       setShowModal(false);
       fetchData();
     } catch (err) {
-      console.error("Lỗi khi cập nhật mã giảm giá:", err);
-      showErrorToast(
-        "Khuyến mãi",
-        `Lỗi: ${err.message || "Không thể cập nhật mã giảm giá."}`
-      );
+      showErrorToast("Lỗi", err.message || "Thao tác thất bại");
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (checked ? "active" : "inactive") : value,
-    }));
-  };
-
-  const handleStatusChange = async (e, couponId) => {
-    const newStatus = e.target.value;
-    try {
-      const response = await updateCouponStatus(couponId, newStatus);
-      if (response.success || response.updatedCoupon) {
-        showSuccessToast("Khuyến mãi", "Cập nhật trạng thái thành công!");
-        fetchData();
+  const handleDelete = (id) => {
+    confirm({
+      title: 'Xác nhận xóa mã?',
+      content: 'Hành động này không thể hoàn tác.',
+      okText: 'Xóa',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await deleteCoupon(id);
+          showSuccessToast("Thành công", "Đã xóa mã giảm giá");
+          fetchData();
+        } catch (error) {
+          showErrorToast("Lỗi", "Không thể xóa mã");
+        }
       }
-    } catch (error) {
-      showErrorToast("Khuyến mãi", "Lỗi khi cập nhật trạng thái.");
-    }
-  };
-
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(""), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value, page: 1 }));
-  };
-  // Hàm xuất Excel
-  const exportToExcel = () => {
-    // Chuẩn bị dữ liệu với tên cột tiếng Việt
-    const exportData = coupons.map((item) => ({
-      ID: item.id, // ID (cột từ CSDL)
-      "Mã giảm giá": item.code, // Mã giảm giá (cột từ CSDL)
-      "Giảm giá theo": item.discount_type === "fixed" ? "Đồng" : "%", // Mã giảm giá (cột từ CSDL)
-      "Giảm giá":
-        item.discount_type === "fixed"
-          ? Number(item.discount_value).toLocaleString("vi-VN") + "đ" // Hiển thị giá trị cố định mà không có %
-          : item.discount_value + "%", // Kiểm tra loại giảm giá // Phần trăm giảm (cột từ CSDL)
-      "Đơn tối thiểu": Number(item.min_order_total).toLocaleString("vi-VN"),
-      "Ngày bắt đầu": item.start_date,
-      "Ngày hết hạn": item.end_date, // Ngày hết hạn (cột từ CSDL)
-      "Số lượng mã": item.quantity, // Ngày hết hạn (cột từ CSDL)
-      "Trạng thái": item.status ? "Hiệu lực" : "Hết hạn", // Trạng thái (cột từ CSDL)
-    }));
-
-    // Chuyển dữ liệu sang định dạng sheet
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-    // Tạo workbook và thêm worksheet vào
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Danh_sach_coupon");
-
-    // Viết workbook thành buffer
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
     });
-
-    // Tạo Blob và lưu file
-    const data = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(data, "Danh_sach_coupon.xlsx");
   };
-  return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <>
-          <Row className="mb-3">
-            <Col md={12}>
-              <h4>Quản lý khuyến mãi</h4>
-            </Col>
-            <Col className="text-end">
-              <Button onClick={openAddModal} className="me-2">
-                <FaPlus className="me-2" /> Thêm mã mới
-              </Button>
 
-              <Button
-                variant="success"
-                onClick={exportToExcel}
-                className="me-2"
-              >
-                <FaFileExport className="me-1" />
-                Xuất Excel
-              </Button>
+  const toggleStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    try {
+      await updateCouponStatus(id, newStatus);
+      showSuccessToast("Cập nhật", "Đã thay đổi trạng thái mã");
+      fetchData();
+    } catch (error) {
+      showErrorToast("Lỗi", "Cập nhật trạng thái thất bại");
+    }
+  };
+
+  const exportToExcel = () => {
+    const exportData = coupons.map(c => ({
+      "Mã": c.code,
+      "Loại": c.discount_type === 'fixed' ? 'Tiền mặt' : 'Phần trăm',
+      "Giá trị": c.discount_value,
+      "Đơn tối thiểu": c.min_order_total,
+      "Hạn dùng": `${dayjs(c.start_date).format('DD/MM')} - ${dayjs(c.end_date).format('DD/MM')}`,
+      "Trạng thái": c.status === 'active' ? 'Bật' : 'Tắt'
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Coupons");
+    XLSX.writeFile(workbook, "Danh_sach_khuyen_mai.xlsx");
+  };
+
+  const columns = [
+    {
+      title: 'MÃ CODE',
+      dataIndex: 'code',
+      render: (text) => <Tag color="#5d4037" style={{ fontWeight: 'bold', fontSize: '14px', padding: '4px 10px' }}>{text}</Tag>,
+    },
+    {
+      title: 'LOẠI GIẢM',
+      dataIndex: 'discount_type',
+      render: (type, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{type === 'percent' ? `${record.discount_value}%` : `${Number(record.discount_value).toLocaleString()}đ`}</Text>
+          <Text type="secondary" style={{ fontSize: '11px' }}>
+            {record.description == 1 ? "Sản phẩm" : "Tổng hóa đơn"}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'HIỆU LỰC',
+      key: 'validity',
+      render: (_, r) => {
+        const isExpired = dayjs().isAfter(dayjs(r.end_date));
+        return (
+          <Space direction="vertical" size={0}>
+            <Text style={{ fontSize: '12px' }}>{dayjs(r.start_date).format('DD/MM/YY')} - {dayjs(r.end_date).format('DD/MM/YY')}</Text>
+            {isExpired && <Tag color="error" bordered={false} style={{ fontSize: '10px' }}>Hết hạn</Tag>}
+          </Space>
+        );
+      }
+    },
+    {
+      title: 'SỐ LƯỢNG',
+      dataIndex: 'quantity',
+      align: 'center',
+      render: (q) => <Text strong color={q === 0 ? "red" : "black"}>{q}</Text>
+    },
+    {
+      title: 'TRẠNG THÁI',
+      key: 'status',
+      render: (_, r) => (
+        <Switch 
+          checked={r.status === "active"} 
+          onChange={() => toggleStatus(r.id, r.status)}
+          disabled={dayjs().isAfter(dayjs(r.end_date)) || r.quantity === 0}
+        />
+      )
+    },
+    {
+      title: 'THAO TÁC',
+      key: 'action',
+      align: 'right',
+      render: (_, r) => (
+        <Space>
+          <Button type="text" icon={<EditOutlined style={{ color: '#1890ff' }} />} onClick={() => handleOpenModal(r)} />
+          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)} />
+        </Space>
+      )
+    }
+  ];
+
+  return (
+    <div className="p-4 bg-light min-vh-100">
+      <style>{`
+        .ant-table-thead > tr > th { background: #fdfcf8 !important; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        .stat-card { border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+      `}</style>
+
+      {/* Header Section */}
+      <Row justify="space-between" align="middle" className="mb-4">
+        <Col>
+          <Title level={3} style={{ margin: 0 }}><GiftOutlined /> Quản lý Chương trình Khuyến mãi</Title>
+          <Text type="secondary">Thiết lập và theo dõi các mã giảm giá toàn hệ thống</Text>
+        </Col>
+        <Col>
+          <Space>
+            <Button icon={<FileExcelOutlined />} onClick={exportToExcel}>Xuất báo cáo</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()} style={{ background: '#5d4037', borderColor: '#5d4037' }}>
+              Tạo mã mới
+            </Button>
+          </Space>
+        </Col>
+      </Row>
+
+      {/* Filter Section */}
+      <Card className="mb-4 shadow-sm border-0" style={{ borderRadius: '12px' }}>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Input 
+              prefix={<SearchOutlined />} 
+              placeholder="Tìm mã code..." 
+              onChange={e => setFilters({...filters, keyword: e.target.value, page: 1})}
+            />
+          </Col>
+          <Col span={6}>
+            <Select 
+              className="w-100" 
+              placeholder="Loại giảm giá" 
+              allowClear
+              onChange={val => setFilters({...filters, discount_type: val, page: 1})}
+              options={[{ label: 'Cố định', value: 'fixed' }, { label: 'Phần trăm', value: 'percent' }]}
+            />
+          </Col>
+          <Col span={6}>
+            <Select 
+              className="w-100" 
+              placeholder="Trạng thái" 
+              allowClear
+              onChange={val => setFilters({...filters, status: val, page: 1})}
+              options={[{ label: 'Đang hoạt động', value: 'active' }, { label: 'Tạm ngưng', value: 'inactive' }]}
+            />
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Main Table */}
+      <div className="bg-white p-3 rounded-4 shadow-sm">
+        <Table 
+          columns={columns} 
+          dataSource={coupons} 
+          rowKey="id" 
+          loading={loading}
+          pagination={{
+            current: filters.page,
+            pageSize: filters.limit,
+            total: totalPages,
+            onChange: (p) => setFilters({...filters, page: p}),
+            position: ['bottomCenter']
+          }}
+          locale={{ emptyText: <Empty description="Chưa có mã giảm giá nào" /> }}
+        />
+      </div>
+
+      {/* Create/Edit Modal */}
+      <Modal
+        title={<Title level={4}>{editingCoupon ? "Cập nhật mã" : "Tạo mã khuyến mãi mới"}</Title>}
+        open={showModal}
+        onCancel={() => setShowModal(false)}
+        onOk={() => form.submit()}
+        width={700}
+        okText={editingCoupon ? "Lưu thay đổi" : "Tạo ngay"}
+        okButtonProps={{ style: { background: '#5d4037' } }}
+      >
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item name="code" label="Mã Coupon" rules={[{ required: true, message: 'Nhập mã code' }]}>
+                <Input placeholder="VÍ DỤ: GIAM20K" style={{ textTransform: 'uppercase' }} />
+              </Form.Item>
+              <Form.Item name="description" label="Phạm vi áp dụng" initialValue="1">
+                <Select options={[{ label: 'Từng sản phẩm', value: '1' }, { label: 'Toàn bộ hóa đơn', value: '0' }]} />
+              </Form.Item>
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item name="discount_type" label="Hình thức">
+                    <Select options={[{ label: 'Tiền mặt', value: 'fixed' }, { label: '% Giảm', value: 'percent' }]} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="discount_value" label="Giá trị giảm" rules={[{ required: true }]}>
+                    <InputNumber className="w-100" min={0} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="dates" label="Thời gian hiệu lực" rules={[{ required: true }]}>
+                <DatePicker.RangePicker className="w-100" showTime format="DD/MM/YYYY HH:mm" />
+              </Form.Item>
+              <Form.Item name="min_order_total" label="Giá trị đơn tối thiểu">
+                <InputNumber className="w-100" min={0} step={10000} />
+              </Form.Item>
+              <Form.Item name="quantity" label="Số lượng phát hành" rules={[{ required: true }]}>
+                <InputNumber className="w-100" min={1} />
+              </Form.Item>
+              <Form.Item name="status" label="Kích hoạt ngay" valuePropName="checked">
+                <Switch />
+              </Form.Item>
             </Col>
           </Row>
-
-          {message && (
-            <Alert variant={message.includes("Lỗi") ? "danger" : "success"}>
-              {message}
-            </Alert>
-          )}
-
-          <Form className="mb-4">
-            <Row>
-              <Col sm={3}>
-                <Form.Control
-                  type="text"
-                  name="keyword"
-                  value={filters.keyword}
-                  onChange={handleFilterChange}
-                  placeholder="Tìm kiếm theo mã"
-                />
-              </Col>
-              <Col sm={3}>
-                <Form.Select
-                  name="status"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">Trạng thái</option>
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Không hoạt động</option>
-                </Form.Select>
-              </Col>
-              <Col sm={3}>
-                <Form.Select
-                  name="discount_type"
-                  value={filters.discount_type}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">Loại giảm</option>
-                  <option value="fixed">Cố định</option>
-                  <option value="percent">Phần trăm</option>
-                </Form.Select>
-              </Col>
-              <Col sm={3}>
-                <Form.Control
-                  type="number"
-                  name="min_order_total"
-                  value={filters.min_order_total}
-                  onChange={handleFilterChange}
-                  placeholder="Đơn tối thiểu"
-                />
-              </Col>
-            </Row>
-          </Form>
-
-         {loading ? (
-  // Hiển thị spinner loading toàn trang/bảng
-          <div className="text-center py-5 w-100 d-flex justify-content-center align-items-center h-100">
-            <Spinner animation="border" variant="primary" />
-          </div>
-        ) : (
-          <>
-            <Table striped bordered hover responsive>
-              <thead  className="table-dark">
-                <tr>
-                  <th>ID</th>
-                  <th>Code</th>
-                  <th>Mô tả</th>
-                  <th>Loại</th>
-                  <th>Giá trị</th>
-                  <th>Đơn tối thiểu</th>
-                  <th>Lượt dùng</th>
-                  <th>Hiệu lực</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {coupons.length === 0 ? (
-                  <tr>
-                    <td colSpan="10" className="text-center">
-                      Không có mã nào.
-                    </td>
-                  </tr>
-                ) : (
-                  coupons.map((c) => {
-                    const expired = new Date(c.end_date) < new Date();
-                    const outOfStock = c.quantity === 0;
-
-                    return (
-                      <tr key={c.id}>
-                        <td>C{c.id}</td>
-                        <td>{c.code}</td>
-                        <td>
-                          {c.description == 1
-                            ? "Mã giảm giá cho sản phẩm"
-                            : "Mã giảm giá cho tổng hóa đơn"}
-                        </td>
-                        <td>{c.discount_type === "percent" ? "%" : "₫"}</td>
-                        <td>
-                          {c.discount_type === "percent"
-                            ? `${c.discount_value}%`
-                            : `${Number(c.discount_value).toLocaleString("vi-VN")}₫`}
-                        </td>
-                        <td>{Number(c.min_order_total).toLocaleString("vi-VN")}₫</td>
-                        <td>{c.quantity}</td>
-                        <td>
-                          {new Date(c.start_date).toLocaleDateString("vi-VN")} –{" "}
-                          {new Date(c.end_date).toLocaleDateString("vi-VN")}
-                        </td>
-                        <td className="text-center">
-                          <Form.Check 
-                            type="switch"
-                            id={`status-switch-${c.id}`}
-                            checked={c.status === "active"}
-                            onChange={() =>
-                              handleStatusChange(
-                                { target: { value: c.status === "active" ? "inactive" : "active" } },
-                                c.id
-                              )
-                            }
-                            disabled={expired || outOfStock}
-                            className="custom-switch-lg"
-
-                          />
-
-                          {expired && (
-                            <div className="text-danger small mt-1">
-                              Hết hạn theo thời gian
-                            </div>
-                          )}
-                          {outOfStock && (
-                            <div className="text-danger small mt-1">
-                              Đã sử dụng hết
-                            </div>
-                          )}
-                        </td>
-
-                        <td className="text-center d-flex gap-2 justify-content-center">
-                          <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                            <Button
-                              className="me-2"
-                              size="sm"
-                              variant="outline-primary"
-                              onClick={() => openEditModal(c)}
-                            >
-                              <FaEdit />
-                            </Button>
-                          </OverlayTrigger>
-
-                          <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                            <Button
-                              size="sm"
-                              variant="outline-danger"
-                              onClick={() => openDeleteModal(c.id)}
-                            >
-                              <FaTrash />
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </Table>
-
-            <Pagination className="d-flex justify-content-end">
-              {[...Array(totalPages).keys()].map((p) => (
-                <Pagination.Item
-                  key={p + 1}
-                  active={filters.page === p + 1}
-                  onClick={() => setFilters({ ...filters, page: p + 1 })}
-                >
-                  {p + 1}
-                </Pagination.Item>
-              ))}
-            </Pagination>
-          </>
-        )}
-
-        </>
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {editingCoupon ? "Cập nhật mã giảm giá" : "Thêm mã giảm giá"}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <Row>
-              {/* Cột trái */}
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Mã</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Chi tiết</Form.Label>
-                  <Form.Select
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                  >
-                    <option value="1">Giảm cho sản phẩm</option>
-                    <option value="0">Giảm cho hóa đơn</option>
-                  </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Loại</Form.Label>
-                  <Form.Select
-                    name="discount_type"
-                    value={formData.discount_type}
-                    onChange={handleChange}
-                  >
-                    <option value="fixed">Giảm cố định</option>
-                    <option value="percent">Giảm phần trăm</option>
-                  </Form.Select>
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Giá trị</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="discount_value"
-                    value={formData.discount_value}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Đơn hàng tối thiểu</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="min_order_total"
-                    value={formData.min_order_total}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Cột phải */}
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Bắt đầu</Form.Label>
-                  <Form.Control
-                    type="datetime-local"
-                    name="start_date"
-                    value={formData.start_date}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Kết thúc</Form.Label>
-                  <Form.Control
-                    type="datetime-local"
-                    name="end_date"
-                    value={formData.end_date}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Số lượng</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="quantity"
-                    value={formData.quantity}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Check
-                    type="switch"
-                    label="Hoạt động"
-                    name="status"
-                    checked={formData.status === "active"}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <div className="text-end">
-              <Button type="submit">{editingCoupon ? "Cập nhật" : "Thêm"}</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
-
-
-
-      <Modal show={showModalDelete} onHide={closeDeleteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xóa mã giảm giá</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xóa mã này?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xóa
-          </Button>
-        </Modal.Footer>
+        </Form>
       </Modal>
     </div>
   );

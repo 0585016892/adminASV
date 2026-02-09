@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Button,
-  Badge,
-  Spinner,
-  ListGroup,
-  Image,
-} from "react-bootstrap";
+import { 
+  Row, Col, Card, Tag, Typography, Button, Space, 
+  Divider, Image, Descriptions, Spin, ConfigProvider, Breadcrumb ,Tooltip
+} from "antd";
+import { 
+  ArrowLeftOutlined, ShoppingCartOutlined, 
+  SafetyCertificateOutlined, AppstoreOutlined,
+  CheckCircleOutlined, CloseCircleOutlined
+} from "@ant-design/icons";
 import { getProductById } from "../api/productAPI";
 import { getAllColors } from "../api/colorApi";
-const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
+
+const { Title, Text, Paragraph } = Typography;
+const URL_WEB = process.env.REACT_APP_WEB_URL;
 
 const SanphamDetail = () => {
   const { id } = useParams();
@@ -41,10 +41,8 @@ const SanphamDetail = () => {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, [id]);
-console.log(product);
+  }, [id, token]);
 
   const findColorCode = (colorName) => {
     const matched = colors.find(
@@ -55,122 +53,147 @@ console.log(product);
 
   if (loading || !product)
     return (
-      <div className="text-center mt-5 d-flex justify-content-center align-items-center h-100" >
-        <Spinner animation="border" variant="primary" />
+      <div className="d-flex justify-content-center align-items-center" style={{ height: "80vh" }}>
+        <Spin size="large" tip="Đang tải giai điệu..." />
       </div>
     );
 
   return (
-    <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      <div className="d-flex align-items-center">
-        <h2 className="fw-bold">Chi tiết sản phẩm</h2>
-      </div>
-      <Row className="gx-5">
-        <Col md={4}>
-          <div className="border rounded p-3 shadow-sm bg-white">
-            <Image
-              src={`${URL_WEB}/uploads/${selectedImage}`}
-              fluid
-              style={{
-                borderRadius: "10px",
-                maxHeight: "100%",
-                objectFit: "contain",
-              }}
-            />
-            <div className="d-flex flex-wrap gap-2 mt-3 justify-content-center">
-              {[product.image, ...(product.subImages || [])].map((img, idx) => (
-                <Image
-                  key={idx}
-                  src={`${URL_WEB}/uploads/${img}`}
-                  thumbnail
-                  style={{
-                    width: "70px",
-                    height: "70px",
-                    objectFit: "cover",
-                    cursor: "pointer",
-                    border:
-                      selectedImage === img
-                        ? "2px solid #0d6efd"
-                        : "1px solid #ddd",
-                    borderRadius: "8px",
-                  }}
-                  onClick={() => setSelectedImage(img)}
-                />
-              ))}
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#5d4037",
+          borderRadius: 16,
+        },
+      }}
+    >
+      <div className="container-fluid p-4">
+        <style>{`
+          .detail-card { border-radius: 24px; overflow: hidden; border: 1px solid #f0ece1; }
+          .thumbnail-img { cursor: pointer; transition: all 0.3s; border-radius: 12px; border: 2px solid transparent; }
+          .thumbnail-img.active { border-color: #5d4037; transform: scale(1.05); }
+          .main-image-wrapper { background: #fdfcf8; border-radius: 20px; padding: 20px; margin-bottom: 20px; }
+          .color-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.1); cursor: pointer; transition: 0.3s; }
+          .color-circle:hover { transform: scale(1.2); }
+        `}</style>
+
+        {/* Breadcrumb & Nút quay lại */}
+        <div className="mb-4 d-flex justify-content-between align-items-center">
+          <Breadcrumb
+            items={[
+              { title: <a onClick={() => navigate("/")}>Dashboard</a> },
+              { title: <a onClick={() => navigate("/san-pham/danh-sach")}>Sản phẩm</a> },
+              { title: product.name },
+            ]}
+          />
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>Quay lại</Button>
+        </div>
+
+        <Row gutter={[40, 40]}>
+          {/* CỘT TRÁI: GALLERY ẢNH */}
+          <Col xs={24} lg={10}>
+            <div className="main-image-wrapper text-center shadow-sm">
+              <Image
+                src={`${URL_WEB}/uploads/${selectedImage}`}
+                preview={true}
+                style={{ maxHeight: 450, objectFit: "contain" }}
+              />
             </div>
-          </div>
-        </Col>
-
-        <Col md={8}>
-          <Card className="border-0 shadow-sm bg-white p-3">
-            <Card.Body>
-              <h3 className="fw-bold">{product.name}</h3>
-              <Badge
-                bg={product.status === "active" ? "success" : "secondary"}
-                className="mb-3"
-              >
-                {product.status == 'active' ? 'Đang hoạt động' :'Không hoạt động'}
-              </Badge>
-
-              <h4 className="text-danger mb-3">
-                {Number(product.price).toLocaleString()} đ
-              </h4>
-
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <strong>Thương hiệu:</strong> {product.brand}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Danh mục:</strong> {product.categoryName}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Kích cỡ:</strong> {product.size}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Số lượng còn:</strong> {product.quantity}
-                </ListGroup.Item>
-                {product.couponCode && (
-                  <ListGroup.Item>
-                    <strong>Mã giảm giá:</strong>{" "}
-                    <Badge bg="info">{product.couponCode}</Badge>
-                  </ListGroup.Item>
-                )}
-              </ListGroup>
-
-              <div className="mt-3">
-                <strong>Màu sắc:</strong>
-                <div className="d-flex mt-2 flex-wrap">
-                  {product.color?.split(",").map((colorName, idx) => (
-                    <div
-                      key={idx}
-                      title={colorName.trim()}
-                      style={{
-                        width: "28px",
-                        height: "28px",
-                        backgroundColor: findColorCode(colorName),
-                        marginRight: "8px",
-                        borderRadius: "50%",
-                        border: "1px solid #aaa",
-                      }}
-                    ></div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <strong>Mô tả sản phẩm:</strong>
-                <p
-                  className="text-muted mt-1"
-                  style={{ whiteSpace: "pre-wrap" }}
+            
+            <Space wrap size={12} className="justify-content-center w-100">
+              {[product.image, ...(product.subImages || [])].map((img, idx) => (
+                <div 
+                  key={idx}
+                  className={`thumbnail-img ${selectedImage === img ? "active" : ""}`}
+                  onClick={() => setSelectedImage(img)}
                 >
-                  {product.description}
-                </p>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+                  <img
+                    src={`${URL_WEB}/uploads/${img}`}
+                    alt="thumbnail"
+                    style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 10 }}
+                  />
+                </div>
+              ))}
+            </Space>
+          </Col>
+
+          {/* CỘT PHẢI: THÔNG TIN CHI TIẾT */}
+          <Col xs={24} lg={14}>
+            <Card className="detail-card shadow-sm border-0">
+              <Space direction="vertical" size={24} className="w-100">
+                <div>
+                  <Space align="center">
+                    <Tag color={product.status === "active" ? "success" : "default"} icon={product.status === "active" ? <CheckCircleOutlined /> : <CloseCircleOutlined />}>
+                      {product.status === 'active' ? 'Đang kinh doanh' : 'Ngừng kinh doanh'}
+                    </Tag>
+                    <Text type="secondary">Mã SP: SP180703{product.id}</Text>
+                  </Space>
+                  <Title level={2} style={{ marginTop: 12, marginBottom: 8 }}>{product.name}</Title>
+                  <Title level={3} type="danger" style={{ marginTop: 0 }}>
+                    {Number(product.price).toLocaleString()} <small>đ</small>
+                  </Title>
+                </div>
+
+                <Divider className="my-0" />
+
+                <Descriptions bordered column={{ xxl: 2, xl: 2, lg: 1, md: 2, sm: 1, xs: 1 }} className="bg-white">
+                  <Descriptions.Item label="Thương hiệu" labelStyle={{ fontWeight: 600 }}>{product.brand}</Descriptions.Item>
+                  <Descriptions.Item label="Danh mục" labelStyle={{ fontWeight: 600 }}>
+                    <Tag color="volcano">{product.categoryName}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Kích cỡ" labelStyle={{ fontWeight: 600 }}>{product.size}</Descriptions.Item>
+                  <Descriptions.Item label="Tồn kho" labelStyle={{ fontWeight: 600 }}>
+                    <Text strong style={{ color: product.quantity < 10 ? '#ff4d4f' : '#52c41a' }}>
+                      {product.quantity} sản phẩm
+                    </Text>
+                  </Descriptions.Item>
+                  {product.couponCode && (
+                    <Descriptions.Item label="Mã ưu đãi" labelStyle={{ fontWeight: 600 }}>
+                      <Tag color="cyan" icon={<SafetyCertificateOutlined />}>{product.couponCode}</Tag>
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+
+                <div>
+                  <Text strong className="d-block mb-3">Màu sắc khả dụng:</Text>
+                  <Space size={16}>
+                    {product.color?.split(",").map((colorName, idx) => (
+                      <Tooltip title={colorName.trim()} key={idx}>
+                        <div
+                          className="color-circle"
+                          style={{ backgroundColor: findColorCode(colorName) }}
+                        />
+                      </Tooltip>
+                    ))}
+                  </Space>
+                </div>
+
+                <div>
+                  <Text strong className="d-block mb-2"><AppstoreOutlined /> Mô tả sản phẩm:</Text>
+                  <Paragraph 
+                    className="text-secondary" 
+                    style={{ whiteSpace: "pre-wrap", lineHeight: '1.8', textAlign: 'justify' }}
+                  >
+                    {product.description || "Chưa có mô tả chi tiết cho sản phẩm này."}
+                  </Paragraph>
+                </div>
+
+                <div className="pt-4">
+                  <Space size="middle">
+                    <Button type="primary" size="large" icon={<ShoppingCartOutlined />} onClick={() => navigate("/pos")}>
+                      Bán tại quầy
+                    </Button>
+                    <Button size="large" onClick={() => navigate(`/san-pham/sua/${product.id}`)}>
+                      Chỉnh sửa thông tin
+                    </Button>
+                  </Space>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      </div>
+    </ConfigProvider>
   );
 };
 

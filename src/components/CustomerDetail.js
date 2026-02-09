@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getCustomerDetails } from "../api/customerApi";
 import {
-  Card,
-  Table,
-  Spinner,
-  Alert,
-  Row,
-  Col,
-  Image,
-  Badge,
-} from "react-bootstrap";
+  Card, Table, Spin, Alert, Row, Col, Typography, 
+  Avatar, Tag, Button, Breadcrumb, ConfigProvider, 
+  Divider, Space, Empty, Statistic, Layout
+} from "antd";
+import { 
+  UserOutlined, MailOutlined, PhoneOutlined, 
+  HomeOutlined, ShoppingCartOutlined, ArrowLeftOutlined,
+  WalletOutlined, HistoryOutlined, SafetyCertificateOutlined
+} from "@ant-design/icons";
 
+const { Title, Text } = Typography;
 const URL_WEB = process.env.REACT_APP_WEB_URL;
 
 const CustomerDetailsNew = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [customerData, setCustomerData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,7 +28,7 @@ const CustomerDetailsNew = () => {
         const data = await getCustomerDetails(id);
         setCustomerData(data);
       } catch (err) {
-        setError("Không thể tải dữ liệu khách hàng.");
+        setError("Không thể tải dữ liệu chi tiết khách hàng.");
       } finally {
         setLoading(false);
       }
@@ -34,93 +36,175 @@ const CustomerDetailsNew = () => {
     fetchCustomerDetails();
   }, [id]);
 
-  if (loading)
-    return (
-      <div className="text-center py-5 d-flex justify-content-center align-items-center h-100">
-        <Spinner animation="border" variant="primary" />
-      </div>
-    );
+  if (loading) return (
+    <div className="d-flex justify-content-center align-items-center vh-100 bg-white">
+      <Space direction="vertical" align="center">
+        <Spin size="large" />
+        <Text type="secondary">Đang tải hồ sơ khách hàng...</Text>
+      </Space>
+    </div>
+  );
 
-  if (error) return <Alert variant="danger">{error}</Alert>;
-console.log(customerData.customer);
+  if (error) return <Alert message="Lỗi hệ thống" description={error} type="error" showIcon className="m-4" />;
+
+  const { customer, orders } = customerData;
+  const totalSpent = orders.reduce((sum, order) => sum + (Number(order.price) * order.quantity), 0);
+
+  const columns = [
+    {
+      title: 'MÃ ĐƠN',
+      dataIndex: 'order_id',
+      key: 'order_id',
+      width: 100,
+      render: (id) => <Tag color="blue">#{id}</Tag>,
+    },
+    {
+      title: 'SẢN PHẨM',
+      key: 'product',
+      minWidth: 250,
+      render: (_, record) => (
+        <Space>
+          <Avatar 
+            shape="rounded" 
+            size={50} 
+            src={`${URL_WEB}/uploads/${record.image}`} 
+            icon={<HistoryOutlined />}
+            className="border"
+          />
+          <div style={{ maxWidth: 200 }}>
+            <Text strong block ellipsis>{record.name}</Text>
+            <Text type="secondary" size="small">{record.color} / {record.size}</Text>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'S.LƯỢNG',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      align: 'center',
+      width: 80,
+    },
+    {
+      title: 'TỔNG TIỀN',
+      key: 'total',
+      align: 'right',
+      render: (_, record) => (
+        <Text strong color="#5d4037">
+          {(Number(record.price) * record.quantity).toLocaleString("vi-VN")}đ
+        </Text>
+      ),
+    },
+    {
+      title: 'THỜI GIAN',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 120,
+      render: (date) => <Text type="secondary">{new Date(date).toLocaleDateString('vi-VN')}</Text>,
+    },
+  ];
 
   return (
-        <div className="container-fluid my-4" style={{ paddingLeft: "35px" }}>
-      {/* HEADER KHÁCH HÀNG */}
-      <Card className="mb-4 shadow-sm border-0 rounded-3">
-        <Card.Body className="d-flex align-items-center gap-4" style={{ backgroundColor: "#e9f7ef" }}>
-          <Image
-            src={`${URL_WEB}/uploads/customers/${customerData.customer.images}`}
-            roundedCircle
-            style={{ width: "80px", height: "80px", objectFit: "cover" }}
-          />
-          <div>
-            <h4 className="mb-1">{customerData.customer.full_name}</h4>
-            <p className="mb-1">
-              <strong>Email:</strong> {customerData.customer.email}
-            </p>
-            <p className="mb-0">
-              <strong>Điện thoại:</strong> {customerData.customer.phone} |{" "}
-              <strong>Địa chỉ:</strong> {customerData.customer.address}
-            </p>
-          </div>
-        </Card.Body>
-      </Card>
+    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 12 } }}>
+      <div className="p-4 bg-light min-vh-100">
+        <style>{`
+          .glass-card { background: #fff; border: 1px solid #f0ece1; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+          .hero-section { background: #5d4037; border-radius: 20px 20px 0 0; padding: 30px; position: relative; overflow: hidden; }
+          .hero-section::after { content: ""; position: absolute; right: -50px; top: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+          .info-label { color: #8c8c8c; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; display: block; }
+          .stat-value { font-family: 'Inter', sans-serif; font-weight: 700; color: #5d4037; }
+        `}</style>
 
-      {/* DANH SÁCH ĐƠN HÀNG */}
-      <Card className="shadow-sm border-0 rounded-3">
-        <Card.Header
-          as="h5"
-          className="text-white"
-          style={{ backgroundColor: "#28a745" }}
-        >
-          Danh sách đơn hàng ({customerData.orders.length})
-        </Card.Header>
-        <Card.Body style={{ maxHeight: "650px", overflowY: "auto" }}>
-          {customerData.orders.length === 0 ? (
-            <Alert variant="info">Khách hàng chưa có đơn hàng nào.</Alert>
-          ) : (
-            <Table hover responsive className="mb-0 align-middle">
-              <thead style={{ backgroundColor: "#f0f8ff" }}>
-                <tr>
-                  <th>Mã đơn</th>
-                  <th>Sản phẩm</th>
-                  <th>Ảnh</th>
-                  <th>Giá</th>
-                  <th>Số lượng</th>
-                  <th>Size</th>
-                  <th>Màu</th>
-                  <th>Ngày đặt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customerData.orders.map((order) => (
-                  <tr key={order.order_id}>
-                    <td>
-                      <Badge bg="secondary">#{order.order_id}</Badge>
-                    </td>
-                    <td>{order.name}</td>
-                    <td>
-                      <Image
-                        src={`${URL_WEB}/uploads/${order.image}`}
-                        alt={order.name}
-                        rounded
-                        style={{ width: "60px", height: "60px", objectFit: "cover" }}
-                      />
-                    </td>
-                    <td>{Number(order.price).toLocaleString("vi-VN")}đ</td>
-                    <td>{order.quantity}</td>
-                    <td>{order.size}</td>
-                    <td>{order.color}</td>
-                    <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-        </Card.Body>
-      </Card>
-    </div>
+        {/* Top Header */}
+        <div className="mb-4 d-flex justify-content-between align-items-center">
+          <Breadcrumb items={[{ title: "Hệ thống" }, { title: "Khách hàng" }, { title: "Chi tiết" }]} />
+          <Button size="large" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} type="text">Trở lại</Button>
+        </div>
+
+        <Row gutter={[24, 24]}>
+          {/* LEFT: INFO CARD */}
+          <Col xs={24} xl={9}>
+            <div className="glass-card overflow-hidden">
+              <div className="hero-section d-flex align-items-center">
+                <Avatar 
+                  size={90} 
+                  src={`${URL_WEB}/uploads/customers/${customer.images}`} 
+                  icon={<UserOutlined />}
+                  className="border border-3 border-white shadow"
+                />
+                <div className="ms-4">
+                  <Title level={3} style={{ color: '#fff', margin: 0 }}>{customer.full_name}</Title>
+                  <Tag color="gold" icon={<SafetyCertificateOutlined />}>Member ID: #{customer.id}</Tag>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <Row gutter={[0, 24]}>
+                  <Col span={24}>
+                    <span className="info-label">Thông tin liên lạc</span>
+                    <Space direction="vertical" className="w-100">
+                      <Space><MailOutlined className="text-muted" /> <Text strong>{customer.email}</Text></Space>
+                      <Space><PhoneOutlined className="text-muted" /> <Text strong>{customer.phone}</Text></Space>
+                    </Space>
+                  </Col>
+                  
+                  <Col span={24}>
+                    <span className="info-label">Địa chỉ đăng ký</span>
+                    <Space align="start"><HomeOutlined className="text-muted mt-1" /> <Text>{customer.address}</Text></Space>
+                  </Col>
+
+                  <Col span={24}><Divider className="my-1" /></Col>
+
+                  <Col span={12}>
+                    <Statistic 
+                      title={<span className="info-label">Tổng đơn hàng</span>}
+                      value={orders.length} 
+                      prefix={<ShoppingCartOutlined />} 
+                      className="stat-value"
+                    />
+                  </Col>
+                  <Col span={12}>
+                    <Statistic 
+                      title={<span className="info-label">Tổng chi tiêu</span>}
+                      value={totalSpent} 
+                      prefix={<WalletOutlined />} 
+                      suffix="đ"
+                      className="stat-value"
+                      
+                    />
+                  </Col>
+                </Row>
+              </div>
+            </div>
+          </Col>
+
+          {/* RIGHT: ORDERS LIST */}
+          <Col xs={24} xl={15}>
+            <Card 
+              className="glass-card" 
+              title={<Space><HistoryOutlined /> Lịch sử mua hàng</Space>}
+              styles={{ body: { padding: 0 } }}
+            >
+              <Table 
+                columns={columns} 
+                dataSource={orders} 
+                rowKey="order_id"
+                pagination={{ pageSize: 6, simple: true }}
+                scroll={{ x: 'max-content' }}
+                locale={{ emptyText: <Empty description="Chưa có dữ liệu đơn hàng" /> }}
+              />
+            </Card>
+
+            <div className="mt-4 p-4 rounded-4" style={{ background: '#5d403710', border: '1px dashed #5d403730' }}>
+               <Title level={5}>Ghi chú hệ thống</Title>
+               <Text type="secondary">
+                 Khách hàng này ưu tiên nhận hàng vào giờ hành chính.
+               </Text>
+            </div>
+          </Col>
+        </Row>
+      </div>
+    </ConfigProvider>
   );
 };
 

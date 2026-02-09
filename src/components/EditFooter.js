@@ -1,150 +1,165 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { 
+  Form, 
+  Input, 
+  Button, 
+  Select, 
+  Card, 
+  Row, 
+  Col, 
+  Typography, 
+  Space, 
+  Spin, 
+  Divider, 
+  Breadcrumb ,
+  Tag
+} from "antd";
+import { 
+  ArrowLeftOutlined, 
+  SaveOutlined, 
+  EditOutlined,
+  LoadingOutlined 
+} from "@ant-design/icons";
 import { getFooterById, updateFooter } from "../api/footerApi";
-import { useForm, Controller } from "react-hook-form";
-import { Form, Button, Row, Col, Card, Alert } from "react-bootstrap";
-import { ClipLoader } from "react-spinners";
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
+
+const { Title, Text } = Typography;
 
 const EditFooter = () => {
+  const [form] = Form.useForm();
   const navigate = useNavigate();
   const { id } = useParams();
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm();
+  
+  const [loading, setLoading] = useState(true); // Loading khi lấy dữ liệu cũ
+  const [submitting, setSubmitting] = useState(false); // Loading khi đang lưu
+
+  // 1. Lấy dữ liệu cũ và đổ vào Form
   useEffect(() => {
     const fetchFooter = async () => {
       setLoading(true);
       try {
         const productData = await getFooterById(id);
-        setValue("title", productData.title);
-        setValue("label", productData.label);
-        setValue("status", productData.status);
+        form.setFieldsValue({
+          title: productData.title,
+          label: productData.label,
+          status: productData.status,
+          value: productData.value, // Thêm các trường nếu API có trả về
+          type: productData.type
+        });
       } catch (error) {
-        showErrorToast(error.message || "Lỗi khi lấy thông tin.");
+        showErrorToast("Lỗi", "Không thể lấy thông tin footer.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchFooter();
-  }, [id, setValue]);
+  }, [id, form]);
 
-  const onSubmit = async (data) => {
-    const jsonData = {
-      title: data.title || "",
-      label: data.label || "",
-      status: data.status || "",
-    };
-
+  // 2. Xử lý cập nhật
+  const onFinish = async (values) => {
+    setSubmitting(true);
     try {
-      setIsLoading(true);
-      const result = await updateFooter(id, jsonData);
-      showSuccessToast("Footer","Sửa danh mục thành công!");
-
+      await updateFooter(id, values);
+      showSuccessToast("Footer", "Cập nhật thành công!");
+      
       setTimeout(() => {
-        setIsLoading(false); // Dừng loading sau 2 giây
-
         navigate("/footer/danh-sach");
-      }, 2000);
+      }, 1500);
     } catch (error) {
-      showErrorToast(error.message || "Có lỗi xảy ra khi sửa sản phẩm.");
+      showErrorToast("Lỗi", error.message || "Có lỗi xảy ra khi sửa.");
+    } finally {
+      setSubmitting(false);
     }
   };
+
   return (
-    <div className="container mt-4">
-      <h3 className="mb-4">Sửa Footer</h3>
-      {/* {errorMessage && <div className="alert alert-info">{errorMessage}</div>} */}
-      {isLoading ? (
-        <div className="loading-container d-flex justify-content-center">
-          <ClipLoader color="#3498db" loading={isLoading} size={50} />
+    <div className="p-4" style={{ background: '#f5f5f5', minHeight: '100vh' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        
+        {/* Điều hướng & Tiêu đề */}
+        <div className="mb-4">
+          <Breadcrumb items={[{ title: 'Quản lý' }, { title: 'Footer' }, { title: 'Sửa' }]} />
+          <Button 
+            type="link" 
+            icon={<ArrowLeftOutlined />} 
+            onClick={() => navigate("/footer/danh-sach")}
+            className="p-0 mt-2"
+          >
+            Quay lại danh sách
+          </Button>
+          <Title level={2} className="mt-2">
+            <EditOutlined /> Sửa mục Footer
+          </Title>
+          <Text type="secondary">Cập nhật thông tin ID: <Tag color="blue">{id}</Tag></Text>
         </div>
-      ) : (
-        <Card>
-          <Card.Body>
-            <Form onSubmit={handleSubmit(onSubmit)}>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group controlId="title">
-                    <Form.Label>Tiêu đề</Form.Label>
-                    <Controller
-                      control={control}
-                      name="title"
-                      rules={{ required: "Tên tiêu đề là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Nhập tên tiêu đề"
-                          isInvalid={!!errors.title}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.title?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
+
+        <Card bordered={false} className="shadow-sm" style={{ borderRadius: 12 }}>
+          <Spin spinning={loading} indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}>
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={onFinish}
+            >
+              <Row gutter={24}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    label="Tiêu đề hiển thị"
+                    name="title"
+                    rules={[{ required: true, message: 'Vui lòng nhập tiêu đề!' }]}
+                  >
+                    <Input placeholder="Nhập tên tiêu đề" size="large" />
+                  </Form.Item>
                 </Col>
-                <Col md={6}>
-                  <Form.Group controlId="label">
-                    <Form.Label>Liên kết</Form.Label>
-                    <Controller
-                      control={control}
-                      name="label"
-                      rules={{ required: "Liên kết là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Nhập liên kết"
-                          isInvalid={!!errors.label}
-                        />
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.label?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
+
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    label="Liên kết / URL"
+                    name="label"
+                    rules={[{ required: true, message: 'Vui lòng nhập liên kết!' }]}
+                  >
+                    <Input placeholder="Nhập liên kết (URL, phone, email...)" size="large" />
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    label="Trạng thái"
+                    name="status"
+                    rules={[{ required: true }]}
+                  >
+                    <Select size="large">
+                      <Select.Option value="active">Kích hoạt (Hiện)</Select.Option>
+                      <Select.Option value="inactive">Không kích hoạt (Ẩn)</Select.Option>
+                    </Select>
+                  </Form.Item>
                 </Col>
               </Row>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group controlId="status">
-                    <Form.Label>Trạng thái</Form.Label>
-                    <Controller
-                      control={control}
-                      name="status"
-                      rules={{ required: "Trạng thái là bắt buộc" }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          as="select"
-                          isInvalid={!!errors.status}
-                        >
-                          <option value="active">Kích hoạt</option>
-                          <option value="inactive">Không kích hoạt</option>
-                        </Form.Control>
-                      )}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.status?.message}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Button variant="primary" type="submit" className="w-100">
-                Cập nhật danh mục
-              </Button>
+
+              <Divider />
+
+              <div className="text-end">
+                <Space>
+                  <Button size="large" onClick={() => navigate("/footer/danh-sach")}>
+                    Hủy bỏ
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    icon={<SaveOutlined />}
+                    loading={submitting}
+                    size="large"
+                    style={{ background: '#5d4037', borderColor: '#5d4037', minWidth: 150 }}
+                  >
+                    Cập nhật ngay
+                  </Button>
+                </Space>
+              </div>
             </Form>
-          </Card.Body>
+          </Spin>
         </Card>
-      )}
+      </div>
     </div>
   );
 };

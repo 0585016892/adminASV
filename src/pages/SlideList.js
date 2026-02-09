@@ -1,321 +1,253 @@
-import React, { useEffect, useState } from "react";
-import {
-  Table,
-  Button,
-  Form,
-  Row,
-  Col,
-  Pagination,
-  Modal,
-  Spinner,
-  OverlayTrigger,
-  Tooltip,
-  Badge,
-} from "react-bootstrap";
+import React, { useEffect, useState, useCallback } from "react";
+import { 
+  Table, Card, Button, Input, Select, Space, Modal, 
+  Tag, Typography, Breadcrumb, Row, Col, Image, 
+  Tooltip, Popconfirm, Empty 
+} from "antd";
+import { 
+  PlusOutlined, SearchOutlined, EditOutlined, 
+  DeleteOutlined, FileExcelOutlined, PictureOutlined,
+  EyeOutlined, SwapOutlined
+} from "@ant-design/icons";
 import { Link } from "react-router-dom";
-import { MdDelete, MdOutlineAutoFixHigh } from "react-icons/md";
 import * as XLSX from "xlsx";
-import { FiEye } from "react-icons/fi";
-import { getSlides, deleteSlideById, updateSlideStatus } from "../api/slideApi"; // giả định API
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
-import { FaPlus, FaFileExport } from "react-icons/fa";
+import { getSlides, deleteSlideById, updateSlideStatus } from "../api/slideApi";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
-const URL_WEB = process.env.REACT_APP_WEB_URL; // Cập nhật URL nếu khác
+const { Title, Text } = Typography;
+const URL_WEB = process.env.REACT_APP_WEB_URL;
 
 const SlideList = () => {
   const [slides, setSlides] = useState([]);
-  const [filters, setFilters] = useState({
-    page: 1,
-    limit: 8,
-    keyword: "",
-  });
-  const [pagination, setPagination] = useState({
-    totalPages: 1,
-    totalSlides: 0,
-    currentPage: 1,
-  });
   const [loading, setLoading] = useState(false);
-  const [slideToDelete, setSlideToDelete] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [message, setMessage] = useState("");
+  const [filters, setFilters] = useState({ page: 1, limit: 8, keyword: "" });
+  const [total, setTotal] = useState(0);
 
-  const fetchSlides = async () => {
+  const fetchSlides = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getSlides(filters);
       setSlides(data.slides);
-      setPagination({
-        totalPages: data.totalPages,
-        totalSlides: data.totalSlides,
-        currentPage: data.currentPage,
-      });
+      setTotal(data.totalSlides);
     } catch (err) {
-      console.error("Lỗi khi tải slide:", err);
+      showErrorToast("Lỗi", "Không thể tải danh sách slide");
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchSlides();
-  }, [filters]);
+  }, [fetchSlides]);
 
-  const handlePageChange = (page) => {
-    setFilters((prev) => ({ ...prev, page }));
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value, page: 1 }));
-  };
-
-  const openDeleteModal = (id) => {
-    setSlideToDelete(id);
-    setShowModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowModal(false);
-    setSlideToDelete(null);
-  };
-
-  const handleDelete = async () => {
+  const handleDelete = async (id) => {
     try {
-      await deleteSlideById(slideToDelete);
-      showSuccessToast("Slide","🗑️ Xóa  Slide thành công!.");
+      await deleteSlideById(id);
+      showSuccessToast("Thành công", "Đã xóa slide khỏi hệ thống");
       fetchSlides();
     } catch {
-      showErrorToast("Slide","Xóa slide thất bại.");
-    } finally {
-      closeDeleteModal();
+      showErrorToast("Lỗi", "Xóa slide thất bại");
+    }
+  };
 
+  const handleStatusChange = async (newStatus, slideId) => {
+    try {
+      const response = await updateSlideStatus(slideId, newStatus);
+      if (response.success) {
+        showSuccessToast("Cập nhật", "Trạng thái hiển thị đã thay đổi");
+        fetchSlides();
+      }
+    } catch {
+      showErrorToast("Lỗi", "Không thể cập nhật trạng thái");
     }
   };
 
   const handleExportToExcel = () => {
+    const dataExport = slides.map((s) => ({
+      ID: `SL00${s.id}`,
+      "Tiêu đề": s.title,
+      "Link ảnh": `${URL_WEB}/uploads/${s.image}`,
+      "Đường dẫn": s.link,
+      "Vị trí": s.display_area,
+      "Trạng thái": s.status === "active" ? "Hoạt động" : "Ẩn",
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataExport);
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(
-      slides.map((s) => ({
-        ID: s.id,
-        Tiêu_đề: s.title,
-        "Hình ảnh": `${URL_WEB}/uploads/${s.image}`,
-        "Đường dẫn": s.link,
-        "Khu vực hiển thị": s.display_area,
-        "Trạng thái": s.status ? "Hiện" : "Ẩn",
-        "Ngày bắt đầu": new Date(s.start_date).toLocaleDateString("vi-VN"),
-        "Ngày kết thúc": new Date(s.end_date).toLocaleDateString("vi-VN"),
-      }))
-    );
     XLSX.utils.book_append_sheet(wb, ws, "Slides");
-    XLSX.writeFile(wb, "slides.xlsx");
+    XLSX.writeFile(wb, "slides_report.xlsx");
   };
-  const handleStatusChange = async (e, slideId) => {
-    const newStatus = e.target.value;
-    try {
-      const response = await updateSlideStatus(slideId, newStatus);
-      if (response.success) {
-        showSuccessToast("Slide","Cập nhật trạng thái thành công!");
-        fetchSlides();
-      }
-    } catch (error) {
-      showErrorToast("Slide","Lỗi khi cập nhật trạng thái.");
-    } finally {
-      // setTimeout(() => {
-      //   setMessage("");
-      // }, 3000);
-    }
-  };
-  return (
-    <div className="container-fluid mt-md-4" style={{ paddingLeft: "35px" }}>
-      <Row className="align-items-center mb-3">
-        <Col>
-          <h4>🖼️ Danh sách slide</h4>
-          {/* {message && <div className="alert alert-success mt-2">{message}</div>} */}
-        </Col>
-       
-      </Row>
 
-      <Row className="mb-3">
-      
-        <Col md={6}>
-          <Form.Control
-            type="text"
-            placeholder="🔍 Tìm tiêu đề"
-            name="keyword"
-            value={filters.keyword}
-            onChange={handleFilterChange}
+  const columns = [
+    {
+      title: 'HÌNH ẢNH',
+      dataIndex: 'image',
+      key: 'image',
+      width: 150,
+      render: (img, record) => (
+        <div style={{ position: 'relative', width: 120, height: 60, overflow: 'hidden', borderRadius: 8 }}>
+          <Image
+            src={`${URL_WEB}/uploads/${img}`}
+            alt={record.title}
+            width={120}
+            height={60}
+            style={{ objectFit: 'cover' }}
+            fallback="https://placehold.co/600x400?text=No+Image"
           />
+        </div>
+      ),
+    },
+    {
+      title: 'THÔNG TIN SLIDE',
+      key: 'info',
+      render: (record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong style={{ fontSize: '15px' }}>{record.title}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>ID: SL00{record.id}</Text>
+          <Tag color="geekblue" style={{ marginTop: 4 }}>{record.display_area}</Tag>
+        </Space>
+      ),
+    },
+    {
+      title: 'ĐIỀU HƯỚNG',
+      dataIndex: 'link',
+      key: 'link',
+      render: (link) => (
+        <Tooltip title={link}>
+          <Button type="link" icon={<EyeOutlined />} href={link} target="_blank">
+            Xem link
+          </Button>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'TRẠNG THÁI',
+      key: 'status',
+      width: 150,
+      render: (record) => (
+        <Select
+          value={record.status}
+          onChange={(val) => handleStatusChange(val, record.id)}
+          style={{ width: 130 }}
+          bordered={false}
+          className={`status-select ${record.status}`}
+        >
+          <Select.Option value="active">
+            <Tag color="success">● Hoạt động</Tag>
+          </Select.Option>
+          <Select.Option value="inactive">
+            <Tag color="default">● Đang ẩn</Tag>
+          </Select.Option>
+        </Select>
+      ),
+    },
+    {
+      title: 'THỜI GIAN',
+      key: 'time',
+      render: (record) => (
+        <Space direction="vertical" size={0}>
+          <small>Bắt đầu: {new Date(record.start_date).toLocaleDateString("vi-VN")}</small>
+          <small>Kết thúc: {new Date(record.end_date).toLocaleDateString("vi-VN")}</small>
+        </Space>
+      ),
+    },
+    {
+      title: 'QUẢN LÝ',
+      key: 'action',
+      align: 'right',
+      render: (record) => (
+        <Space>
+          <Tooltip title="Chỉnh sửa">
+            <Link to={`/slides/edit/${record.id}`}>
+              <Button 
+                icon={<EditOutlined />} 
+                shape="circle" 
+              />
+            </Link>
+          </Tooltip>
+          <Popconfirm
+            title="Xóa Slide này?"
+            description="Dữ liệu này sẽ không thể khôi phục."
+            onConfirm={() => handleDelete(record.id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button icon={<DeleteOutlined />} danger shape="circle" />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-4" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
+      <style>{`
+        .status-select.active .ant-select-selector { font-weight: 600; color: #52c41a; }
+        .status-select.inactive .ant-select-selector { color: #8c8c8c; }
+        .slide-card .ant-table-thead > tr > th { background: #fafafa; text-transform: uppercase; font-size: 11px; color: #8c8c8c; }
+      `}</style>
+
+      {/* Header Section */}
+      <Row justify="space-between" align="middle" className="mb-4">
+        <Col>
+          <Breadcrumb items={[{ title: 'Website' }, { title: 'Quản lý Slideshow' }]} />
+          <Title level={3} style={{ marginTop: 8 }}><PictureOutlined /> Banner quảng cáo</Title>
         </Col>
-        <Col md={6} className="text-end">
-          <Button as={Link} to="/slides/create" variant="primary" className="me-2">
-            <FaPlus className="me-1" /> Thêm slide
-          </Button>
-          <Button variant="success" onClick={handleExportToExcel}>
-            <FaFileExport className="me-1" /> Xuất Excel
-          </Button>
+        <Col>
+          <Space>
+            <Button 
+              icon={<FileExcelOutlined />} 
+              onClick={handleExportToExcel}
+              disabled={slides.length === 0}
+            >
+              Xuất báo cáo
+            </Button>
+            <Button 
+              type="primary" 
+              size="large" 
+              icon={<PlusOutlined />} 
+              style={{ background: '#5d4037', borderColor: '#5d4037', borderRadius: 8 }}
+            >
+              <Link to="/slides/create" style={{ color: 'white' }}>Thêm Slide mới</Link>
+            </Button>
+          </Space>
         </Col>
       </Row>
 
-    
+      {/* Main Filter & Table */}
+      <Card className="shadow-sm border-0 slide-card" style={{ borderRadius: 16 }}>
+        <div className="mb-4 d-flex justify-content-between">
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Tìm kiếm tiêu đề slide..."
+            style={{ width: 350, borderRadius: 8 }}
+            onChange={(e) => setFilters({ ...filters, keyword: e.target.value, page: 1 })}
+          />
+          <Text type="secondary">Tổng số: <strong>{total}</strong> banner</Text>
+        </div>
 
-      {loading ? (
-          <div className="d-flex justify-content-center align-items-center py-5">
-            <Spinner animation="border" variant="primary" />
-          </div>
-        ) : (
-          <>
-            <div className="table-responsive">
-              <Table bordered hover className="text-center table-striped shadow-sm">
-                <thead className="table-dark">
-                  <tr>
-                    <th>ID</th>
-                    <th>Tiêu đề</th>
-                    <th>Hình ảnh</th>
-                    <th>Đường dẫn</th>
-                    <th>Khu vực hiển thị</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày bắt đầu</th>
-                    <th>Ngày kết thúc</th>
-                    <th>Hành động</th>
-                  </tr>
-                </thead>
+        <Table
+          columns={columns}
+          dataSource={slides}
+          loading={loading}
+          rowKey="id"
+          pagination={{
+            current: filters.page,
+            pageSize: filters.limit,
+            total: total,
+            onChange: (page) => setFilters({ ...filters, page }),
+            showSizeChanger: false,
+          }}
+          locale={{ emptyText: <Empty description="Không có dữ liệu slide" /> }}
+        />
+      </Card>
 
-                <tbody>
-                  {slides?.length === 0 ? (
-                    <tr>
-                      <td colSpan="9" className="text-center">
-                        Không có slide nào.
-                      </td>
-                    </tr>
-                  ) : (
-                    slides?.map((s) => (
-                      <tr key={s.id}>
-                        <td>SL010{s.id}</td>
-                        <td>{s.title}</td>
-                        <td >
-                          <td>
-                              <div  className="image-wrapper">
-                                {/* Loader hiển thị khi ảnh chưa load */}
-                                {!s.loaded && (
-                                  <div className="image-placeholder" style={{height:'50px'}}>
-                                  </div>
-                                )}
-                                <img
-                                  src={`${URL_WEB}/uploads/${s.image}`}
-                                  alt={s.title}
-                                  height={50}
-                                  className={`image-fade ${s.loaded ? "loaded" : ""}`}
-                                  onLoad={() => {
-                                    s.loaded = true;
-                                    setSlides((prev) => [...prev]); // Cập nhật lại để trigger re-render
-                                  }}
-                                />
-                              </div>
-                            </td>
-                        </td>
-                        <td>
-                          <a href={s.link} target="_blank" rel="noopener noreferrer">
-                            {s.link}
-                          </a>
-                        </td>
-                        <td>
-                          <Badge bg="info">{s.display_area}</Badge>
-                        </td>
-                        <td>
-                          <Form.Select
-                            size="sm"
-                            value={s.status}
-                            onChange={(e) => handleStatusChange(e, s.id)}
-                          >
-                            <option value="active">Hoạt động</option>
-                            <option value="inactive">Không hoạt động</option>
-                          </Form.Select>
-                        </td>
-                        <td>{new Date(s.start_date).toLocaleDateString("vi-VN")}</td>
-                        <td>{new Date(s.end_date).toLocaleDateString("vi-VN")}</td>
-                        <td className="d-flex gap-2 justify-content-center">
-                          <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-                            <Button
-                              as={Link}
-                              to={`/slides/edit/${s.id}`}
-                              variant="outline-primary"
-                              size="sm"
-                            >
-                              <MdOutlineAutoFixHigh />
-                            </Button>
-                          </OverlayTrigger>
-                          <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => openDeleteModal(s.id)}
-                            >
-                              <MdDelete />
-                            </Button>
-                          </OverlayTrigger>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </Table>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center mb-3 px-2">
-              <div>
-                <small className="text-muted fw-medium">
-                  Tổng cộng <strong>{pagination.totalSlides}</strong> slide
-                </small>
-              </div>
-
-              <Pagination className="m-0">
-                <Pagination.First
-                  onClick={() => handlePageChange(1)}
-                  disabled={pagination.currentPage === 1}
-                />
-                <Pagination.Prev
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={pagination.currentPage === 1}
-                />
-                {Array.from({ length: pagination.totalPages }, (_, idx) => {
-                  const page = idx + 1;
-                  return (
-                    <Pagination.Item
-                      key={page}
-                      active={page === pagination.currentPage}
-                      onClick={() => handlePageChange(page)}
-                    >
-                      {page}
-                    </Pagination.Item>
-                  );
-                })}
-                <Pagination.Next
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={pagination.currentPage === pagination.totalPages}
-                />
-                <Pagination.Last
-                  onClick={() => handlePageChange(pagination.totalPages)}
-                  disabled={pagination.currentPage === pagination.totalPages}
-                />
-              </Pagination>
-            </div>
-          </>
-        )}
-
-      <Modal show={showModal} onHide={closeDeleteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa slide</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xóa slide này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xóa
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <div className="mt-4 p-3 bg-white rounded-3 shadow-sm border">
+        <Space>
+          <SwapOutlined style={{ color: '#5d4037' }} />
+          <Text type="secondary">Mẹo: Hệ thống tự động ưu tiên hiển thị các Slide ở trạng thái "Hoạt động" theo ngày bắt đầu mới nhất.</Text>
+        </Space>
+      </div>
     </div>
   );
 };

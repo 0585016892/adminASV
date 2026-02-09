@@ -1,7 +1,22 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import io from "socket.io-client";
-import { FaSearch, FaPaperPlane } from "react-icons/fa";
+import { 
+  Layout, List, Avatar, Input, Button, Badge, 
+  Tag, Typography, Space, Tooltip, Empty 
+} from "antd";
+import { 
+  SearchOutlined, 
+  SendOutlined, 
+  UserOutlined, 
+  MessageOutlined,
+  CheckCircleOutlined,
+  MinusCircleOutlined
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+
+const { Sider, Content } = Layout;
+const { Text, Title } = Typography;
 
 const URL_WEB = process.env.REACT_APP_WEB_URL;
 const API_URL = process.env.REACT_APP_API_URL;
@@ -19,38 +34,32 @@ const ChatUser = () => {
   const messagesEndRef = useRef(null);
   const selectedUserRef = useRef(null);
 
+  // LOGIC GIỮ NGUYÊN
   useEffect(() => {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
 
   useEffect(() => {
     socket.emit("register", "admin");
-
     socket.on("update_online_users", (onlineList) => setOnlineUsers(onlineList));
-
     socket.on("receive_private_message", (msg) => {
       const sender = msg.sender;
       msg.timestamp = msg.timestamp || new Date().toISOString();
-
       setMessages((prev) => {
         const userMsgs = prev[sender] || [];
         if (userMsgs.some((m) => m.timestamp === msg.timestamp)) return prev;
         return { ...prev, [sender]: [...userMsgs, msg] };
       });
-
       if (sender !== "admin" && sender !== selectedUserRef.current) {
-        setUnreadUsers((prev) =>
-          prev.includes(sender) ? prev : [...prev, sender]
-        );
+        setUnreadUsers((prev) => prev.includes(sender) ? prev : [...prev, sender]);
       }
     });
-
     return () => socket.off("receive_private_message");
   }, []);
 
   useEffect(() => {
     axios.get(`${API_URL}/chat`).then((res) => setUsers(res.data));
-  }, []);
+  }, [API_URL]);
 
   useEffect(() => {
     if (messagesEndRef.current)
@@ -87,231 +96,173 @@ const ChatUser = () => {
     setInput("");
   };
 
+  // UI HELPERS
   const formatMessage = (content) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return content
-      .replace(
-        urlRegex,
-        (url) =>
-          `<a href="${url}" target="_blank" style="color:#0d6efd;">${url}</a>`
-      )
-      .replace(/\n/g, "<br/>");
+    return content.replace(urlRegex, (url) => 
+      `<a href="${url}" target="_blank" style="color:#1890ff; text-decoration: underline;">${url}</a>`
+    ).replace(/\n/g, "<br/>");
   };
 
-  const renderAvatar = (username) => {
-  // Xử lý nếu không phải string
-  let name = "";
-
-  if (typeof username === "string") {
-    name = username;
-  } else if (typeof username === "object" && username !== null) {
-    // Nếu là object, thử lấy các thuộc tính thường gặp
-    name = username.full_name || username.name || username.username || "";
-  }
-
-  const firstChar = name?.charAt?.(0)?.toUpperCase?.() || "?";
-
-  return (
-    <div
-      className="rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
-      style={{
-        width: 40,
-        height: 40,
-        backgroundColor: "#0d6efd",
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: "1rem",
-      }}
-    >
-      {firstChar}
-    </div>
-  );
-};
-
-
-  const filteredUsers = users.filter((user) =>
-    (user.full_name || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase().trim())
-  );
-
-  const displayedUsers = filteredUsers.filter((user) => {
-    if (filterStatus === "online")
-      return onlineUsers.includes(user.userId.toString());
-    if (filterStatus === "offline")
-      return !onlineUsers.includes(user.userId.toString());
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = (user.full_name || "").toLowerCase().includes(searchTerm.toLowerCase().trim());
+    const isOnline = onlineUsers.includes(user.userId.toString());
+    
+    if (!matchesSearch) return false;
+    if (filterStatus === "online") return isOnline;
+    if (filterStatus === "offline") return !isOnline;
     return true;
   });
 
   return (
-    <div className="d-flex flex-column flex-md-row vh-100 bg-light m-md-2">
-      {/* Sidebar */}
-      <div
-        className="col-12 col-md-3 border-end bg-white shadow-sm d-flex flex-column ms-md-3"
-        style={{ borderRadius: "16px 0 0 16px", minWidth: "250px", maxHeight: "100vh" }}
-      >
-        <div className="p-3 border-bottom">
-          <h5 className="fw-bold text-primary mb-3">💬 Hộp thoại khách hàng</h5>
-          <div className="input-group">
-            <span className="input-group-text bg-white">
-              <FaSearch />
-            </span>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Tìm kiếm..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="mt-2 d-flex gap-2 flex-wrap justify-content-center">
-            <button
-              className={`btn btn-sm ${
-                filterStatus === "all" ? "btn-primary" : "btn-outline-primary"
-              }`}
-              onClick={() => setFilterStatus("all")}
-            >
-              Tất cả
-            </button>
-            <button
-              className={`btn btn-sm ${
-                filterStatus === "online" ? "btn-success" : "btn-outline-success"
-              }`}
-              onClick={() => setFilterStatus("online")}
-            >
-              Online
-            </button>
-            <button
-              className={`btn btn-sm ${
-                filterStatus === "offline"
-                  ? "btn-secondary"
-                  : "btn-outline-secondary"
-              }`}
-              onClick={() => setFilterStatus("offline")}
-            >
-              Offline
-            </button>
-          </div>
+    <Layout style={{ height: "calc(100vh - 40px)", background: "#fff", borderRadius: 16, overflow: "hidden", margin: 20, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+      {/* Sidebar - List Users */}
+      <Sider width={320} theme="light" style={{ borderRight: "1px solid #f0f0f0" }}>
+        <div style={{ padding: 16, borderBottom: "1px solid #f0f0f0" }}>
+          <Title level={4} style={{ color: "#1890ff", marginBottom: 16 }}>
+            <MessageOutlined /> Hội thoại
+          </Title>
+          <Input
+            placeholder="Tìm khách hàng..."
+            prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ borderRadius: 8, marginBottom: 12 }}
+          />
+          <Space wrap size={4}>
+            <Button size="small" type={filterStatus === "all" ? "primary" : "default"} onClick={() => setFilterStatus("all")}>Tất cả</Button>
+            <Button size="small" type={filterStatus === "online" ? "primary" : "default"} onClick={() => setFilterStatus("online")} icon={<CheckCircleOutlined />}>Online</Button>
+            <Button size="small" type={filterStatus === "offline" ? "primary" : "default"} onClick={() => setFilterStatus("offline")}>Offline</Button>
+          </Space>
         </div>
 
-        <div className="flex-grow-1 overflow-auto px-3 py-2">
-          {displayedUsers.length === 0 && (
-            <p className="text-muted text-center mt-4">
-              Không tìm thấy người dùng
-            </p>
-          )}
-          {displayedUsers.map((user) => (
-            <div
-              key={user.userId}
-              onClick={() => handleSelectUser(user.userId)}
-              className={`d-flex align-items-center justify-content-between p-2 rounded-3 mb-2 ${
-                user.userId === selectedUser
-                  ? "bg-info bg-opacity-25 border border-info"
-                  : "bg-white"
-              }`}
-              style={{ cursor: "pointer", transition: "0.3s" }}
-            >
-              <div className="d-flex align-items-center">
-                {renderAvatar(user.full_name)}
-                <div>
-                  <strong className={user.userId === selectedUser ? "text-primary" : ""}>
-                    {user.full_name}
-                  </strong>
-                  <div style={{ fontSize: "0.8rem", color: "#6c757d" }}>
-                    {onlineUsers.includes(user.userId.toString())
-                      ? "Đang hoạt động"
-                      : "Không hoạt động"}
-                  </div>
-                </div>
-              </div>
-              {unreadUsers.includes(user.userId) && (
-                <span className="badge bg-danger rounded-pill">!</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Chat box */}
-      <div
-        className="col-12 col-md-9 d-flex flex-column bg-white shadow-sm"
-        style={{ borderRadius: "0 16px 16px 0", maxHeight: "100vh" }}
-      >
-        <div className="p-3 border-bottom bg-light d-flex align-items-center">
-          <h5 className="mb-0 text-secondary">
-            {selectedUser
-              ? `💬 Chat với ${users.find((u) => u.userId === selectedUser)?.full_name || "Khách"}`
-              : "Chọn một người để bắt đầu trò chuyện"}
-          </h5>
-        </div>
-
-        <div className="flex-grow-1 overflow-auto p-4 bg-light">
-          {(messages[selectedUser] || []).map((msg, i) => {
-            const time = new Date(msg.timestamp).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
+        <List
+          className="chat-user-list"
+          style={{ height: "calc(100% - 140px)", overflowY: "auto", padding: "8px" }}
+          dataSource={filteredUsers}
+          renderItem={(user) => {
+            const isOnline = onlineUsers.includes(user.userId.toString());
+            const isSelected = user.userId === selectedUser;
             return (
-              <div
-                key={i}
-                className={`d-flex mb-3 ${
-                   ["admin", "bot"].includes(msg.sender) ? "justify-content-end" : "justify-content-start"
-                }`}
+              <List.Item
+                onClick={() => handleSelectUser(user.userId)}
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  marginBottom: 4,
+                  border: "none",
+                  backgroundColor: isSelected ? "#e6f7ff" : "transparent",
+                  transition: "all 0.3s"
+                }}
               >
-                {msg.sender !== "admin" && renderAvatar(msg.sender)}
+                <List.Item.Meta
+                  avatar={
+                    <Badge dot status={isOnline ? "success" : "default"} offset={[-2, 32]}>
+                      <Avatar 
+                        style={{ backgroundColor: isSelected ? "#1890ff" : "#ccc" }}
+                        icon={<UserOutlined />}
+                      >
+                        {user.full_name?.charAt(0).toUpperCase()}
+                      </Avatar>
+                    </Badge>
+                  }
+                  title={<Text strong={isSelected} style={{ color: isSelected ? "#1890ff" : "inherit" }}>{user.full_name}</Text>}
+                  description={
+                    <Space size={4}>
+                      {isOnline ? <Tag color="success" style={{ fontSize: 10, lineHeight: '16px' }}>Online</Tag> : <Text type="secondary" style={{ fontSize: 12 }}>Offline</Text>}
+                    </Space>
+                  }
+                />
+                {unreadUsers.includes(user.userId) && <Badge count="!" style={{ backgroundColor: '#ff4d4f' }} />}
+              </List.Item>
+            );
+          }}
+        />
+      </Sider>
+
+      {/* Main Chat Content */}
+      <Layout style={{ background: "#fff" }}>
+        <Content style={{ display: "flex", flexDirection: "column" }}>
+          {/* Chat Header */}
+          <div style={{ padding: "16px 24px", borderBottom: "1px solid #f0f0f0", background: "#fafafa" }}>
+            {selectedUser ? (
+              <Space>
+                <Avatar icon={<UserOutlined />} />
                 <div>
-                  <div
-                    className={`p-3 rounded-4 shadow-sm ${
-                     ["admin", "bot"].includes(msg.sender)
-                        ? "bg-primary text-white"
-                        : "bg-white text-dark"
-                    }`}
-                    style={{ maxWidth: "100%" }}
-                  >
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: formatMessage(msg.content),
-                      }}
-                    />
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        textAlign: msg.sender === "admin" ? "right" : "left",
-                        opacity: 0.7,
-                        marginTop: "6px",
-                      }}
-                    >
-                      {time}
+                  <Title level={5} style={{ margin: 0 }}>
+                    {users.find(u => u.userId === selectedUser)?.full_name}
+                  </Title>
+                  <Text type="secondary" size="small">
+                    {onlineUsers.includes(selectedUser.toString()) ? "Đang hoạt động" : "Ngoại tuyến"}
+                  </Text>
+                </div>
+              </Space>
+            ) : (
+              <Text type="secondary">Vui lòng chọn một hội thoại để bắt đầu</Text>
+            )}
+          </div>
+
+          {/* Messages Area */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "24px", background: "#f0f2f5" }}>
+            {!selectedUser ? (
+              <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Empty description="Chưa có tin nhắn nào" />
+              </div>
+            ) : (
+              (messages[selectedUser] || []).map((msg, i) => {
+                const isAdmin = ["admin", "bot"].includes(msg.sender);
+                return (
+                  <div key={i} style={{ display: "flex", justifyContent: isAdmin ? "flex-end" : "flex-start", marginBottom: 16 }}>
+                    {!isAdmin && <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: 8, marginTop: 4 }} />}
+                    <div style={{ maxWidth: "70%" }}>
+                      <div style={{
+                        padding: "10px 16px",
+                        borderRadius: isAdmin ? "16px 16px 2px 16px" : "16px 16px 16px 2px",
+                        background: isAdmin ? "#1890ff" : "#fff",
+                        color: isAdmin ? "#fff" : "#000",
+                        boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
+                      }}>
+                        <div dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: "#8c8c8c", marginTop: 4, textAlign: isAdmin ? "right" : "left" }}>
+                        {dayjs(msg.timestamp).format("HH:mm")}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {selectedUser && (
-          <div className="p-3 border-top bg-white d-flex align-items-center gap-2 flex-nowrap">
-            <input
-              type="text"
-              className="form-control rounded-pill flex-grow-1"
-              placeholder="Nhập tin nhắn..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            />
-            <button
-              className="btn btn-primary rounded-circle flex-shrink-0"
-              style={{ width: 45, height: 45 }}
-              onClick={sendMessage}
-            >
-              <FaPaperPlane />
-            </button>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Chat Input */}
+          {selectedUser && (
+            <div style={{ padding: "16px 24px", borderTop: "1px solid #f0f0f0" }}>
+              <Space.Compact style={{ width: "100%" }}>
+                <Input
+                  size="large"
+                  placeholder="Nhập tin nhắn..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onPressEnter={sendMessage}
+                  autoFocus
+                />
+                <Button 
+                  size="large" 
+                  type="primary" 
+                  icon={<SendOutlined />} 
+                  onClick={sendMessage}
+                  disabled={!input.trim()}
+                >
+                  Gửi
+                </Button>
+              </Space.Compact>
+            </div>
+          )}
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 

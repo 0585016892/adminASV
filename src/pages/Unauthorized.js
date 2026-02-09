@@ -1,67 +1,72 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { FaExclamationTriangle } from "react-icons/fa";
+import { Result, Button, Typography, Card } from "antd";
+import { HomeOutlined, LockOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+
+const { Text } = Typography;
 
 const Unauthorized = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div
-      className="d-flex justify-content-center align-items-center"
       style={{
         height: "100vh",
-        background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#f0f2f5", // Màu nền chuẩn của Ant Design
       }}
     >
-      <div
-        className="text-center p-5 rounded-4 shadow"
+      <Card
+        bordered={false}
+        className="shadow-sm"
         style={{
-          background: "#fff",
-          maxWidth: "450px",
-          width: "90%",
-          animation: "fadeIn 0.8s ease-in-out",
+          maxWidth: 500,
+          borderRadius: 16,
+          textAlign: "center",
         }}
       >
-        <div
-          className="d-flex justify-content-center align-items-center mb-4"
-          style={{
-            width: "100px",
-            height: "100px",
-            margin: "0 auto",
-            borderRadius: "50%",
-            background: "rgba(220,53,69,0.1)",
-          }}
-        >
-          <FaExclamationTriangle size={50} color="#dc3545" />
-        </div>
-        <h2 className="fw-bold mb-3" style={{ color: "#dc3545" }}>
-          Không có quyền truy cập
-        </h2>
-        <p className="text-muted mb-4">
-          Xin lỗi <span className="fw-semibold">{user?.full_name || "bạn"}</span>, bạn không đủ quyền để truy cập trang này.
-        </p>
-        <Link
-          to="/"
-          className="btn btn-primary return-tt px-4 py-2 fw-semibold"
-          style={{ transition: "0.3s" }}
-        >
-           Quay về trang chủ
-        </Link>
-      </div>
-
-      <style>
-        {`
-          @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(-20px);}
-            100% { opacity: 1; transform: translateY(0);}
+        <Result
+          status="403" // Trạng thái Forbidden chuẩn
+          icon={<LockOutlined style={{ color: "#ff4d4f", fontSize: 64 }} />}
+          title={<span style={{ fontWeight: 700 }}>TRUY CẬP BỊ TỪ CHỐI</span>}
+          subTitle={
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">
+                Xin lỗi <Text strong>{user?.full_name || "bạn"}</Text>, tài khoản của bạn (Role: <Text code>{user?.role || "Khách"}</Text>) không có đủ đặc quyền để xem nội dung này.
+              </Text>
+            </div>
           }
-          .return-tt:hover {
-            background-color: #b02a37;
-            border-color: #b02a37;
-          }
-        `}
-      </style>
+          extra={[
+            <Button
+              type="primary"
+              size="large"
+              key="console"
+              icon={<HomeOutlined />}
+              onClick={() => navigate("/")}
+              style={{
+                borderRadius: 8,
+                height: 45,
+                padding: "0 30px",
+                background: "#1890ff",
+              }}
+            >
+              Về trang chủ
+            </Button>,
+            <Button 
+                key="back" 
+                size="large" 
+                onClick={() => navigate(-1)}
+                style={{ borderRadius: 8, height: 45 }}
+            >
+              Quay lại
+            </Button>,
+          ]}
+        />
+      </Card>
     </div>
   );
 };

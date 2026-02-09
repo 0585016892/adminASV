@@ -1,506 +1,305 @@
-import React, { useEffect, useState } from "react";
-import {
-  Table,
-  Button,
-  Form,
-  Row,
-  Col,
-  Pagination,
-  Modal,
-  Spinner,
-  OverlayTrigger,
-  Tooltip,
-} from "react-bootstrap";
-import { Link } from "react-router-dom";
-import {
-  MdDelete,
-  MdOutlineAutoFixHigh,
-  MdArrowDropDown,
-} from "react-icons/md";
+import React, { useEffect, useState, useCallback } from "react";
+import { 
+  Table, Card, Button, Input, Select, Space, Modal, 
+  Tag, Typography, Breadcrumb, Row, Col, Tooltip, 
+  Popconfirm, Form, Badge, Empty 
+} from "antd";
+import { 
+  PlusOutlined, SearchOutlined, EditOutlined, 
+  DeleteOutlined, FileExcelOutlined, FolderAddOutlined,
+  LinkOutlined, PhoneOutlined, MailOutlined, HomeOutlined,
+  DownOutlined, RightOutlined
+} from "@ant-design/icons";
+import { Link, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import {
   getFooters,
   deleteFooterById,
   updateFooterStatus,
   addFooterChild,
-} from "../api/footerApi"; // API giả định
-import { showSuccessToast ,showErrorToast} from "../ultis/toastUtils";
-import { FaPlus, FaFileExport } from "react-icons/fa";
+} from "../api/footerApi";
+import { showSuccessToast, showErrorToast } from "../ultis/toastUtils";
 
-import { IoMdArrowDropup } from "react-icons/io";
+const { Title, Text } = Typography;
+
 const FooterList = () => {
+  const navigate = useNavigate();
+  const [form] = Form.useForm();
   const [footers, setFooters] = useState([]);
-  const [filters, setFilters] = useState({ page: 1, limit: 12, keyword: "" });
-  const [pagination, setPagination] = useState({
-    totalPages: 1,
-    totalFooters: 0,
-    currentPage: 1,
-  });
   const [loading, setLoading] = useState(false);
-  const [footerToDelete, setFooterToDelete] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [message, setMessage] = useState("");
-  const [expandedGroups, setExpandedGroups] = useState([]);
-  //lọc và get
-  useEffect(() => {
-    fetchFooters();
-  }, [filters]);
+  const [filters, setFilters] = useState({ page: 1, limit: 12, keyword: "" });
+  const [total, setTotal] = useState(0);
 
-  const fetchFooters = async () => {
+  // Modal State
+  const [isAddChildVisible, setIsAddChildVisible] = useState(false);
+  const [currentParentId, setCurrentParentId] = useState(null);
+
+  const fetchFooters = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getFooters(filters);
-      setFooters(data.footers);
-      setPagination({
-        totalPages: data.totalPages,
-        totalFooters: data.totalFooters,
-        currentPage: data.currentPage,
-      });
+      // Ant Design Table cần field 'key', dùng 'id' để thay thế
+      const mappedData = data.footers.map(f => ({ ...f, key: f.id }));
+      setFooters(mappedData);
+      setTotal(data.totalFooters);
     } catch (err) {
-      console.error("Lỗi khi tải footer:", err);
+      showErrorToast("Lỗi", "Không thể tải danh sách footer");
     } finally {
       setLoading(false);
     }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchFooters();
+  }, [fetchFooters]);
+
+  // Xử lý Export Excel
+  const handleExport = () => {
+    const dataToExport = footers.map((f) => ({
+      ID: `FOO0${f.id}`,
+      "Tiêu đề": f.title,
+      "Liên kết/Giá trị": f.label,
+      "Loại": f.type,
+      "Trạng thái": f.status === "active" ? "Hoạt động" : "Ẩn",
+      "Ngày tạo": new Date(f.created_at).toLocaleDateString("vi-VN"),
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Footers");
+    XLSX.writeFile(wb, "Danh_sach_Footer.xlsx");
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value, page: 1 }));
-  };
-
-  const handlePageChange = (page) => {
-    setFilters((prev) => ({ ...prev, page }));
-  };
-  //xóa
-  const openDeleteModal = (id) => {
-    setFooterToDelete(id);
-    setShowModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setFooterToDelete(null);
-    setShowModal(false);
-  };
-
-  const handleDelete = async () => {
+  // Cập nhật trạng thái nhanh
+  const onStatusChange = async (id, status) => {
     try {
-      await deleteFooterById(footerToDelete);
-      showSuccessToast("Footer","🗑️ Xóa Footer thành công!.");
+      await updateFooterStatus(id, status);
+      showSuccessToast("Thành công", "Đã cập nhật trạng thái");
       fetchFooters();
     } catch {
-      showErrorToast("Footer","Xóa Footer thất bại.");
-    } finally {
-      closeDeleteModal();
+      showErrorToast("Lỗi", "Không thể cập nhật trạng thái");
     }
   };
-  //excel
-  const handleExportToExcel = () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(
-      footers.map((f) => ({
-        STT: f.id,
-        Tiêu_đề: f.title,
-        "Liên kết": f.label,
-        Loại: f.type,
-        "Trạng thái": f.status === "active" ? "Hoạt động" : "Không hoạt động",
-        "Ngày tạo": new Date(f.created_at).toLocaleDateString("vi-VN"),
-      }))
-    );
-    XLSX.utils.book_append_sheet(wb, ws, "Footers");
-    XLSX.writeFile(wb, "footers.xlsx");
-  };
-  //status
-  const handleStatusChange = async (e, footerId) => {
-    const newStatus = e.target.value;
+
+  // Thêm danh mục con
+  const handleAddChild = async (values) => {
     try {
-      const response = await updateFooterStatus(footerId, newStatus);
-      if (response.success) {
-        showSuccessToast("Footer","Cập nhật trạng thái thành công!");
-        fetchFooters();
+      await addFooterChild({ ...values, parent_id: currentParentId });
+      showSuccessToast("Thành công", "Đã thêm danh mục con");
+      setIsAddChildVisible(false);
+      form.resetFields();
+      fetchFooters();
+    } catch {
+      showErrorToast("Lỗi", "Không thể thêm danh mục con");
+    }
+  };
+
+  const columns = [
+    {
+      title: 'MÃ',
+      dataIndex: 'id',
+      key: 'id',
+      width: 100,
+      render: (id, record) => (
+        <Text type="secondary">{record.parent_id ? `↳ FO0${id}` : `FOO0${id}`}</Text>
+      ),
+    },
+    {
+      title: 'TIÊU ĐỀ',
+      dataIndex: 'title',
+      key: 'title',
+      render: (text, record) => (
+        <Text strong={!record.parent_id}>{text}</Text>
+      ),
+    },
+    {
+      title: 'LIÊN KẾT / GIÁ TRỊ',
+      dataIndex: 'label',
+      key: 'label',
+      render: (label, record) => {
+        if (!label) return <Text type="secondary">—</Text>;
+        const icons = {
+          phone: <PhoneOutlined />,
+          email: <MailOutlined />,
+          address: <HomeOutlined />,
+          link: <LinkOutlined />
+        };
+        return (
+          <Space>
+            {icons[record.value] || icons.link}
+            <Text ellipsis style={{ maxWidth: 200 }}>{label}</Text>
+          </Space>
+        );
       }
-    } catch {
-      showErrorToast("Footer","Lỗi khi cập nhật trạng thái.");
-    } finally {
-      // setTimeout(() => setMessage(""), 3000);
-    }
-  };
-
-  // Hàm toggle hiển thị con
-  const toggleGroup = (groupId) => {
-    console.log(expandedGroups); // Kiểm tra các nhóm đã mở rộng
-    setExpandedGroups((prev) =>
-      prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
-    );
-  };
-  // thêm con
-  const [showAddChildModal, setShowAddChildModal] = useState(false);
-  const [newChildData, setNewChildData] = useState({
-    title: "",
-    label: "",
-    value: "",
-    type: "",
-    parent_id: null,
-    status: "",
-  });
-
-  const handleAddChild = (groupId) => {
-    setNewChildData({ ...newChildData, parent_id: groupId });
-    setShowAddChildModal(true); // Hiển thị modal để thêm danh mục con
-  };
-
-  const handleAddChildSubmit = async () => {
-    try {
-      console.log(newChildData);
-
-      // Gửi yêu cầu thêm danh mục con lên backend
-      await addFooterChild(newChildData); // API thêm footer con
-
-      fetchFooters(); // Cập nhật lại danh sách
-      setShowAddChildModal(false);
-      showSuccessToast("Footer","Đã thêm danh mục con!");
-    } catch {
-      showErrorToast("Footer","Lỗi khi thêm danh mục con.");
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewChildData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const getChildFooters = (groupId) => {
-    // Tìm footer có ID trùng khớp trong children
-    const parentFooter = footers.find((f) => String(f.id) === String(groupId));
-    if (parentFooter && parentFooter.children) {
-      return parentFooter.children;
-    } else {
-      return []; // Nếu không tìm thấy hoặc không có children
-    }
-  };
-  const renderFooterRow = (f, isChild = false) => (
-    <tr key={f.id} className={isChild ? "table-secondary" : ""}>
-      <td>{isChild ? `↳ FO0${f.id}` : `FOO0${f.id}`}</td>
-      <td
-        className={`${isChild ? "text-start ps-4" : ""} text-truncate`}
-        style={{ maxWidth: "200px" }}
-      >
-        {f.title}
-      </td>
-      <td>
-        {f.value === "phone" && f.label ? (
-          <a
-            href={`tel:${f.label.replace(/\s+/g, "")}`}
-            className="text-decoration-none"
-          >
-            {f.label}
-          </a>
-        ) : f.value === "email" && f.label ? (
-          <a href={`mailto:${f.label}`} className="text-decoration-none">
-            {f.label}
-          </a>
-        ) : f.value === "address" && f.label ? (
-          <a
-            href="https://daotaodaihoc.humg.edu.vn/#/home"
-            className="text-decoration-none"
-          >
-            {f.label}
-          </a>
-        ) : f.value === "link" && f.label ? (
-          <a href={f.label} target="_blank" rel="noopener noreferrer">
-            {f.label}
-          </a>
-        ) : (
-          "—"
-        )}
-      </td>
-      <td>
-        <Form.Select
-          size="sm"
-          value={f.status}
-          onChange={(e) => handleStatusChange(e, f.id)}
+    },
+    {
+      title: 'TRẠNG THÁI',
+      dataIndex: 'status',
+      key: 'status',
+      width: 150,
+      render: (status, record) => (
+        <Select 
+          size="small" 
+          value={status} 
+          style={{ width: 120 }}
+          onChange={(val) => onStatusChange(record.id, val)}
         >
-          <option value="active">Hoạt động</option>
-          <option value="inactive">Không hoạt động</option>
-        </Form.Select>
-      </td>
-      <td>{new Date(f.created_at).toLocaleDateString("vi-VN")}</td>
-      <td className="d-flex gap-2 justify-content-center">
-        {!isChild && f.type === "group" && (
-          <>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => toggleGroup(f.id)}
-              className="p-0 "
-            >
-              {expandedGroups.includes(f.id) ? (
-                <OverlayTrigger overlay={<Tooltip>Danh sách</Tooltip>}>
-                  <Button variant="outline-secondary" size="sm">
-                    <MdArrowDropDown size={20} />
-                  </Button>
-                </OverlayTrigger>
-              ) : (
-                <OverlayTrigger overlay={<Tooltip>Danh sách</Tooltip>}>
-                  <Button variant="outline-secondary" size="sm">
-                    <IoMdArrowDropup size={20} />
-                  </Button>
-                </OverlayTrigger>
-              )}
-            </Button>
-            <OverlayTrigger overlay={<Tooltip>Thêm danh sách con</Tooltip>}>
-              <Button
-                variant="outline-info"
-                size="sm"
-                onClick={() => handleAddChild(f.id)} // Nút thêm danh mục con
-              >
-                ➕
-              </Button>
-            </OverlayTrigger>
-          </>
-        )}
-        <OverlayTrigger overlay={<Tooltip>Sửa</Tooltip>}>
-          <Button
-            as={Link}
-            to={`/footers/edit/${f.id}`}
-            variant="outline-info"
-            size="sm"
+          <Select.Option value="active"><Tag color="success">Hoạt động</Tag></Select.Option>
+          <Select.Option value="inactive"><Tag color="default">Tạm ẩn</Tag></Select.Option>
+        </Select>
+      ),
+    },
+    {
+      title: 'THAO TÁC',
+      key: 'action',
+      align: 'right',
+      render: (record) => (
+        <Space>
+          {!record.parent_id && record.type === "group" && (
+            <Tooltip title="Thêm mục con">
+              <Button 
+                icon={<FolderAddOutlined />} 
+                size="small" 
+                onClick={() => {
+                  setCurrentParentId(record.id);
+                  setIsAddChildVisible(true);
+                }}
+              />
+            </Tooltip>
+          )}
+          <Tooltip title="Sửa">
+            <Button 
+              icon={<EditOutlined />} 
+              size="small" 
+              onClick={() => navigate(`/footers/edit/${record.id}`)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Xóa footer này?"
+            description="Lưu ý: Các mục con cũng sẽ bị ảnh hưởng."
+            onConfirm={() => deleteFooterById(record.id).then(fetchFooters)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
           >
-            <MdOutlineAutoFixHigh />
-          </Button>
-        </OverlayTrigger>
-        <OverlayTrigger overlay={<Tooltip>Xóa</Tooltip>}>
-          <Button
-            variant="outline-danger"
-            size="sm"
-            onClick={() => openDeleteModal(f.id)}
-          >
-            <MdDelete />
-          </Button>
-        </OverlayTrigger>
-      </td>
-    </tr>
-  );
+            <Button icon={<DeleteOutlined />} size="small" danger />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="container-fluid mt-md-4  " style={{ paddingLeft: "35px" }}>
-      <Row className="align-items-center mb-3">
-        <Col>
-          <h4>📜 Danh sách footer</h4>
-        </Col>
-       
-      </Row>
+    <div className="p-4" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
+      {/* Header */}
+      <div className="mb-4">
+        <Breadcrumb items={[{ title: 'Hệ thống' }, { title: 'Cấu hình Footer' }]} />
+        <Row justify="space-between" align="middle" style={{ marginTop: 12 }}>
+          <Col>
+            <Title level={3} style={{ margin: 0 }}>📜 Quản lý Footer Website</Title>
+          </Col>
+          <Col>
+            <Space>
+              <Button icon={<FileExcelOutlined />} onClick={handleExport}>Xuất Excel</Button>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                style={{ background: '#5d4037', borderColor: '#5d4037' }}
+                onClick={() => navigate("/footers/create")}
+              >
+                Thêm Footer chính
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
 
-      <Row className="mb-3">
-        <Col md={5}>
-          <Form.Control
-            type="text"
-            placeholder="🔍 Tìm tiêu đề"
-            name="keyword"
-            value={filters.keyword}
-            onChange={handleFilterChange}
-          />
-        </Col>
-        <Col className="text-end">
-          <Button as={Link} to="/footers/create" style={{marginRight:3}} variant="primary">
-             <FaPlus className="me-1" />  Thêm footer
-          </Button>
-          <Button variant="success" onClick={handleExportToExcel}>
-            <FaFileExport className="me-1" /> Xuất Excel
-          </Button>
-        </Col>
-      </Row>
+      {/* Filter Bar */}
+      <Card className="mb-4 shadow-sm border-0" style={{ borderRadius: 12 }}>
+        <Input 
+          prefix={<SearchOutlined />} 
+          placeholder="Tìm nhanh theo tiêu đề footer..." 
+          size="large"
+          allowClear
+          style={{ maxWidth: 400 }}
+          onChange={(e) => setFilters({ ...filters, keyword: e.target.value, page: 1 })}
+        />
+      </Card>
 
-    {loading ? (
-        <div className="text-center py-5 my-4 d-flex justify-content-center align-items-center">
-          <Spinner animation="border" variant="primary" />
-        </div>
-      ) : (
-        <>
-          <div className="table-responsive">
-            <Table bordered hover className="text-center table-striped shadow-sm">
-              <thead  className="table-dark">
-                <tr>
-                  <th>ID</th>
-                  <th>Tiêu đề</th>
-                  <th>Liên kết</th>
-                  <th>Trạng thái</th>
-                  <th>Ngày tạo</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {footers?.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center text-muted">
-                      Không có footer nào.
-                    </td>
-                  </tr>
+      {/* Main Table */}
+      <Card className="shadow-sm border-0" style={{ borderRadius: 16 }}>
+        <Table 
+          columns={columns} 
+          dataSource={footers.filter(f => !f.parent_id)} // Chỉ hiện cha ở ngoài cùng
+          loading={loading}
+          expandable={{
+            // Tự động lấy children từ data
+            expandedRowRender: (record) => (
+              <Table 
+                columns={columns} 
+                dataSource={record.children || []} 
+                pagination={false} 
+                size="small"
+                bordered
+                showHeader={false}
+                rowKey="id"
+              />
+            ),
+            rowExpandable: (record) => record.children?.length > 0 || record.type === "group",
+            expandIcon: ({ expanded, onExpand, record }) =>
+              record.type === "group" ? (
+                expanded ? (
+                  <DownOutlined onClick={e => onExpand(record, e)} style={{ marginRight: 8 }} />
                 ) : (
-                  footers
-                    .filter((f) => !f.parent_id)
-                    .map((f) => (
-                      <React.Fragment key={f.id}>
-                        {renderFooterRow(f)}
-                        {expandedGroups.includes(f.id) && (
-                          <tr>
-                            <td colSpan="6" className="p-0 bg-light">
-                              <div className="p-2">
-                                <Table bordered size="sm" className="mb-0">
-                                  <thead  className="table-dark">
-                                    <tr>
-                                      <th>ID</th>
-                                      <th>Tiêu đề</th>
-                                      <th>Liên kết</th>
-                                      <th>Trạng thái</th>
-                                      <th>Ngày tạo</th>
-                                      <th>Hành động</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {getChildFooters(f.id).map((child) =>
-                                      renderFooterRow(child, true)
-                                    )}
-                                  </tbody>
-                                </Table>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))
-                )}
-              </tbody>
-            </Table>
-          </div>
+                  <RightOutlined onClick={e => onExpand(record, e)} style={{ marginRight: 8 }} />
+                )
+              ) : <span style={{ marginRight: 22 }} />
+          }}
+          pagination={{
+            current: filters.page,
+            pageSize: filters.limit,
+            total: total,
+            onChange: (page) => setFilters({ ...filters, page })
+          }}
+        />
+      </Card>
 
-          <div className="d-flex justify-content-between align-items-center mb-3 px-2">
-            <small className="text-muted fw-medium">
-              Tổng cộng <strong>{pagination.totalFooters}</strong> footer
-            </small>
-            <Pagination className="m-0">
-              <Pagination.First
-                onClick={() => handlePageChange(1)}
-                disabled={pagination.currentPage === 1}
-              />
-              <Pagination.Prev
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1}
-              />
-              {Array.from({ length: pagination.totalPages }, (_, i) => (
-                <Pagination.Item
-                  key={i + 1}
-                  active={i + 1 === pagination.currentPage}
-                  onClick={() => handlePageChange(i + 1)}
-                >
-                  {i + 1}
-                </Pagination.Item>
-              ))}
-              <Pagination.Next
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.totalPages}
-              />
-              <Pagination.Last
-                onClick={() => handlePageChange(pagination.totalPages)}
-                disabled={pagination.currentPage === pagination.totalPages}
-              />
-            </Pagination>
-          </div>
-        </>
-      )}
-
+      {/* Modal Thêm Con */}
       <Modal
-        show={showAddChildModal}
-        onHide={() => setShowAddChildModal(false)}
+        title={`➕ Thêm mục con vào nhóm [ID: ${currentParentId}]`}
+        open={isAddChildVisible}
+        onCancel={() => setIsAddChildVisible(false)}
+        onOk={() => form.submit()}
+        destroyOnClose
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Thêm danh mục con</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Tiêu đề</Form.Label>
-              <Form.Control
-                type="text"
-                name="title"
-                value={newChildData.title}
-                onChange={handleInputChange}
-                placeholder="Nhập tiêu đề"
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Liên kết</Form.Label>
-              <Form.Control
-                type="text"
-                name="label"
-                value={newChildData.label}
-                onChange={handleInputChange}
-                placeholder="Nhập liên kết"
-              />
-            </Form.Group>
-            <Form.Group>
-              <Form.Label>Giá trị (link hoặc nội dung)</Form.Label>
-              <Form.Control
-                type="text"
-                name="value"
-                value={newChildData.value}
-                onChange={handleInputChange}
-              />
-            </Form.Group>
-            <Form.Group>
-              <Form.Label>Loại</Form.Label>
-              <Form.Select
-                name="type"
-                value={newChildData.type}
-                onChange={handleInputChange}
-              >
-                <option value="">---Loại---</option>
-                <option value="link">Link</option>
-                <option value="text">Text</option>
-              </Form.Select>
-            </Form.Group>
-            <Form.Group>
-              <Form.Label>Trạng thái</Form.Label>
-              <Form.Select
-                name="status"
-                value={newChildData.status}
-                onChange={handleInputChange}
-              >
-                <option value="">---Chọn trạng thái---</option>
-                <option value="active">Hiển thị</option>
-                <option value="inactive">Ẩn</option>
-              </Form.Select>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowAddChildModal(false)}
-          >
-            Hủy
-          </Button>
-          <Button variant="primary" onClick={handleAddChildSubmit}>
-            Thêm
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      <Modal show={showModal} onHide={closeDeleteModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa footer</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Bạn có chắc chắn muốn xóa footer này không?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeDeleteModal}>
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Xóa
-          </Button>
-        </Modal.Footer>
+        <Form form={form} layout="vertical" onFinish={handleAddChild}>
+          <Form.Item name="title" label="Tiêu đề hiển thị" rules={[{ required: true }]}>
+            <Input placeholder="Ví dụ: Chính sách bảo mật" />
+          </Form.Item>
+          <Form.Item name="label" label="Đường dẫn / Nội dung" rules={[{ required: true }]}>
+            <Input placeholder="URL hoặc số điện thoại..." />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="value" label="Loại dữ liệu" rules={[{ required: true }]}>
+                <Select placeholder="Chọn loại">
+                  <Select.Option value="link">Đường dẫn (Link)</Select.Option>
+                  <Select.Option value="phone">Số điện thoại</Select.Option>
+                  <Select.Option value="email">Email</Select.Option>
+                  <Select.Option value="text">Văn bản thuần</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="status" label="Trạng thái" initialValue="active">
+                <Select>
+                  <Select.Option value="active">Hiển thị</Select.Option>
+                  <Select.Option value="inactive">Ẩn</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="type" initialValue="link" hidden><Input /></Form.Item>
+        </Form>
       </Modal>
     </div>
   );
