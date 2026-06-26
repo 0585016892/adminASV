@@ -1,12 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { 
-  Modal, Form, Input, Select, Upload, 
-  Typography, Space, Button, Divider, message ,Col, Row,Tooltip
+import {
+  Modal,
+  Form,
+  Input,
+  Select,
+  Upload,
+  Typography,
+  Space,
+  Button,
+  Divider,
+  message,
+  Col,
+  Row,
+  Tooltip,
 } from "antd";
-import { 
-  PlusOutlined, InfoCircleOutlined, 
-  PictureOutlined, GlobalOutlined, 
-  EditOutlined 
+import {
+  PlusOutlined,
+  InfoCircleOutlined,
+  PictureOutlined,
+  GlobalOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 
 const { Text, Title } = Typography;
@@ -58,28 +71,39 @@ const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
   };
 
   const handleFormSubmit = () => {
-    form.validateFields()
+    form
+      .validateFields()
       .then((values) => {
-        // Gắn file thực tế từ fileList vào values
+        // Lấy file thực tế an toàn (Sửa lỗi dính undefined)
+        let selectFile = null;
+        if (fileList.length > 0) {
+          // Nếu có originFileObj thì lấy (ảnh cũ), nếu không thì lấy chính fileList[0] (ảnh mới upload)
+          selectFile = fileList[0]?.originFileObj || fileList[0];
+        }
+
         const submitData = {
           ...values,
           id: initialData?.id,
-          image: fileList[0]?.originFileObj || initialData?.image,
+          image: selectFile, // Gán file đã bóc tách an toàn vào đây
         };
+
+        // In ra để bạn kiểm tra chắc chắn ở F12 xem 'image' đã có dữ liệu chưa
+        console.log("submitData chuẩn bị gửi đi:", submitData);
+
         onSave(submitData);
       })
       .catch((info) => {
         console.log("Validate Failed:", info);
       });
   };
-
   // Cấu hình cho Upload ảnh
   const uploadProps = {
     onRemove: () => setFileList([]),
     beforeUpload: (file) => {
-      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      const isJpgOrPng =
+        file.type === "image/jpeg" || file.type === "image/png";
       if (!isJpgOrPng) {
-        message.error('Bạn chỉ có thể tải lên file JPG/PNG!');
+        message.error("Bạn chỉ có thể tải lên file JPG/PNG!");
         return Upload.LIST_IGNORE;
       }
       setFileList([file]);
@@ -109,18 +133,22 @@ const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
         <Button key="back" onClick={onHide} style={{ borderRadius: 8 }}>
           Hủy bỏ
         </Button>,
-        <Button 
-          key="submit" 
-          type="primary" 
+        <Button
+          key="submit"
+          type="primary"
           onClick={handleFormSubmit}
-          style={{ background: "#5d4037", borderColor: "#5d4037", borderRadius: 8 }}
+          style={{
+            background: "#5d4037",
+            borderColor: "#5d4037",
+            borderRadius: 8,
+          }}
         >
           {isEdit ? "Lưu thay đổi" : "Thêm mới ngay"}
-        </Button>
+        </Button>,
       ]}
     >
       <Divider style={{ margin: "12px 0" }} />
-      
+
       <Form
         form={form}
         layout="vertical"
@@ -132,11 +160,13 @@ const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
             <Form.Item
               name="name"
               label={<Text strong>Tên bộ sưu tập</Text>}
-              rules={[{ required: true, message: "Vui lòng không để trống tiêu đề" }]}
+              rules={[
+                { required: true, message: "Vui lòng không để trống tiêu đề" },
+              ]}
             >
-              <Input 
-                size="large" 
-                placeholder="Ví dụ: Thu Đông 2026 - Acoustic Vibe" 
+              <Input
+                size="large"
+                placeholder="Ví dụ: Thu Đông 2026 - Acoustic Vibe"
                 onChange={handleNameChange}
                 style={{ borderRadius: 8 }}
                 // Tooltip xử lý khi tiêu đề quá dài
@@ -153,22 +183,27 @@ const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
             <Form.Item
               name="slug"
               label={<Text strong>Slug đường dẫn</Text>}
-              extra={<Text type="secondary" style={{ fontSize: 12 }}>Đường dẫn tĩnh chuẩn SEO, được tạo tự động từ tên.</Text>}
+              extra={
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Đường dẫn tĩnh chuẩn SEO, được tạo tự động từ tên.
+                </Text>
+              }
             >
-              <Input 
-                size="large" 
-                prefix={<GlobalOutlined />} 
-                readOnly 
-                style={{ background: "#f5f5f5", color: "#8c8c8c", borderRadius: 8 }} 
+              <Input
+                size="large"
+                prefix={<GlobalOutlined />}
+                readOnly
+                style={{
+                  background: "#f5f5f5",
+                  color: "#8c8c8c",
+                  borderRadius: 8,
+                }}
               />
             </Form.Item>
           </Col>
 
           <Col span={12}>
-            <Form.Item
-              name="status"
-              label={<Text strong>Trạng thái</Text>}
-            >
+            <Form.Item name="status" label={<Text strong>Trạng thái</Text>}>
               <Select size="large" style={{ borderRadius: 8 }}>
                 <Select.Option value="active">Đang kích hoạt</Select.Option>
                 <Select.Option value="inactive">Tạm ẩn</Select.Option>
@@ -193,16 +228,24 @@ const CollectionModal = ({ show, onHide, onSave, initialData = null }) => {
           </Col>
 
           <Col span={24}>
-            <Form.Item
-              label={<Text strong>Ảnh bìa bộ sưu tập</Text>}
-              required
-            >
-              <div style={{ background: "#fafafa", padding: "20px", borderRadius: "12px", border: "1px dashed #d9d9d9" }}>
+            <Form.Item label={<Text strong>Ảnh bìa bộ sưu tập</Text>} required>
+              <div
+                style={{
+                  background: "#fafafa",
+                  padding: "20px",
+                  borderRadius: "12px",
+                  border: "1px dashed #d9d9d9",
+                }}
+              >
                 <Upload {...uploadProps}>
                   {fileList.length < 1 && (
                     <div>
-                      <PictureOutlined style={{ fontSize: 24, color: "#5d4037" }} />
-                      <div style={{ marginTop: 8, color: "#5d4037" }}>Tải ảnh lên</div>
+                      <PictureOutlined
+                        style={{ fontSize: 24, color: "#5d4037" }}
+                      />
+                      <div style={{ marginTop: 8, color: "#5d4037" }}>
+                        Tải ảnh lên
+                      </div>
                     </div>
                   )}
                 </Upload>

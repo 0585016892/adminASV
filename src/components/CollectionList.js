@@ -1,14 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Table, Input, Select, Button, Tag, Typography, 
-  Space,  Breadcrumb, ConfigProvider, Tooltip, 
-  Avatar, Modal, Badge
+import {
+  Table,
+  Input,
+  Select,
+  Button,
+  Tag,
+  Typography,
+  Space,
+  Breadcrumb,
+  ConfigProvider,
+  Tooltip,
+  Avatar,
+  Modal,
+  Badge,
 } from "antd";
-import { 
-  SearchOutlined, PlusOutlined, EditOutlined, 
-  DeleteOutlined, ExclamationCircleOutlined, 
-  FolderOpenOutlined, 
-  CalendarOutlined, PictureOutlined
+import {
+  SearchOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  FolderOpenOutlined,
+  CalendarOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import CollectionModal from "./CollectionModal";
 import {
@@ -56,12 +70,12 @@ const CollectionList = () => {
 
   const showDeleteConfirm = (id) => {
     confirm({
-      title: 'Xác nhận xóa bộ sưu tập?',
-      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-      content: 'Dữ liệu liên quan sẽ bị ảnh hưởng. Bạn chắc chắn chứ?',
-      okText: 'Xóa dữ liệu',
-      okType: 'danger',
-      cancelText: 'Hủy bỏ',
+      title: "Xác nhận xóa bộ sưu tập?",
+      icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
+      content: "Dữ liệu liên quan sẽ bị ảnh hưởng. Bạn chắc chắn chứ?",
+      okText: "Xóa dữ liệu",
+      okType: "danger",
+      cancelText: "Hủy bỏ",
       onOk: async () => {
         try {
           await deleteCollection(id);
@@ -72,93 +86,143 @@ const CollectionList = () => {
         }
       },
     });
+  }; // Hàm xử lý Lưu dữ liệu chuẩn chỉnh nối với API mới
+  const handleSaveCollection = async (submitData) => {
+    try {
+      setLoading(true);
+
+      if (editItem) {
+        // Trường hợp CẬP NHẬT (Edit)
+        await updateCollection(editItem.id, submitData);
+        showSuccessToast("Thành công", "Cập nhật bộ sưu tập thành công!");
+      } else {
+        // Trường hợp THÊM MỚI (Create)
+        console.log("submitData::", submitData);
+
+        await createCollection(submitData);
+        showSuccessToast("Thành công", "Khởi tạo bộ sưu tập thành công!");
+      }
+
+      setShowModal(false); // Đóng modal
+      fetchCollections(); // Làm mới danh sách hiển thị trên bảng
+    } catch (err) {
+      console.error("Lỗi khi gọi API:", err);
+      showErrorToast(
+        "Thất bại",
+        "Không thể lưu dữ liệu. Vui lòng kiểm tra lại backend.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const columns = [
     {
-      title: 'HÌNH ẢNH',
-      dataIndex: 'image',
-      key: 'image',
+      title: "HÌNH ẢNH",
+      dataIndex: "image",
+      key: "image",
       width: 100,
       render: (image, record) => (
-        <Badge dot={record.status === 'active'} offset={[-5, 35]} color="#52c41a">
-          <Avatar 
-            shape="rounded" 
-            size={54} 
-            src={image?.startsWith("http") ? image : `${process.env.REACT_APP_WEB_URL}/uploads/${image}`}
+        <Badge
+          dot={record.status === "active"}
+          offset={[-5, 35]}
+          color="#52c41a"
+        >
+          <Avatar
+            shape="rounded"
+            size={54}
+            src={
+              image?.startsWith("http")
+                ? image
+                : `${process.env.REACT_APP_WEB_URL}/uploads/bst/${image}`
+            }
             icon={<PictureOutlined />}
             className="border shadow-sm"
           />
         </Badge>
       ),
     },
-   {
-  title: 'THÔNG TIN BỘ SƯU TẬP',
-  key: 'info',
-  width: 350, // Cố định chiều rộng cột
-  render: (_, record) => (
-    <Space direction="vertical" size={0} style={{ width: '100%' }}>
-      {/* Tiêu đề: Giới hạn trên 1 dòng */}
-      <Tooltip title={record.name} placement="topLeft">
-        <Text strong style={{ 
-          fontSize: '15px', 
-          display: 'block',
-          width: '280px' 
-        }} ellipsis>
-          {record.name}
-        </Text>
-      </Tooltip>
-      
-      {/* Mô tả: Giới hạn trên 1 dòng màu nhạt hơn */}
-      <Text type="secondary" style={{ fontSize: '13px', width: '280px' }} ellipsis>
-        {record.description || "Chưa có mô tả..."}
-      </Text>
-    </Space>
-  ),
-},
     {
-      title: 'TRẠNG THÁI',
-      dataIndex: 'status',
-      key: 'status',
+      title: "THÔNG TIN BỘ SƯU TẬP",
+      key: "info",
+      width: 350, // Cố định chiều rộng cột
+      render: (_, record) => (
+        <Space direction="vertical" size={0} style={{ width: "100%" }}>
+          {/* Tiêu đề: Giới hạn trên 1 dòng */}
+          <Tooltip title={record.name} placement="topLeft">
+            <Text
+              strong
+              style={{
+                fontSize: "15px",
+                display: "block",
+                width: "280px",
+              }}
+              ellipsis
+            >
+              {record.name}
+            </Text>
+          </Tooltip>
+
+          {/* Mô tả: Giới hạn trên 1 dòng màu nhạt hơn */}
+          <Text
+            type="secondary"
+            style={{ fontSize: "13px", width: "280px" }}
+            ellipsis
+          >
+            {record.description || "Chưa có mô tả..."}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: "TRẠNG THÁI",
+      dataIndex: "status",
+      key: "status",
       width: 150,
-      align: 'center',
+      align: "center",
       render: (status) => (
-        <Tag color={status === 'active' ? 'processing' : 'default'} style={{ borderRadius: '20px', padding: '0 12px' }}>
-          {status === 'active' ? 'Đang hiển thị' : 'Đang ẩn'}
+        <Tag
+          color={status === "active" ? "processing" : "default"}
+          style={{ borderRadius: "20px", padding: "0 12px" }}
+        >
+          {status === "active" ? "Đang hiển thị" : "Đang ẩn"}
         </Tag>
       ),
     },
     {
-      title: 'NGÀY TẠO',
-      dataIndex: 'created_at',
-      key: 'created_at',
+      title: "NGÀY TẠO",
+      dataIndex: "created_at",
+      key: "created_at",
       width: 180,
       render: (date) => (
         <Text type="secondary">
           <CalendarOutlined style={{ marginRight: 6 }} />
-          {date ? new Date(date).toLocaleDateString('vi-VN') : '---'}
+          {date ? new Date(date).toLocaleDateString("vi-VN") : "---"}
         </Text>
-      )
+      ),
     },
     {
-      title: 'HÀNH ĐỘNG',
-      key: 'actions',
+      title: "HÀNH ĐỘNG",
+      key: "actions",
       width: 120,
-      align: 'right',
+      align: "right",
       render: (_, record) => (
         <Space size="middle">
           <Tooltip title="Chỉnh sửa">
-            <Button 
-              type="text" 
-              icon={<EditOutlined style={{ color: '#5d4037' }} />} 
-              onClick={() => { setEditItem(record); setShowModal(true); }}
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: "#5d4037" }} />}
+              onClick={() => {
+                setEditItem(record);
+                setShowModal(true);
+              }}
             />
           </Tooltip>
           <Tooltip title="Xóa">
-            <Button 
-              type="text" 
-              danger 
-              icon={<DeleteOutlined />} 
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
               onClick={() => showDeleteConfirm(record.id)}
             />
           </Tooltip>
@@ -168,7 +232,9 @@ const CollectionList = () => {
   ];
 
   return (
-    <ConfigProvider theme={{ token: { colorPrimary: "#5d4037", borderRadius: 8 } }}>
+    <ConfigProvider
+      theme={{ token: { colorPrimary: "#5d4037", borderRadius: 8 } }}
+    >
       <div className="p-4 bg-light min-vh-100">
         <style>{`
           .modern-table .ant-table-thead > tr > th { background: #fdfcf8; font-size: 12px; font-weight: 700; text-transform: uppercase; }
@@ -179,14 +245,22 @@ const CollectionList = () => {
         {/* Header Section */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
-            <Breadcrumb items={[{ title: "Quản trị" }, { title: "Bộ sưu tập" }]} className="mb-2" />
-            <Title level={3} className="m-0"><FolderOpenOutlined /> Danh sách Bộ sưu tập</Title>
+            <Breadcrumb
+              items={[{ title: "Quản trị" }, { title: "Bộ sưu tập" }]}
+              className="mb-2"
+            />
+            <Title level={3} className="m-0">
+              <FolderOpenOutlined /> Danh sách Bộ sưu tập
+            </Title>
           </div>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             size="large"
-            onClick={() => { setEditItem(null); setShowModal(true); }}
+            onClick={() => {
+              setEditItem(null);
+              setShowModal(true);
+            }}
             style={{ fontWeight: 600 }}
           >
             Khởi tạo mới
@@ -197,28 +271,32 @@ const CollectionList = () => {
         <div className="search-bar shadow-sm">
           <Space size="large" wrap>
             <div style={{ width: 300 }}>
-              <Text strong small>Tìm kiếm</Text>
-              <Input 
-                prefix={<SearchOutlined />} 
-                placeholder="Tên bộ sưu tập..." 
-                className="mt-1" 
+              <Text strong small>
+                Tìm kiếm
+              </Text>
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="Tên bộ sưu tập..."
+                className="mt-1"
                 size="large"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <div style={{ width: 200 }}>
-              <Text strong small>Trạng thái</Text>
-              <Select 
-                className="w-100 mt-1" 
-                size="large" 
+              <Text strong small>
+                Trạng thái
+              </Text>
+              <Select
+                className="w-100 mt-1"
+                size="large"
                 placeholder="Chọn trạng thái"
                 value={statusFilter}
-                onChange={v => setStatusFilter(v)}
+                onChange={(v) => setStatusFilter(v)}
                 options={[
-                  { label: 'Tất cả', value: '' },
-                  { label: 'Đang hoạt động', value: 'active' },
-                  { label: 'Tạm ẩn', value: 'inactive' },
+                  { label: "Tất cả", value: "" },
+                  { label: "Đang hoạt động", value: "active" },
+                  { label: "Tạm ẩn", value: "inactive" },
                 ]}
               />
             </div>
@@ -227,10 +305,10 @@ const CollectionList = () => {
 
         {/* Table Section */}
         <div className="bg-white p-3 rounded-4 border shadow-sm">
-          <Table 
+          <Table
             className="modern-table"
-            columns={columns} 
-            dataSource={collections} 
+            columns={columns}
+            dataSource={collections}
             rowKey="id"
             loading={loading}
             pagination={{
@@ -238,8 +316,8 @@ const CollectionList = () => {
               total: totalItems,
               pageSize: 10,
               onChange: (p) => setPage(p),
-              position: ['bottomCenter'],
-              showSizeChanger: false
+              position: ["bottomCenter"],
+              showSizeChanger: false,
             }}
           />
         </div>
@@ -247,7 +325,7 @@ const CollectionList = () => {
         <CollectionModal
           show={showModal}
           onHide={() => setShowModal(false)}
-          onSave={fetchCollections}
+          onSave={handleSaveCollection} // <--- Gọi chuẩn xác hàm handleSaveCollection
           initialData={editItem}
         />
       </div>

@@ -59,7 +59,10 @@ const AddSlide = () => {
 
       // Date range
       if (values.date_range) {
-        formData.append("start_date", values.date_range[0].format("YYYY-MM-DD"));
+        formData.append(
+          "start_date",
+          values.date_range[0].format("YYYY-MM-DD"),
+        );
         formData.append("end_date", values.date_range[1].format("YYYY-MM-DD"));
       }
 
@@ -84,13 +87,15 @@ const AddSlide = () => {
 
   // ================= VALIDATE IMAGE =================
   const beforeUpload = (file) => {
-    const isImage = ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+    const isImage = ["image/jpeg", "image/png", "image/webp"].includes(
+      file.type,
+    );
     if (!isImage) {
       message.error("Chỉ cho phép JPG, PNG, WEBP!");
       return Upload.LIST_IGNORE;
     }
 
-    const isLt5M = file.size / 1024 / 1024 < 5;
+    const isLt5M = file.size / 1920 / 1920 < 5;
     if (!isLt5M) {
       message.error("Ảnh phải nhỏ hơn 5MB!");
       return Upload.LIST_IGNORE;
@@ -113,7 +118,11 @@ const AddSlide = () => {
       />
 
       <Space align="center" style={{ marginTop: 12 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} type="text" />
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(-1)}
+          type="text"
+        />
         <Title level={3} style={{ margin: 0 }}>
           Tạo Slide Mới
         </Title>
@@ -133,7 +142,11 @@ const AddSlide = () => {
         <Row gutter={24}>
           {/* LEFT COLUMN */}
           <Col xs={24} lg={16}>
-            <Card title="Thông tin hiển thị" bordered={false} style={{ borderRadius: 16 }}>
+            <Card
+              title="Thông tin hiển thị"
+              bordered={false}
+              style={{ borderRadius: 16 }}
+            >
               <Row gutter={16}>
                 <Col span={24}>
                   <Form.Item
@@ -158,7 +171,9 @@ const AddSlide = () => {
                 <Col span={12}>
                   <Form.Item name="display_area" label="Vị trí hiển thị">
                     <Select size="large">
-                      <Select.Option value="home_banner">Trang chủ</Select.Option>
+                      <Select.Option value="home_banner">
+                        Trang chủ
+                      </Select.Option>
                       <Select.Option value="sidebar">Sidebar</Select.Option>
                       <Select.Option value="popup">Popup</Select.Option>
                       <Select.Option value="footer">Footer</Select.Option>
@@ -200,7 +215,11 @@ const AddSlide = () => {
 
           {/* RIGHT COLUMN */}
           <Col xs={24} lg={8}>
-            <Card title="Ảnh Banner" bordered={false} style={{ borderRadius: 16 }}>
+            <Card
+              title="Ảnh Banner"
+              bordered={false}
+              style={{ borderRadius: 16 }}
+            >
               <Form.Item
                 name="image"
                 rules={[{ required: true, message: "Chọn ảnh slide!" }]}
@@ -244,12 +263,21 @@ const AddSlide = () => {
                   icon={<SaveOutlined />}
                   loading={loading}
                   block
-                  style={{ background: "#5d4037", borderColor: "#5d4037", height: 50 }}
+                  style={{
+                    background: "#5d4037",
+                    borderColor: "#5d4037",
+                    height: 50,
+                  }}
                 >
                   Thêm Slide
                 </Button>
 
-                <Button block size="large" disabled={loading} onClick={() => navigate(-1)}>
+                <Button
+                  block
+                  size="large"
+                  disabled={loading}
+                  onClick={() => navigate(-1)}
+                >
                   Hủy
                 </Button>
               </Space>
